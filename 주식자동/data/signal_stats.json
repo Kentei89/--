@@ -1,0 +1,56 @@
+{
+  "ADX_trend": {
+    "win": 1,
+    "loss": 11,
+    "total_return": -67.12,
+    "count": 12
+  },
+  "MACD_above": {
+    "win": 1,
+    "loss": 10,
+    "total_return": -61.92,
+    "count": 11
+  },
+  "MA20_above": {
+    "win": 2,
+    "loss": 11,
+    "total_return": -57.54,
+    "count": 13
+  },
+  "MA60_above": {
+    "win": 2,
+    "loss": 11,
+    "total_return": -57.54,
+    "count": 13
+  },
+  "MA_align": {
+    "win": 2,
+    "loss": 11,
+    "total_return": -57.54,
+    "count": 13
+  },
+  "OBV_bull": {
+    "win": 2,
+    "loss": 11,
+    "total_return": -57.54,
+    "count": 13
+  },
+  "RSI_overbought": {
+    "win": 0,
+    "loss": 8,
+    "total_return": -60.01,
+    "count": 8
+  },
+  "RSI_oversold": {
+    "win": 1,
+    "loss": 0,
+    "total_return": 9.58,
+    "count": 1
+  },
+  "MACD_golden": {
+    "win": 1,
+    "loss": 1,
+    "total_return": 4.38,
+    "count": 2
+  }
+}
