@@ -1,5 +1,6 @@
 profiles.json
 *firebase-adminsdk*.json
+.streamlit/secrets.toml
 __pycache__/
 *.pyc
 *.pyo
