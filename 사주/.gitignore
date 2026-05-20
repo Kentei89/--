@@ -1,4 +1,5 @@
 profiles.json
+*firebase-adminsdk*.json
 __pycache__/
 *.pyc
 *.pyo

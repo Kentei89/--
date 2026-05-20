@@ -4,6 +4,8 @@ import calendar as _cal_mod
 from datetime import datetime
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
+import firebase_admin
+from firebase_admin import credentials, firestore as _fs
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -203,21 +205,46 @@ def _parse_time(raw: str):
     return None
 
 
-# ── 프로필 저장/불러오기 ─────────────────────────────────────
+# ── Firebase 초기화 ──────────────────────────────────────────
 _PROFILES_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profiles.json")
+_FB_KEY_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "saju-9300e-firebase-adminsdk-fbsvc-8d97bee29f.json")
+
+@st.cache_resource
+def _get_db():
+    if not firebase_admin._apps:
+        try:
+            cred = credentials.Certificate({k: v for k, v in st.secrets["firebase"].items()})
+        except Exception:
+            cred = credentials.Certificate(_FB_KEY_FILE)
+        firebase_admin.initialize_app(cred)
+    return _fs.client()
 
 def _load_profiles() -> dict:
+    try:
+        doc = _get_db().collection("saju").document("profiles").get()
+        if doc.exists:
+            return doc.to_dict().get("data", {})
+    except Exception:
+        pass
     if os.path.exists(_PROFILES_FILE):
         try:
             with open(_PROFILES_FILE, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
-            return {}
+            pass
     return {}
 
 def _save_profiles(profiles: dict):
-    with open(_PROFILES_FILE, "w", encoding="utf-8") as f:
-        json.dump(profiles, f, ensure_ascii=False, indent=2)
+    try:
+        _get_db().collection("saju").document("profiles").set({"data": profiles})
+    except Exception:
+        pass
+    try:
+        with open(_PROFILES_FILE, "w", encoding="utf-8") as f:
+            json.dump(profiles, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 
 def _profile_bar(key: str):
     """폼 상단의 프로필 불러오기/저장/삭제 바"""
