@@ -87,14 +87,15 @@ st.markdown("""
 
     /* 해설 박스 */
     .narr-box {
-        font-family: 'D2Coding', 'Consolas', monospace;
-        font-size: 13px;
+        font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+        font-size: 16px;
         white-space: pre-wrap;
-        background: #fafafa;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 20px 18px;
-        line-height: 1.7;
+        background: transparent;
+        border: none;
+        border-left: 4px solid #e8e8f5;
+        border-radius: 0;
+        padding: 12px 18px;
+        line-height: 1.9;
         color: #2c2c2c;
     }
 

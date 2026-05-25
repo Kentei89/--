@@ -1,45 +1,45 @@
 {
   "ADX_trend": {
     "win": 1,
-    "loss": 11,
-    "total_return": -67.12,
-    "count": 12
+    "loss": 12,
+    "total_return": -74.87,
+    "count": 13
   },
   "MACD_above": {
     "win": 1,
-    "loss": 10,
-    "total_return": -61.92,
-    "count": 11
+    "loss": 11,
+    "total_return": -69.67,
+    "count": 12
   },
   "MA20_above": {
     "win": 2,
-    "loss": 11,
-    "total_return": -57.54,
-    "count": 13
+    "loss": 12,
+    "total_return": -65.29,
+    "count": 14
   },
   "MA60_above": {
     "win": 2,
-    "loss": 11,
-    "total_return": -57.54,
-    "count": 13
+    "loss": 12,
+    "total_return": -65.29,
+    "count": 14
   },
   "MA_align": {
     "win": 2,
-    "loss": 11,
-    "total_return": -57.54,
-    "count": 13
+    "loss": 12,
+    "total_return": -65.29,
+    "count": 14
   },
   "OBV_bull": {
     "win": 2,
-    "loss": 11,
-    "total_return": -57.54,
-    "count": 13
+    "loss": 12,
+    "total_return": -65.29,
+    "count": 14
   },
   "RSI_overbought": {
     "win": 0,
-    "loss": 8,
-    "total_return": -60.01,
-    "count": 8
+    "loss": 9,
+    "total_return": -67.76,
+    "count": 9
   },
   "RSI_oversold": {
     "win": 1,

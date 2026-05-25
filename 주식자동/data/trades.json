@@ -1,5 +1,5 @@
 {
-  "capital": 1394726,
+  "capital": 2020803,
   "positions": [
     {
       "id": "20260508094656125309",
@@ -268,33 +268,6 @@
       "auto_target1": 89560.0,
       "auto_target2": 96920.0,
       "auto_stop": 60510.0,
-      "is_auto": true
-    },
-    {
-      "id": "20260512104145881172",
-      "ticker": "078930",
-      "name": "GS",
-      "quantity": 9,
-      "buy_price": 75400,
-      "buy_commission": 102,
-      "buy_date": "2026-05-12",
-      "buy_time": "10:41",
-      "buy_signal": "매수",
-      "buy_score": 6,
-      "buy_reasons": [
-        "ADX 46.8 — 강한 추세 (신호 신뢰도 ↑)",
-        "+DI(31.2) > -DI(16.8) — 상승 추세 우위 (+1)",
-        "RSI 62.1 — 매도 관심 (-1)",
-        "MACD > 시그널 — 상승 모멘텀 (+1)",
-        "종가 > MA20 — 단기 상승추세 (+1)",
-        "종가 > MA60 — 중기 상승추세 (+1)",
-        "정배열 (MA5>MA20>MA60) — 강한 상승 구도 (+2)",
-        "OBV > 기준선 — 매집(세력 유입) 신호 (+1)"
-      ],
-      "buy_note": "자동매수 | 목표가1: ₩85,150.0 | 손절가: ₩71,070.0",
-      "auto_target1": 85150.0,
-      "auto_target2": 88620.0,
-      "auto_stop": 71070.0,
       "is_auto": true
     },
     {
@@ -886,6 +859,48 @@
       "pnl": -70940,
       "pnl_pct": -10.09,
       "holding_days": 5,
+      "result": "손실"
+    },
+    {
+      "id": "20260512104145881172",
+      "ticker": "078930",
+      "name": "GS",
+      "quantity": 9,
+      "buy_price": 75400,
+      "buy_commission": 102,
+      "buy_date": "2026-05-12",
+      "buy_time": "10:41",
+      "buy_signal": "매수",
+      "buy_score": 6,
+      "buy_reasons": [
+        "ADX 46.8 — 강한 추세 (신호 신뢰도 ↑)",
+        "+DI(31.2) > -DI(16.8) — 상승 추세 우위 (+1)",
+        "RSI 62.1 — 매도 관심 (-1)",
+        "MACD > 시그널 — 상승 모멘텀 (+1)",
+        "종가 > MA20 — 단기 상승추세 (+1)",
+        "종가 > MA60 — 중기 상승추세 (+1)",
+        "정배열 (MA5>MA20>MA60) — 강한 상승 구도 (+2)",
+        "OBV > 기준선 — 매집(세력 유입) 신호 (+1)"
+      ],
+      "buy_note": "자동매수 | 목표가1: ₩85,150.0 | 손절가: ₩71,070.0",
+      "auto_target1": 85150.0,
+      "auto_target2": 88620.0,
+      "auto_stop": 71070.0,
+      "is_auto": true,
+      "sell_price": 69700,
+      "sell_date": "2026-05-14",
+      "sell_time": "09:13",
+      "sell_reasons": [
+        "자동 매도: 손절가(₩71,070.0) 도달 — 손실 최소화",
+        "매수 시그널: 매수 (점수 +6)"
+      ],
+      "sell_note": "자동매도",
+      "sell_commission": 94,
+      "sell_tax": 1129,
+      "total_fee": 1325,
+      "pnl": -52625,
+      "pnl_pct": -7.75,
+      "holding_days": 2,
       "result": "손실"
     }
   ]
