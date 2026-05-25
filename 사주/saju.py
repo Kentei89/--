@@ -1725,7 +1725,9 @@ def analyze_wolun_detail(name, pillars, target_year):
         for domain, icon in _DOMAIN_ICONS:
             text = domain_data.get(domain, '')
             if text:
-                lines.append(f'**{icon} {domain}**  {text}')
+                lines.append(f'**{icon} {domain}**')
+                lines.append(text)
+                lines.append('')
 
         if is_yong and not is_ki:
             lines.append(f'> 이달은 용신({ya_name}) 기운이 강해 좋은 흐름이 이어져요. 적극적으로 움직이세요.')
@@ -1931,7 +1933,9 @@ def analyze_ilchin_day(pillars, year, month, day):
         for domain, icon in _D_ICONS:
             text = domain_data.get(domain, '')
             if text:
-                lines.append(f'**{icon} {domain}**  {text}')
+                lines.append(f'**{icon} {domain}**')
+                lines.append(text)
+                lines.append('')
 
     return '\n'.join(lines)
 
