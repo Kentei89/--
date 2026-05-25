@@ -63,117 +63,148 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* 전체 폰트 */
-    html, body, [class*="css"] { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; }
+    /* ── 전체 폰트 ─────────────────────────────────────────── */
+    html, body, [class*="css"] {
+        font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    }
 
-    /* 제목 */
-    h1 { text-align: center; font-size: 2rem !important; color: #2c2c2c; padding-bottom: 0.2rem; }
+    /* ── 앱 배경 ────────────────────────────────────────────── */
+    .main { background: #f8f8fc; }
+    .main .block-container {
+        max-width: 860px !important;
+        padding-top: 1.5rem !important;
+    }
 
-    /* 탭 스타일 */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; justify-content: center; }
+    /* ── 제목 ───────────────────────────────────────────────── */
+    h1 {
+        text-align: center;
+        font-size: 2rem !important;
+        color: #2c2c54;
+        padding-bottom: 0.2rem;
+        letter-spacing: -0.5px;
+    }
+
+    /* ── 탭 스타일 ──────────────────────────────────────────── */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        justify-content: center;
+        border-bottom: 2px solid #e0e0f0;
+        padding-bottom: 0;
+    }
     .stTabs [data-baseweb="tab"] {
-        font-size: 1rem; padding: 8px 24px;
-        border-radius: 8px 8px 0 0;
-        background: #f0f0f0; border: none;
-    }
-    .stTabs [aria-selected="true"] { background: #4a4a8a !important; color: white !important; }
-
-    /* 버튼 */
-    .stButton > button[kind="primary"] {
-        background: #4a4a8a; color: white; border: none;
-        border-radius: 8px; font-size: 1rem; padding: 10px 0;
-    }
-    .stButton > button[kind="primary"]:hover { background: #35357a; }
-
-    /* 해설 박스 */
-    .narr-box {
-        font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-        font-size: 16px;
-        white-space: pre-wrap;
-        background: transparent;
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 9px 22px;
+        border-radius: 10px 10px 0 0;
+        background: #ededf7;
         border: none;
-        border-left: 4px solid #e8e8f5;
-        border-radius: 0;
-        padding: 12px 18px;
-        line-height: 1.9;
-        color: #2c2c2c;
+        color: #666;
+        transition: background 0.2s;
+    }
+    .stTabs [aria-selected="true"] {
+        background: #4a4a8a !important;
+        color: white !important;
+        box-shadow: 0 -2px 8px rgba(74,74,138,0.18);
     }
 
-    /* 점수 카드 */
+    /* ── 버튼 ───────────────────────────────────────────────── */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4a4a8a, #6b6bba);
+        color: white; border: none;
+        border-radius: 10px; font-size: 1rem;
+        font-weight: 600; padding: 12px 0;
+        box-shadow: 0 3px 10px rgba(74,74,138,0.25);
+        transition: all 0.2s;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #35357a, #5555aa);
+        box-shadow: 0 5px 15px rgba(74,74,138,0.35);
+    }
+
+    /* ── 점수 카드 ──────────────────────────────────────────── */
     .score-card {
-        background: linear-gradient(135deg, #4a4a8a, #7070ba);
-        color: white; border-radius: 12px;
-        padding: 18px 24px; text-align: center;
+        background: linear-gradient(135deg, #4a4a8a, #7575c0);
+        color: white; border-radius: 14px;
+        padding: 20px 24px; text-align: center;
         margin-bottom: 12px;
+        box-shadow: 0 4px 16px rgba(74,74,138,0.22);
     }
-    .score-card .score-num { font-size: 2.8rem; font-weight: bold; line-height: 1; }
-    .score-card .score-label { font-size: 0.95rem; opacity: 0.85; margin-top: 4px; }
+    .score-card .score-num { font-size: 2.8rem; font-weight: 800; line-height: 1; }
+    .score-card .score-label { font-size: 0.95rem; opacity: 0.9; margin-top: 5px; }
 
-    /* 섹션 헤더 */
+    /* ── 섹션 헤더 ──────────────────────────────────────────── */
     .sec-header {
-        font-size: 1.1rem; font-weight: 700;
-        color: #4a4a8a; padding: 6px 0 2px 0;
-        border-bottom: 2px solid #e8e8f5; margin-bottom: 8px;
+        font-size: 1.05rem; font-weight: 700;
+        color: #4a4a8a; padding: 7px 0 4px 0;
+        border-bottom: 2px solid #e0e0f5; margin-bottom: 10px;
+        letter-spacing: -0.3px;
     }
 
-    /* 태그 뱃지 */
-    .badge-green { background:#d4edda; color:#155724; padding:3px 10px; border-radius:12px; font-size:0.85rem; margin:2px; display:inline-block; }
-    .badge-orange { background:#fff3cd; color:#856404; padding:3px 10px; border-radius:12px; font-size:0.85rem; margin:2px; display:inline-block; }
+    /* ── 태그 뱃지 ──────────────────────────────────────────── */
+    .badge-green  { background:#d4f7e0; color:#1a6634; padding:4px 12px; border-radius:20px; font-size:0.82rem; margin:2px; display:inline-block; font-weight:600; }
+    .badge-orange { background:#fff0cc; color:#7a5500; padding:4px 12px; border-radius:20px; font-size:0.82rem; margin:2px; display:inline-block; font-weight:600; }
 
-    /* 구분선 */
-    hr { border: none; border-top: 1px solid #ebebeb; margin: 18px 0; }
+    /* ── 구분선 ─────────────────────────────────────────────── */
+    hr { border: none; border-top: 1px solid #e8e8f2; margin: 20px 0; }
 
-    /* 입력 폼 배경 */
-    .form-container { background: #f7f7fb; border-radius: 12px; padding: 20px; margin-bottom: 12px; }
+    /* ── 텍스트 가독성 ──────────────────────────────────────── */
+    p, li, .stMarkdown { line-height: 1.85; }
 
-    /* ── 모바일 반응형 ─────────────────────────────────────── */
+    /* ── 익스팬더 ───────────────────────────────────────────── */
+    .streamlit-expanderHeader {
+        font-weight: 600 !important;
+        font-size: 0.97rem !important;
+        color: #2c2c54 !important;
+        background: #f0f0fa !important;
+        border-radius: 8px !important;
+        padding: 10px 14px !important;
+    }
+    .streamlit-expanderContent {
+        border: 1px solid #e8e8f2 !important;
+        border-top: none !important;
+        border-radius: 0 0 8px 8px !important;
+        padding: 14px !important;
+        background: #fff !important;
+    }
+
+    /* ── 데이터프레임 ───────────────────────────────────────── */
+    [data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
+
+    /* ── ✅ 모바일 반응형 ────────────────────────────────────── */
     @media (max-width: 640px) {
-        /* 여백 축소 */
         .main .block-container {
-            padding-left: 0.6rem !important;
-            padding-right: 0.6rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
             max-width: 100% !important;
         }
 
-        /* 제목 */
-        h1 { font-size: 1.4rem !important; }
+        h1 { font-size: 1.35rem !important; }
 
-        /* 탭 레이블 */
         .stTabs [data-baseweb="tab"] {
-            font-size: 0.7rem !important;
-            padding: 6px 7px !important;
+            font-size: 0.72rem !important;
+            padding: 7px 9px !important;
         }
         .stTabs [data-baseweb="tab-list"] { gap: 3px !important; }
 
-        /* 해설 박스 */
-        .narr-box {
-            font-size: 11.5px !important;
-            padding: 12px 10px !important;
-            line-height: 1.55 !important;
-        }
-
-        /* 점수 카드 */
         .score-card { padding: 12px 14px !important; }
         .score-card .score-num { font-size: 2rem !important; }
-        .score-card .score-label { font-size: 0.82rem !important; }
+        .score-card .score-label { font-size: 0.8rem !important; }
 
-        /* 섹션 헤더 */
-        .sec-header { font-size: 0.95rem !important; }
+        .sec-header { font-size: 0.92rem !important; }
 
-        /* 버튼 */
         .stButton > button[kind="primary"] {
-            font-size: 0.9rem !important;
-            padding: 8px 0 !important;
+            font-size: 0.88rem !important;
+            padding: 10px 0 !important;
         }
 
-        /* dataframe 글자 축소 */
-        [data-testid="stDataFrame"] { font-size: 0.78rem !important; }
+        [data-testid="stDataFrame"] { font-size: 0.75rem !important; }
 
-        /* 뱃지 */
         .badge-green, .badge-orange {
-            font-size: 0.78rem !important;
-            padding: 2px 7px !important;
+            font-size: 0.75rem !important;
+            padding: 3px 8px !important;
         }
+
+        p, li, .stMarkdown { line-height: 1.7 !important; font-size: 0.93rem !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -839,8 +870,74 @@ def _render_daewoon_table(start_age, forward, daeun):
     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 
+def _get_holidays(year: int) -> dict:
+    """양력 날짜 → 공휴일 이름 딕셔너리 반환. 음력 연휴는 KoreanLunarCalendar로 변환."""
+    h = {}
+
+    # ── 법정 공휴일 (고정) ──────────────────────────────────────
+    fixed = {
+        (1,  1): "신정",
+        (3,  1): "삼일절",
+        (5,  5): "어린이날",
+        (6,  6): "현충일",
+        (8, 15): "광복절",
+        (10, 3): "개천절",
+        (10, 9): "한글날",
+        (12,25): "성탄절",
+    }
+    for (m, d), name in fixed.items():
+        h[(year, m, d)] = name
+
+    # ── 음력 기반 공휴일 변환 ────────────────────────────────────
+    lc = KoreanLunarCalendar()
+
+    def _lunar(lm, ld, label):
+        try:
+            lc.setLunarDate(year, lm, ld, False)
+            s = lc.SolarIsoFormat()
+            sy, sm, sd = map(int, s.split('-'))
+            h[(sy, sm, sd)] = label
+        except Exception:
+            pass
+
+    # 설날 (음력 1/1) + 전날 + 다음날
+    _lunar(1, 1, "설날")
+    try:
+        lc.setLunarDate(year, 1, 1, False)
+        s = lc.SolarIsoFormat()
+        sy, sm, sd = map(int, s.split('-'))
+        from datetime import timedelta
+        d_obj = datetime(sy, sm, sd).date()
+        prev = d_obj - timedelta(days=1)
+        nxt  = d_obj + timedelta(days=1)
+        h[(prev.year, prev.month, prev.day)] = "설날연휴"
+        h[(nxt.year,  nxt.month,  nxt.day)]  = "설날연휴"
+    except Exception:
+        pass
+
+    # 석가탄신일 (음력 4/8)
+    _lunar(4, 8, "부처님오신날")
+
+    # 추석 (음력 8/15) + 전날 + 다음날
+    _lunar(8, 15, "추석")
+    try:
+        lc.setLunarDate(year, 8, 15, False)
+        s = lc.SolarIsoFormat()
+        sy, sm, sd = map(int, s.split('-'))
+        from datetime import timedelta
+        d_obj = datetime(sy, sm, sd).date()
+        prev = d_obj - timedelta(days=1)
+        nxt  = d_obj + timedelta(days=1)
+        h[(prev.year, prev.month, prev.day)] = "추석연휴"
+        h[(nxt.year,  nxt.month,  nxt.day)]  = "추석연휴"
+    except Exception:
+        pass
+
+    return h
+
+
 def _render_ilchin_calendar(year, month, pillars=None):
-    _OH_BG = {'목':'#f1f8e9','화':'#fce4ec','토':'#fff8e1','금':'#f5f5f5','수':'#e3f2fd'}
+    _OH_BG = {'목':'#f1f8e9','화':'#fde8f0','토':'#fff8e1','금':'#f5f5f5','수':'#e3f2fd'}
 
     ya_name = ''; ki_names = []; ilji = -1
     if pillars:
@@ -848,6 +945,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
         ilji = pillars[2][1]
 
     lc = KoreanLunarCalendar()
+    holidays = _get_holidays(year)
     days_in_month = _cal_mod.monthrange(year, month)[1]
     first_wd      = _cal_mod.weekday(year, month, 1)   # 0=월
     today         = datetime.now().date()
@@ -871,6 +969,8 @@ def _render_ilchin_calendar(year, month, pillars=None):
             hap     = pair in YUKAHP
             chung   = any(pair == c for c in JIJI_CHUNG)
 
+        holiday_name = holidays.get((year, month, d), '')
+
         cells.append({
             'd': d, 'dg': dg, 'dj': dj,
             'ganji': CHEONGAN[dg] + JIJI[dj],
@@ -880,6 +980,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
             'is_yong': is_yong, 'is_ki': is_ki,
             'hap': hap, 'chung': chung,
             'is_today': datetime(year, month, d).date() == today,
+            'holiday': holiday_name,
         })
 
     while len(cells) % 7:
@@ -889,54 +990,94 @@ def _render_ilchin_calendar(year, month, pillars=None):
                   '<span style="color:#90caf9">토</span>',
                   '<span style="color:#ef9a9a">일</span>']
     html = [
-        '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">',
-        '<table style="width:100%;min-width:400px;border-collapse:collapse;table-layout:fixed;">',
+        '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 8px 0;">',
+        '<table style="width:100%;min-width:300px;border-collapse:collapse;table-layout:fixed;border-radius:8px;overflow:hidden;">',
         '<colgroup>' + '<col style="width:14.28%;">' * 7 + '</colgroup><tr>',
     ]
     for lbl in hdr_labels:
-        html.append(f'<th style="background:#4a4a8a;color:#fff;padding:7px 2px;'
-                    f'text-align:center;font-size:0.85rem;">{lbl}</th>')
+        html.append(
+            f'<th style="background:#4a4a8a;color:#fff;padding:8px 2px;'
+            f'text-align:center;font-size:0.82rem;font-weight:700;'
+            f'letter-spacing:0.02em;">{lbl}</th>'
+        )
     html.append('</tr>')
 
     for row_i in range(0, len(cells), 7):
         html.append('<tr>')
         for col_i, cell in enumerate(cells[row_i:row_i+7]):
             if cell is None:
-                html.append('<td style="border:1px solid #e8e8e8;background:#f9f9f9;'
-                            'padding:3px;height:78px;"></td>')
+                html.append(
+                    '<td style="border:1px solid #ebebf2;background:#f5f5fa;'
+                    'padding:3px;min-height:72px;"></td>'
+                )
                 continue
-            bg  = ('#ede7f6' if cell['is_today'] else
-                   '#e8f5e9' if cell['is_yong']  else
-                   '#fff8e1' if cell['is_ki']     else cell['bg'])
-            bw  = '2px' if (cell['hap'] or cell['chung']) else '1px'
-            bc  = ('#43a047' if cell['hap'] else '#e53935' if cell['chung'] else '#e0e0e0')
-            dc  = ('#e53935' if col_i == 6 else '#42a5f5' if col_i == 5 else '#1a1a1a')
-            today_dot = ' ●' if cell['is_today'] else ''
+
+            is_holiday = bool(cell['holiday'])
+            is_sunday  = col_i == 6
+            is_sat     = col_i == 5
+
+            bg = ('#ede7f6' if cell['is_today'] else
+                  '#fdecea' if is_holiday        else
+                  '#e8f5e9' if cell['is_yong']   else
+                  '#fff8e1' if cell['is_ki']      else
+                  cell['bg'])
+
+            bw = '2px' if (cell['hap'] or cell['chung']) else '1px'
+            bc = ('#43a047' if cell['hap'] else '#e53935' if cell['chung'] else '#e0e0ec')
+
+            if is_holiday or is_sunday:
+                dc = '#e53935'
+            elif is_sat:
+                dc = '#42a5f5'
+            else:
+                dc = '#1a1a2e'
+
+            today_ring = (
+                'outline:2px solid #7c4dff;outline-offset:-2px;border-radius:4px;'
+                if cell['is_today'] else ''
+            )
+
+            holiday_html = ''
+            if cell['holiday']:
+                hname = cell['holiday']
+                holiday_html = (
+                    f'<div style="font-size:0.5rem;color:#c62828;font-weight:700;'
+                    f'line-height:1.1;margin-bottom:1px;white-space:nowrap;overflow:hidden;'
+                    f'text-overflow:ellipsis;">{hname}</div>'
+                )
 
             tags = ''
-            if cell['is_yong']:  tags += '<span style="font-size:0.55rem;background:#43a047;color:#fff;border-radius:3px;padding:0 3px;margin:0 1px;">용신</span>'
-            if cell['is_ki']:    tags += '<span style="font-size:0.55rem;background:#fb8c00;color:#fff;border-radius:3px;padding:0 3px;margin:0 1px;">기신</span>'
-            if cell['hap']:      tags += '<span style="font-size:0.55rem;background:#1e88e5;color:#fff;border-radius:3px;padding:0 3px;margin:0 1px;">합</span>'
-            if cell['chung']:    tags += '<span style="font-size:0.55rem;background:#e53935;color:#fff;border-radius:3px;padding:0 3px;margin:0 1px;">충</span>'
+            if cell['is_yong']:
+                tags += '<span style="font-size:0.5rem;background:#43a047;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신</span>'
+            if cell['is_ki']:
+                tags += '<span style="font-size:0.5rem;background:#fb8c00;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신</span>'
+            if cell['hap']:
+                tags += '<span style="font-size:0.5rem;background:#1e88e5;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">합</span>'
+            if cell['chung']:
+                tags += '<span style="font-size:0.5rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충</span>'
 
             html.append(
-                f'<td style="border:{bw} solid {bc};background:{bg};padding:4px 3px;'
-                f'vertical-align:top;height:78px;overflow:hidden;">'
-                f'<div style="font-size:0.95rem;font-weight:700;color:{dc};line-height:1.2;">'
-                f'{cell["d"]}{today_dot}</div>'
-                f'<div style="font-size:0.65rem;color:#aaa;line-height:1.2;">음 {cell["lunar"]}</div>'
-                f'<div style="font-size:0.82rem;color:#333;font-weight:600;line-height:1.3;">{cell["ganji"]}</div>'
-                f'<div style="font-size:0.8rem;line-height:1.2;">{cell["emoji"]}</div>'
+                f'<td style="border:{bw} solid {bc};background:{bg};padding:4px 3px 3px 4px;'
+                f'vertical-align:top;min-height:72px;{today_ring}">'
+                f'<div style="font-size:0.9rem;font-weight:700;color:{dc};line-height:1.2;">{cell["d"]}</div>'
+                f'{holiday_html}'
+                f'<div style="font-size:0.6rem;color:#aaa;line-height:1.2;">음 {cell["lunar"]}</div>'
+                f'<div style="font-size:0.78rem;color:#333;font-weight:600;line-height:1.3;">{cell["ganji"]}</div>'
+                f'<div style="font-size:0.75rem;line-height:1.2;">{cell["emoji"]}</div>'
                 f'<div style="margin-top:1px;">{tags}</div>'
                 f'</td>'
             )
         html.append('</tr>')
 
-    html.append('</table>')
-    html.append('</div>')
-    if pillars:
-        st.caption('🟢 용신날  🟡 기신날  🔵 합(合)일  🔴 충(沖)일  🟣 오늘')
+    html.append('</table></div>')
+
     st.markdown('\n'.join(html), unsafe_allow_html=True)
+
+    # 범례
+    legend_parts = ['🟣 오늘  🔴 공휴일']
+    if pillars:
+        legend_parts += ['🟢 용신날', '🟡 기신날', '🔵 합(合)일', '⭕ 충(沖)일']
+    st.caption('  |  '.join(legend_parts))
 
 
 # ─────────────────────────────────────────────────────────────
