@@ -180,14 +180,7 @@ st.markdown("""
 
 
 def _narr(text: str):
-    """서식 있는 해설 텍스트를 예쁜 박스로 출력"""
-    escaped = (text
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("~", "&#126;")
-    )
-    st.markdown(f'<div class="narr-box">{escaped}</div>', unsafe_allow_html=True)
+    st.markdown(text)
 
 
 def _parse_time(raw: str):
