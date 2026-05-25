@@ -208,7 +208,18 @@ _FB_KEY_FILE   = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 def _get_db():
     if not firebase_admin._apps:
         try:
-            cred = credentials.Certificate({k: v for k, v in st.secrets["firebase"].items()})
+            s = st.secrets["firebase"]
+            info = {
+                "type":             s["type"],
+                "project_id":       s["project_id"],
+                "private_key_id":   s["private_key_id"],
+                "private_key":      s["private_key"].replace("\\n", "\n"),
+                "client_email":     s["client_email"],
+                "client_id":        s["client_id"],
+                "auth_uri":         "https://accounts.google.com/o/oauth2/auth",
+                "token_uri":        "https://oauth2.googleapis.com/token",
+            }
+            cred = credentials.Certificate(info)
         except Exception:
             cred = credentials.Certificate(_FB_KEY_FILE)
         firebase_admin.initialize_app(cred)
