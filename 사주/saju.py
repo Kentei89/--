@@ -2791,7 +2791,7 @@ def analyze_saju(name, pillars, gil, hyung):
     _season_open = {'봄':'봄의 기운으로','여름':'여름의 열기로','가을':'가을의 결실로','겨울':'겨울의 깊이로'}
     _s_open = _season_open.get(season_name,'')
 
-    out = [f'\n{"━"*62}', f'  ◈ {name}님의 사주 풀이', f'{"━"*62}']
+    out = [f'## {name}님의 사주 풀이', '']
 
     # ① 총평 & 성격
     _personality_subtitle = {
@@ -2799,53 +2799,46 @@ def analyze_saju(name, pillars, gil, hyung):
         '신약(身弱)': f'{_meta}처럼 {_s_open} 꽃피우는 섬세한 감성',
         '중화(中和)': f'{_meta}처럼 {_s_open} 균형 잡힌 안정적 기질',
     }
-    out.append(f'\n  ◆ 총평 & 성격  |  {_personality_subtitle.get(strength, name+"님은 어떤 사람일까요")}')
-    out.append(f'  {"─"*58}')
-    out.append(f'  {_personality_text(ilgan, season_name, yongshin_name, strength, name)}')
-
-    # 득령 해설
+    out.append(f'**📌 총평 & 성격** — {_personality_subtitle.get(strength, name+"님은 어떤 사람일까요")}')
+    out.append('')
+    out.append(_personality_text(ilgan, season_name, yongshin_name, strength, name))
+    out.append('')
     if deukryeong:
-        out.append(
-            f'\n  [득령(得令)] 태어난 계절({season_name})에서 일간 {il_name}이(가) 왕성한 기운을 얻었어요. '
-            f'타고난 기질이 뚜렷하고 의지력과 추진력이 강해요. '
-            f'자신의 색깔이 분명하여 개성이 강하게 나타나며, 외부 환경에 쉽게 흔들리지 않아요.'
-        )
+        out.append(f'> 🌟 **득령(得令)** 태어난 계절({season_name})에서 일간 {il_name}이(가) 왕성한 기운을 얻었어요. 타고난 기질이 뚜렷하고 의지력과 추진력이 강해요.')
     else:
-        out.append(
-            f'\n  [실령(失令)] 태어난 계절({season_name})에서 일간 {il_name}이(가) 기운을 충분히 얻지 못했어요. '
-            f'타인의 도움과 환경의 조화가 중요하며, '
-            f'용신({yongshin_name})의 기운을 가까이할수록 삶의 균형과 에너지가 회복돼요. '
-            f'주변 환경과 인간관계가 성패를 크게 좌우해요.'
-        )
+        out.append(f'> ⚠️ **실령(失令)** 태어난 계절({season_name})에서 일간 {il_name}이(가) 기운을 충분히 얻지 못했어요. 용신({yongshin_name})의 기운을 가까이할수록 삶의 균형이 회복돼요.')
+    out.append('')
 
     # ② 격국 해설
     gyeok, gyeok_yong_oh, ki_list = get_gyeokguk(pillars)
     gyeok_hanja, gyeok_desc = GYEOKGUK_DESC.get(gyeok, ('', ''))
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
-    out.append(f'\n  ◆ 격국(格局) · 용신(用神)')
-    out.append(f'  {"─"*58}')
-    out.append(f'  격국: {gyeok}({gyeok_hanja})  |  강약: {strength}')
-    out.append(f'  {gyeok_desc}')
-    out.append(f'  • 기신(忌神): {", ".join(ki_names)}')
+    out.append('---')
+    out.append(f'**🔮 격국(格局) · 용신(用神)**')
+    out.append('')
+    out.append(f'격국: **{gyeok}**({gyeok_hanja})  ·  강약: **{strength}**')
+    out.append('')
+    out.append(gyeok_desc)
+    out.append('')
+    out.append(f'- 기신(忌神): **{", ".join(ki_names)}**')
     for kn in ki_names:
-        out.append(f'    - {_KIGAN_DESC.get(kn, "")}')
+        out.append(f'  - {_KIGAN_DESC.get(kn, "")}')
+    out.append('')
+    out.append(f'용신(用神): **{yongshin_name}**  [{basis}]')
+    out.append('')
+    out.append(_yongshin_detail(yongshin_oh, ilgan, strength, season_name))
+    out.append('')
 
-    # ③ 용신 해설
-    out.append(f'\n  용신(用神): {yongshin_name}  [{basis}]')
-    out.append(f'  {_yongshin_detail(yongshin_oh, ilgan, strength, season_name)}')
-
-    # ④ 맞춤 개운법
+    # ③ 맞춤 개운법
     gaeun = YONGSHIN_GAEUN[yongshin_oh]
-    out.append(f'\n  ◆ 맞춤 개운법  (용신: {yongshin_name})')
-    out.append(f'  {"─"*58}')
-    out.append(f'  • 행운의 색상: {gaeun["color"]}')
-    out.append(f'    이 색상의 옷, 지갑, 소품을 곁에 두면 {yongshin_name}의 기운을 보강할 수 있어요.')
-    out.append(f'  • 행운의 숫자: {gaeun["number"]}')
-    out.append(f'    중요한 일의 날짜, 연락처 끝자리, 비밀번호 등에 활용해보세요.')
-    out.append(f'  • 행운의 방향: {gaeun["direction"]}')
-    out.append(f'    책상·침대 머리 방향, 이사 방향을 이쪽으로 맞추면 기운 보강에 좋아요.')
-    out.append(f'  • 추천 취미·활동: {gaeun["hobby"]}')
-    out.append(f'    {_hobby_desc(yongshin_oh)}')
+    out.append('---')
+    out.append(f'**✨ 맞춤 개운법** (용신: {yongshin_name})')
+    out.append('')
+    out.append(f'- 🎨 **행운의 색상**: {gaeun["color"]} — 이 색상의 옷, 지갑, 소품을 곁에 두면 기운이 보강돼요.')
+    out.append(f'- 🔢 **행운의 숫자**: {gaeun["number"]} — 중요한 날짜, 연락처 끝자리 등에 활용해보세요.')
+    out.append(f'- 🧭 **행운의 방향**: {gaeun["direction"]} — 책상·침대 머리 방향을 이쪽으로 맞추면 좋아요.')
+    out.append(f'- 🎯 **추천 활동**: {gaeun["hobby"]} — {_hobby_desc(yongshin_oh)}')
+    out.append('')
 
     # ④ 재물운
     _finance_subtitle = {
@@ -2853,9 +2846,11 @@ def analyze_saju(name, pillars, gil, hyung):
         '신약(身弱)': f'귀인이 열어주는 {name}님의 재물의 문',
         '중화(中和)': f'꾸준히 쌓이는 {name}님의 안정적 재물운',
     }
-    out.append(f'\n  ◆ 재물운  |  {_finance_subtitle.get(strength, "재물운 분석")}')
-    out.append(f'  {"─"*58}')
-    out.append(f'  {_finance_text(ilgan, strength, yongshin_oh, oa, name)}')
+    out.append('---')
+    out.append(f'**💰 재물운** — {_finance_subtitle.get(strength, "재물운 분석")}')
+    out.append('')
+    out.append(_finance_text(ilgan, strength, yongshin_oh, oa, name))
+    out.append('')
 
     # ⑤ 연애·이성운
     has_dohwa  = any('도화살' in s for s in hyung)
@@ -2866,9 +2861,11 @@ def analyze_saju(name, pillars, gil, hyung):
         _love_subtitle = f'귀인 같은 특별한 인연이 {name}님을 찾아와요'
     else:
         _love_subtitle = f'{_meta}처럼, {name}님의 사랑은 깊고 진해요'
-    out.append(f'\n  ◆ 연애·이성운  |  {_love_subtitle}')
-    out.append(f'  {"─"*58}')
-    out.append(f'  {_love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name)}')
+    out.append('---')
+    out.append(f'**❤️ 연애·이성운** — {_love_subtitle}')
+    out.append('')
+    out.append(_love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name))
+    out.append('')
 
     # ⑥ 직업·직장운
     _job_subtitle = [
@@ -2878,9 +2875,11 @@ def analyze_saju(name, pillars, gil, hyung):
         f'날카로운 원칙과 정밀함이 무기인 {name}님의 직업운',
         f'깊은 지식과 정보력으로 독보적 위치에 서는 {name}님',
     ][yongshin_oh]
-    out.append(f'\n  ◆ 직업·직장운  |  {_job_subtitle}')
-    out.append(f'  {"─"*58}')
-    out.append(f'  {_job_text(ilgan, strength, yongshin_oh, ss_cnt, name)}')
+    out.append('---')
+    out.append(f'**💼 직업·직장운** — {_job_subtitle}')
+    out.append('')
+    out.append(_job_text(ilgan, strength, yongshin_oh, ss_cnt, name))
+    out.append('')
 
     # ⑦ 건강운
     zero = [k for k, v in oa.items() if v == 0]
@@ -2890,105 +2889,69 @@ def analyze_saju(name, pillars, gil, hyung):
         '가을': f'결실의 계절이지만, {name}님의 폐·호흡기를 돌봐줘요',
         '겨울': f'차가운 겨울 기운, {name}님의 신장과 관절을 따뜻하게 해요',
     }
-    out.append(f'\n  ◆ 건강운  |  {_health_subtitle.get(season_name, "건강운 분석")}')
-    out.append(f'  {"─"*58}')
-    out.append(f'  {_health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name)}')
+    out.append('---')
+    out.append(f'**🌿 건강운** — {_health_subtitle.get(season_name, "건강운 분석")}')
+    out.append('')
+    out.append(_health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name))
+    out.append('')
 
     # ⑨ 지지·천간 관계 해설
     rel = check_relations([p[1] for p in pillars], ga=[p[0] for p in pillars])
     _rel_descs = {
-        '천간합': (
-            '사주 천간끼리 합을 이루고 있어요. '
-            '본질적인 기질과 내면의 가치관이 서로 잘 융합되어 '
-            '인생의 흐름이 비교적 조화롭게 흘러가요. '
-            '합이 된 오행의 기운이 강화되어 해당 분야에서 두각을 나타내기 쉬워요.'
-        ),
-        '천간충': (
-            '사주 천간끼리 충돌하는 기운이 있어요. '
-            '내면의 방향성이 서로 갈등하여 결정을 내리기 어렵거나 '
-            '의지와 행동이 엇나가는 경험을 할 수 있어요. '
-            '갈등을 의식적으로 인지하고 한 방향으로 집중하는 훈련이 중요해요.'
-        ),
-        '합': (
-            '지지 육합이 있어 해당 오행의 기운이 사주 안에서 강하게 응집돼요. '
-            '합이 된 오행이 용신이라면 자연스럽게 복록이 따르고, '
-            '기신(忌神)이라면 오히려 나쁜 기운이 강화될 수 있어요. '
-            '합이 있는 위치의 육친(부모·형제·배우자 등)과 인연이 깊어요.'
-        ),
-        '삼합': (
-            '삼합·반합이 있어 특정 오행이 사주 내에서 매우 강하게 형성돼요. '
-            '삼합의 오행이 용신이면 큰 발복의 기운이 되고, '
-            '기신이면 해당 오행이 과도해져 균형이 깨질 수 있어요. '
-            '삼합이 완전히 이루어진 경우 해당 오행의 기운이 사주 전체를 주도해요.'
-        ),
-        '방합': (
-            '방합·반방합이 있어 같은 방향의 기운이 모여 있어요. '
-            '해당 계절·방위·오행과 관련된 분야에서 강한 에너지가 발휘돼요. '
-            '방합의 오행이 용신이면 그 방향으로의 도전이 결실을 맺고, '
-            '기신이면 그 오행이 너무 과해지지 않도록 균형을 잡아야 해요.'
-        ),
-        '충': (
-            '지지 충이 있어 변화·이동·갈등의 기운이 사주에 내재되어 있어요. '
-            '한곳에 정착하기보다 이사·직업 변화·환경 전환이 잦은 편이에요. '
-            '충은 파괴적이기도 하지만 정체된 기운을 흔들어 새로운 기회를 여는 힘이기도 해요. '
-            '충이 있는 기둥의 육친 관계(년주→조부모·국가, 월주→부모·직장, 일주→배우자, 시주→자녀)에 변동이 생기기 쉬워요.'
-        ),
-        '형': (
-            '지지 형이 있어 법·규율·규칙과 관련된 고통이나 신체적 어려움이 나타날 수 있어요. '
-            '관재구설, 수술, 사고 등과 인연이 생기기 쉬워요. '
-            '형의 기운은 의료·법조·군·경 분야에서는 오히려 직업적 능력이 되기도 해요. '
-            '규칙을 잘 지키고 언행에 신중을 기하면 형의 부정적 기운을 많이 중화할 수 있어요.'
-        ),
-        '파': (
-            '지지 파가 있어 시작한 일이나 관계가 중도에 깨지는 경험을 할 수 있어요. '
-            '사업·계약·인간관계에서 예상치 못한 파탄이 생길 수 있으니 '
-            '중요한 일은 계약서와 약속을 명확히 하고 마무리까지 꼼꼼히 챙기는 습관이 필요해요.'
-        ),
-        '해': (
-            '지지 해가 있어 인연이 방해를 받거나 기대가 어긋나는 경험이 생겨요. '
-            '좋은 사람을 만나도 사소한 오해나 외부 방해로 인연이 멀어지기 쉬워요. '
-            '해가 있는 기둥의 육친과 각별히 소통하고 관계 유지에 노력이 필요해요.'
-        ),
-        '원진': (
-            '지지 원진이 있어 특정 인연과 묘한 갈등이나 답답함이 생겨요. '
-            '같이 있으면 불편하고 없으면 생각나는 복잡한 인연 구조가 사주에 내재되어 있어요. '
-            '감정이 격해질 때 즉각 반응하지 말고 한 발짝 물러서는 습관이 중요해요.'
-        ),
+        '천간합': '사주 천간끼리 합을 이루고 있어요. 본질적인 기질과 내면의 가치관이 서로 잘 융합되어 인생의 흐름이 비교적 조화롭게 흘러가요.',
+        '천간충': '사주 천간끼리 충돌하는 기운이 있어요. 내면의 방향성이 서로 갈등하여 결정을 내리기 어렵거나 의지와 행동이 엇나가는 경험을 할 수 있어요.',
+        '합': '지지 육합이 있어 해당 오행의 기운이 사주 안에서 강하게 응집돼요. 합이 된 오행이 용신이라면 자연스럽게 복록이 따르고, 기신이라면 나쁜 기운이 강화될 수 있어요.',
+        '삼합': '삼합·반합이 있어 특정 오행이 사주 내에서 매우 강하게 형성돼요. 삼합의 오행이 용신이면 큰 발복의 기운이 되고, 기신이면 균형이 깨질 수 있어요.',
+        '방합': '방합·반방합이 있어 같은 방향의 기운이 모여 있어요. 해당 계절·방위·오행과 관련된 분야에서 강한 에너지가 발휘돼요.',
+        '충': '지지 충이 있어 변화·이동·갈등의 기운이 사주에 내재되어 있어요. 이사·직업 변화·환경 전환이 잦은 편이에요.',
+        '형': '지지 형이 있어 법·규율과 관련된 어려움이 나타날 수 있어요. 관재구설, 수술, 사고 등과 인연이 생기기 쉬워요.',
+        '파': '지지 파가 있어 시작한 일이나 관계가 중도에 깨지는 경험을 할 수 있어요. 중요한 일은 계약서와 약속을 명확히 하세요.',
+        '해': '지지 해가 있어 인연이 방해를 받거나 기대가 어긋나는 경험이 생겨요. 해가 있는 기둥의 육친과 각별히 소통하세요.',
+        '원진': '지지 원진이 있어 특정 인연과 묘한 갈등이나 답답함이 생겨요. 감정이 격해질 때 한 발짝 물러서는 습관이 중요해요.',
     }
     _rel_found = {k: v for k, v in rel.items() if v}
     if _rel_found:
-        out.append(f'\n  ◆ 지지·천간 관계 해설')
-        out.append(f'  {"─"*58}')
+        out.append('---')
+        out.append('**🔗 지지·천간 관계 해설**')
+        out.append('')
         for k, vs in _rel_found.items():
             if k not in _rel_descs: continue
-            out.append(f'  [{k}] {", ".join(vs)}')
+            out.append(f'- **[{k}]** {", ".join(vs)}')
             out.append(f'  {_rel_descs[k]}')
+        out.append('')
 
     # ⑩ 주요 신살
     all_sal = [(s, True) for s in gil] + [(s, False) for s in hyung]
     if all_sal:
-        out.append(f'\n  ◆ 주요 신살 해설')
-        out.append(f'  {"─"*58}')
+        out.append('---')
+        out.append('**🌟 주요 신살 해설**')
+        out.append('')
         for sal, is_gil in all_sal:
             key  = sal.split('(')[0]
             desc = SINSAL_DESC.get(key, '')
-            mark = '길' if is_gil else '흉'
+            mark = '길✨' if is_gil else '흉⚠️'
             if desc:
-                out.append(f'  [{mark}] {sal}: {desc}')
+                out.append(f'- **[{mark}] {sal}**: {desc}')
+        out.append('')
 
     # ⑪ 일주 12운성
     uns = get_12unsung(ilgan, pillars[2][1])
-    out.append(f'\n  ◆ 일주 12운성: {uns}')
-    out.append(f'  {UNSUNG_DESC.get(uns, "")}')
+    out.append('---')
+    out.append(f'**⭐ 일주 12운성: {uns}**')
+    out.append('')
+    out.append(UNSUNG_DESC.get(uns, ''))
+    out.append('')
 
     # ⑫ 일주론
     ilji = pillars[2][1]
     ilju_name = CHEONGAN[ilgan] + JIJI[ilji]
     ilju_desc = _ilju_text(ilgan, ilji)
     if ilju_desc:
-        out.append(f'\n  ◆ 일주론 (日柱論)  |  {ilju_name}일주, {name}님의 타고난 본질')
-        out.append(f'  {"─"*58}')
-        out.append(f'  {ilju_desc}')
+        out.append('---')
+        out.append(f'**📖 일주론 (日柱論)** — {ilju_name}일주, {name}님의 타고난 본질')
+        out.append('')
+        out.append(ilju_desc)
+        out.append('')
 
     return '\n'.join(out)
 
