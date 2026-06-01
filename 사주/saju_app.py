@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import calendar as _cal_mod
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+_KST = timezone(timedelta(hours=9))
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -851,7 +852,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     start_age, forward, daeun = get_daewoon(pillars, corr_dt, is_male)
 
     # ── 오늘의 일진 미니 카드 ─────────────────────────────────
-    _today = datetime.now()
+    _today = datetime.now(_KST)
     try:
         _dg, _dj = get_ilchin(_today.year, _today.month, _today.day)
         _ya, _ki = get_yongki(pillars)
@@ -933,7 +934,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
 
 
 def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_status='솔로'):
-    cur = datetime.now().year
+    cur = datetime.now(_KST).year
     year_range = list(range(cur - 3, cur + 8))
     safe_name = name.replace(" ", "_")
     sel_key = f"thisyear_{safe_name}_{card_id}"
@@ -955,7 +956,7 @@ def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_stat
 
 
 def _render_sewoon_section(name, pillars, birth_year, daeun):
-    cur = datetime.now().year
+    cur = datetime.now(_KST).year
     ilgan = pillars[2][0]
     sewoon = get_sewoon(birth_year, past=5, future=10)
 
@@ -985,8 +986,8 @@ def _render_sewoon_section(name, pillars, birth_year, daeun):
 
 
 def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='솔로'):
-    cur = datetime.now().year
-    cur_date = datetime.now().date()
+    cur = datetime.now(_KST).year
+    cur_date = datetime.now(_KST).date()
     ilgan = pillars[2][0]
 
     safe_name = name.replace(" ", "_") if name else "default"
@@ -1067,7 +1068,7 @@ def _render_sal_detail(pillars):
 
 
 def _render_daewoon_table(start_age, forward, daeun):
-    cur = datetime.now().year
+    cur = datetime.now(_KST).year
     st.caption(f"대운 방향: {'순행' if forward else '역행'}  /  {start_age}세 시작")
 
     rows = []
@@ -1159,7 +1160,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
     holidays = _get_holidays(year)
     days_in_month = _cal_mod.monthrange(year, month)[1]
     first_wd      = (_cal_mod.weekday(year, month, 1) + 1) % 7   # 0=일
-    today         = datetime.now().date()
+    today         = datetime.now(_KST).date()
 
     cells = [None] * first_wd
     for d in range(1, days_in_month + 1):
@@ -1548,7 +1549,7 @@ with tab3:
 with tab4:
     st.markdown('<div class="sec-header">📅 일진(日辰) 달력</div>', unsafe_allow_html=True)
 
-    _now = datetime.now()
+    _now = datetime.now(_KST)
     c1, c2, c3 = st.columns([2, 2, 4])
     with c1:
         cal_year = int(st.number_input("년도", 2000, 2050, _now.year, key="cal_year"))
