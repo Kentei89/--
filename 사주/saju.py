@@ -1,4 +1,4 @@
-﻿import sys, math
+import sys, math
 from datetime import datetime, timedelta
 
 if hasattr(sys.stdout, 'reconfigure'):
