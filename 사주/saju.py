@@ -1353,6 +1353,10 @@ def check_relations(ja, jb=None, ga=None, gb=None):
         if both.count(jj) >= 2:
             n = f'{JIJI[jj]}자형'
             if n not in r['형']: r['형'].append(n)
+    # 자묘형(子卯刑) — 무례지형
+    if frozenset([0,3]) <= set(both):
+        n = '자묘형(무례지형)'
+        if n not in r['형']: r['형'].append(n)
 
     for grp, name in SAMHAP:
         cnt = len(grp & set(both))
