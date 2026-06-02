@@ -23,7 +23,8 @@ from saju import (
     _SAL_DESC, _SAL_MODERN, _SEWOON_SS_DESC, _sewoon_ss,
     OHAENG_NAMES,
     get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin,
-    YUKAHP, CHUNG as JIJI_CHUNG, SAMHAP,
+    analyze_romantic_type, judge_strength,
+    YUKAHP, CHUNG as JIJI_CHUNG,
 )
 
 _JIJI_EMOJI = ['🐀','🐄','🐅','🐇','🐉','🐍','🐎','🐑','🐒','🐓','🐕','🐗']
@@ -802,6 +803,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     yj = pillars[0][1]
     oa = analyze_ohaeng(pillars)
 
+
     st.markdown(
         f'<div style="margin-bottom:6px;">'
         f'<span style="font-size:1.45rem;font-weight:800;'
@@ -913,6 +915,9 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
 
     with st.expander("📖 사주 해설 — 성격·재물·연애·직업·건강", expanded=False):
         _narr(analyze_saju(name, pillars, gil, hyung))
+
+    with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
+        _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
     with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
         _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status)
@@ -1480,6 +1485,7 @@ with tab3:
             person_form("ja", "🌸 나 (첫 번째 분)")
         with c2:
             person_form("jb", "🌙 상대방 (두 번째 분)")
+        is_blocked = st.checkbox("⛔ 상대방이 나를 차단한 상태예요", key="jaehoe_blocked")
         submitted_j = st.form_submit_button("🌸 재회 가능성 분석하기", use_container_width=True, type="primary")
 
     if submitted_j:
@@ -1505,6 +1511,7 @@ with tab3:
                     jaehoe_text = analyze_jaehoe(
                         jpa, jpb, ja_name, jb_name, score_j, reasons_j, rel_j,
                         dw_a=jdw_a, is_male_a=jga_male, dw_b=jdw_b, is_male_b=jgb_male,
+                        is_blocked=st.session_state.get("jaehoe_blocked", False),
                     )
                     st.session_state['jaehoe_res'] = dict(
                         ja_name=ja_name, jb_name=jb_name,
