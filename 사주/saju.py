@@ -2743,16 +2743,26 @@ def analyze_daewoon_narrative(name, pillars, daeun, start_age, forward):
         is_ki   = (dg_oh_name in ki_names or dj_oh_name in ki_names)
         header_mark = '★' if is_cur else ' '
         cur_mark = '  ◀◀ 현재 대운' if is_cur else ''
-        out.append(f'\n  {header_mark} {age}세({yr}~{age+9}세)  {dw_gan}{dw_ji} 대운  [{ss_g}·{ss_j}]{cur_mark}')
+        _DOMAIN_TAG = {
+            '비견': '🧭 자아·경쟁·독립',   '겁재': '🧭 경쟁·손실·단련',
+            '식신': '🍀 창조·표현·건강',   '상관': '✏ 변화·창의·자유',
+            '편재': '💰 재물·투자·이성',   '정재': '💰 안정·축적·성실',
+            '편관': '🏆 도전·압박·성취',   '정관': '🏆 명예·안정·인정',
+            '편인': '📚 학문·직관·고독',   '정인': '📚 귀인·배움·보호',
+        }
+        domain = _DOMAIN_TAG.get(ss_g, '')
+        out.append(f'\n  {header_mark} {age}세({yr}~{age+9}세)  {dw_gan}{dw_ji} 대운  [{ss_g}·{ss_j}]  {domain}{cur_mark}')
         narr = _DAEUN_SS_NARRATIVE.get(ss_g, '')
         if narr:
             out.append(f'  {narr}')
         if is_yong and not is_ki:
-            out.append(f'  → 이 대운의 기운이 용신({ya_name})과 맞닿아 운의 흐름이 순조로워요.')
+            out.append(f'  ✦ 이 대운의 기운이 용신({ya_name})과 맞닿아 운의 흐름이 순조로워요. 이 10년이 인생의 전성기가 될 수 있어요.')
         elif is_ki and not is_yong:
-            out.append(f'  → 이 대운에 기신({", ".join(ki_names)})의 기운이 들어와 주의가 필요한 시기예요.')
+            out.append(f'  ⚠ 이 대운에 기신({", ".join(ki_names)})의 기운이 들어와 주의가 필요한 시기예요. 중요한 결정은 신중하게 하세요.')
+        elif is_yong and is_ki:
+            out.append(f'  ◎ 용신과 기신이 동시에 작용하는 복잡한 대운이에요. 기회와 위험이 공존하니 균형 잡힌 판단이 중요해요.')
         if is_cur:
-            out.append(f'  → 지금 {name}님의 삶은 이 {dw_gan}{dw_ji} 대운의 흐름 속에 있어요.')
+            out.append(f'  → 지금 {name}님의 삶은 이 {dw_gan}{dw_ji} 대운의 흐름 속에 있어요. 위 해설이 현재 {name}님의 이야기예요.')
     return '\n'.join(out)
 
 
@@ -2791,6 +2801,30 @@ def analyze_sewoon_narrative(name, pillars, birth_year):
 
 
 # ── 신강/신약 판단 ────────────────────────────────────
+
+def get_mingung(pillars):
+    """명궁(命宮) 지지 계산 — (월지 + 시지) % 12"""
+    mj = pillars[1][1]   # 월지
+    hj = pillars[3][1]   # 시지
+    mg_j = (mj + hj) % 12
+
+    _MINGUNG_DESC = {
+        0:  ('자(子) 명궁', '지혜롭고 총명한 기운이 강해요. 물처럼 유연하게 흘러가며 어떤 상황에서도 길을 찾는 능력이 탁월해요. 학문·정보·소통 분야에서 빛을 발하는 명궁이에요.'),
+        1:  ('축(丑) 명궁', '성실하고 묵묵히 쌓아가는 기운이 강해요. 인내심과 현실 감각이 뛰어나며 재물을 꾸준히 모으는 능력이 있어요. 느리지만 확실하게 성공하는 명궁이에요.'),
+        2:  ('인(寅) 명궁', '도전과 개척 정신이 강한 기운이에요. 새로운 것을 시작하고 이끄는 리더십이 타고났으며 어떤 환경에서도 자신의 길을 만들어가는 힘이 있어요.'),
+        3:  ('묘(卯) 명궁', '감성과 예술적 감각이 풍부한 기운이에요. 부드럽지만 끈질긴 생명력으로 원하는 것을 이루어내는 능력이 있어요. 인간관계가 넓고 친화력이 탁월해요.'),
+        4:  ('진(辰) 명궁', '포용력과 추진력을 동시에 가진 강한 기운이에요. 넓은 시야로 큰 그림을 그리고 실행하는 능력이 있어요. 전문성을 쌓을수록 더 큰 성과가 따라오는 명궁이에요.'),
+        5:  ('사(巳) 명궁', '집중력과 전략적 사고가 강한 기운이에요. 겉으로 드러내기보다 내면에서 깊이 준비하고 결정적인 순간에 빛을 발하는 타입이에요. 지적·전문 분야에서 독보적 위치에 오르는 명궁이에요.'),
+        6:  ('오(午) 명궁', '열정과 표현력이 넘치는 강렬한 기운이에요. 어디서든 존재감이 드러나고 사람들을 자연스럽게 이끄는 카리스마가 있어요. 활발하고 창의적인 분야에서 타고난 능력을 발휘해요.'),
+        7:  ('미(未) 명궁', '따뜻하고 배려 깊은 기운이에요. 사람의 마음을 읽고 보듬는 능력이 탁월하며 가정과 인간관계를 소중히 여겨요. 예술적 감각과 섬세함이 강점인 명궁이에요.'),
+        8:  ('신(申) 명궁', '실용적이고 영리한 기운이에요. 어떤 상황에서도 빠르게 판단하고 실행하는 능력이 있어요. 복잡한 문제를 단순하게 해결하는 날카로운 분석력이 특징이에요.'),
+        9:  ('유(酉) 명궁', '세련되고 완벽을 추구하는 기운이에요. 심미안이 높고 자신만의 기준이 뚜렷해요. 전문성과 품격을 동시에 갖춰 어느 분야에서든 독보적인 존재가 되는 명궁이에요.'),
+        10: ('술(戌) 명궁', '신념과 의지가 강한 기운이에요. 한번 결심한 것은 끝까지 밀고 나가는 추진력이 있어요. 원칙을 지키는 강인함과 깊은 내면이 공존하는 명궁이에요.'),
+        11: ('해(亥) 명궁', '지혜롭고 이상이 높은 기운이에요. 깊은 통찰력과 풍부한 감수성으로 세상을 바라봐요. 학문·철학·예술처럼 내면의 깊이가 빛을 발하는 분야에서 탁월한 명궁이에요.'),
+    }
+    name, desc = _MINGUNG_DESC[mg_j]
+    return mg_j, name, desc
+
 
 def judge_strength(pillars):
     ilgan = pillars[2][0]
@@ -3775,6 +3809,72 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('')
     out.append(_yy_desc)
     out.append('')
+
+    # ①-C 명궁 분석
+    try:
+        mg_j, mg_name, mg_desc = get_mingung(pillars)
+        out.append(f'**🏯 명궁(命宮)** — {mg_name}')
+        out.append('')
+        out.append(mg_desc)
+        out.append('')
+    except Exception:
+        pass
+
+    # ①-D 사주 내 형충파해합 분석
+    jijis = [p[1] for p in pillars]
+    gans  = [p[0] for p in pillars]
+    _pairs = [(jijis[i], jijis[j]) for i in range(4) for j in range(i+1, 4)]
+    _gan_pairs = [(gans[i], gans[j]) for i in range(4) for j in range(i+1, 4) if i != 2 and j != 2]
+
+    found_chung, found_hap, found_pa, found_hae, found_hyung = [], [], [], [], []
+
+    for a, b in _pairs:
+        fs = frozenset([a, b])
+        if any(fs == c for c in CHUNG):
+            found_chung.append(f'{JIJI[a]}{JIJI[b]}충')
+        if fs in YUKAHP:
+            found_hap.append(f'{JIJI[a]}{JIJI[b]}합({YUKAHP[fs]})')
+        if any(fs == c for c in PA):
+            found_pa.append(f'{JIJI[a]}{JIJI[b]}파')
+        if any(fs == c for c in HAE):
+            found_hae.append(f'{JIJI[a]}{JIJI[b]}해')
+
+    # 삼형
+    jset = set(jijis)
+    for fs3, name3 in HYEONG_3:
+        if fs3.issubset(jset):
+            found_hyung.append(name3)
+
+    # 천간 합충
+    from saju import _CHUNGAN_HAP, _CHUNGAN_CHUNG
+    found_gan_hap, found_gan_chung = [], []
+    for a, b in _gan_pairs:
+        if frozenset([a,b]) in _CHUNGAN_HAP:
+            found_gan_hap.append(f'{CHEONGAN[a]}{CHEONGAN[b]}합')
+        if frozenset([a,b]) in _CHUNGAN_CHUNG:
+            found_gan_chung.append(f'{CHEONGAN[a]}{CHEONGAN[b]}충')
+
+    _REL_DESC = {
+        '충': ('⚡ 충(沖)', found_chung, '강한 변화와 충돌의 에너지예요. 예상치 못한 변화가 생기기 쉽지만 그만큼 큰 도약의 기회이기도 해요.'),
+        '합': ('🔗 합(合)', found_hap, '인연과 결합의 에너지예요. 사람을 끌어당기는 매력과 좋은 인연이 자연스럽게 따라오는 구조예요.'),
+        '파': ('💥 파(破)', found_pa, '관계의 균열과 손실의 에너지예요. 중요한 결정에서 신중함이 필요하고 맺은 인연을 소홀히 하지 않는 노력이 필요해요.'),
+        '해': ('🌀 해(害)', found_hae, '방해와 갈등의 에너지예요. 가까운 사람에게 오해받거나 뜻밖의 장해가 생기기 쉬운 구조예요.'),
+        '형': ('⚠ 형(刑)', found_hyung, '규율과 긴장의 에너지예요. 법적·관계적 문제에 주의가 필요하지만 강인한 의지와 책임감을 키우는 구조이기도 해요.'),
+        '천간합': ('✨ 천간합', found_gan_hap, '천간 사이의 결합 에너지로 사람과의 인연이 강하게 작용해요.'),
+        '천간충': ('⚡ 천간충', found_gan_chung, '천간 사이의 충돌 에너지로 내면의 갈등이나 외부와의 마찰이 생기기 쉬워요.'),
+    }
+
+    any_rel = any([found_chung, found_hap, found_pa, found_hae, found_hyung, found_gan_hap, found_gan_chung])
+    if any_rel:
+        out.append('---')
+        out.append('**⚔ 사주 내 형충파해합(刑沖破害合)**')
+        out.append('')
+        for key in ['합', '천간합', '충', '천간충', '파', '해', '형']:
+            label, items, desc = _REL_DESC[key]
+            if items:
+                out.append(f'- {label}: **{" · ".join(items)}**')
+                out.append(f'  {desc}')
+        out.append('')
 
     # ② 격국 해설
     gyeok, gyeok_yong_oh, ki_list = get_gyeokguk(pillars)
