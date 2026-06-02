@@ -2802,6 +2802,98 @@ def analyze_sewoon_narrative(name, pillars, birth_year):
 
 # ── 신강/신약 판단 ────────────────────────────────────
 
+def get_strength_detail(pillars):
+    """신강/신약 8단계 분류 + ratio 반환. 기존 judge_strength는 그대로 유지."""
+    ilgan = pillars[2][0]
+    sup = opp = 0
+    _gw = [1.0, 1.5, 0.0, 1.0]
+    _jw = [1.0, 2.0, 1.5, 1.0]
+    _sw2 = [0.3, 0.7]
+    _sw3 = [0.1, 0.3, 0.6]
+    for i, (g, j) in enumerate(pillars):
+        if i != 2:
+            ss = get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
+            w = _gw[i]
+            if ss in ('비견','겁재','편인','정인'): sup += w
+            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
+        stems = JIJANGAN_IDX[j]
+        sw = _sw2 if len(stems) == 2 else _sw3
+        for stem, s in zip(stems, sw):
+            ss = get_sipseong(ilgan, OHAENG_IDX[stem], stem % 2)
+            w = _jw[i] * s
+            if ss in ('비견','겁재','편인','정인'): sup += w
+            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
+    total = sup + opp
+    ratio = sup / total if total > 0 else 0.5
+    if ratio >= 0.82:   label8 = '극왕(極旺)'
+    elif ratio >= 0.70: label8 = '태강(太强)'
+    elif ratio >= 0.58: label8 = '신강(身强)'
+    elif ratio >= 0.50: label8 = '중화신강'
+    elif ratio >= 0.42: label8 = '중화신약'
+    elif ratio >= 0.30: label8 = '신약(身弱)'
+    elif ratio >= 0.18: label8 = '태약(太弱)'
+    else:               label8 = '극약(極弱)'
+    return label8, ratio
+
+
+def get_deuk_detail(pillars):
+    """득령·득지·득시·득세 4가지 판별"""
+    ilgan = pillars[2][0]
+    # 득령
+    deukryeong, _, _ = get_deukryeong(pillars)
+    # 득지: 일지 지장간이 일간을 도움
+    dj_stems = JIJANGAN_IDX[pillars[2][1]]
+    deukji = any(
+        get_sipseong(ilgan, OHAENG_IDX[s], s % 2) in ('비견','겁재','편인','정인')
+        for s in dj_stems
+    )
+    # 득시: 시지 지장간이 일간을 도움
+    hj_stems = JIJANGAN_IDX[pillars[3][1]]
+    deuksi = any(
+        get_sipseong(ilgan, OHAENG_IDX[s], s % 2) in ('비견','겁재','편인','정인')
+        for s in hj_stems
+    )
+    # 득세: ratio >= 0.5
+    _, ratio = get_strength_detail(pillars)
+    deukse = ratio >= 0.5
+    return deukryeong, deukji, deuksi, deukse
+
+
+def get_palace_analysis(name, pillars):
+    """궁성(宮星) 분석 — 년/월/일/시주 십성별 가족·직장·배우자·자녀 해석"""
+    ilgan = pillars[2][0]
+    _PALACE_NAME = ['년주 — 조상·부모', '월주 — 부모·직장', '일주 — 배우자', '시주 — 자녀·미래']
+    _SS_DESC = {
+        '비견': ('독립적이고 자기주장이 강한 특성', '강한 자립심, 경쟁적 환경', '비슷한 성향의 배우자, 주도권 다툼 주의', '독립심 강한 자녀, 본인과 닮음'),
+        '겁재': ('재물 손실 인연, 경쟁과 갈등', '형제자매 또는 동료와 경쟁', '배우자와 재물·주도권 마찰 주의', '자녀가 독립적, 경제적 지원 필요'),
+        '식신': ('창의적이고 복 받는 환경', '직장에서 표현력 발휘, 창의적 업무', '배우자가 따뜻하고 풍요로운 사람', '자녀가 재능 있고 건강, 복이 있음'),
+        '상관': ('변화와 혁신의 환경', '직장에서 갈등·이직 가능성', '배우자가 개성 강하고 자유로운 사람', '영리하고 반항기 있는 자녀'),
+        '편재': ('사업·재물과 인연 깊은 환경', '직장에서 영업·재무 인연', '활동적이고 사교적인 배우자', '재물 감각 있고 활발한 자녀'),
+        '정재': ('성실하고 안정적인 환경', '안정적인 직장, 꾸준한 성과', '성실하고 현실적인 배우자', '착실하고 성실한 자녀'),
+        '편관': ('경쟁과 책임이 많은 환경', '조직에서 압박·승진·권위', '강하고 카리스마 있는 배우자', '의지가 강하고 도전적인 자녀'),
+        '정관': ('명예와 원칙이 있는 환경', '안정적 직장, 승진·인정', '믿음직하고 사회적으로 인정받는 배우자', '모범적이고 사회성 좋은 자녀'),
+        '편인': ('학문·종교·예술과 인연', '특수 분야, 프리랜서·연구 환경', '독특하고 예술적 감각 있는 배우자', '예술적 재능, 독창적 자녀'),
+        '정인': ('귀인·학문과 인연 깊은 환경', '귀인 상사, 배움 많은 직장', '지적이고 배려심 깊은 배우자', '공부 잘하고 효도하는 자녀'),
+    }
+    out = []
+    for i, (g, j) in enumerate(pillars):
+        if i == 2:  # 일주는 배우자만
+            ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+            desc = _SS_DESC.get(ss_j, ('', '', '', ''))[2]
+            if desc:
+                out.append(f'- **{_PALACE_NAME[i]}** [{ss_j}] — {desc}')
+        else:
+            if i != 2:
+                ss_g = get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
+            ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+            # 천간과 지지 중 더 강한 쪽 우선
+            main_ss = ss_g if i != 2 else ss_j
+            desc = _SS_DESC.get(main_ss, ('', '', '', ''))[i if i < 3 else 3]
+            if desc:
+                out.append(f'- **{_PALACE_NAME[i]}** [{main_ss}] — {desc}')
+    return out
+
+
 def get_mingung(pillars):
     """명궁(命宮) 지지 계산 — (월지 + 시지) % 12"""
     mj = pillars[1][1]   # 월지
@@ -3810,6 +3902,48 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append(_yy_desc)
     out.append('')
 
+    # ①-E 신강/신약 8단계 + 득령득지득세득시
+    try:
+        _label8, _ratio = get_strength_detail(pillars)
+        _pct = int(_ratio * 100)
+        _dl, _dj, _ds, _dse = get_deuk_detail(pillars)
+        _bar_filled = int(_ratio * 10)
+        _bar = chr(9608) * _bar_filled + chr(9617) * (10 - _bar_filled)
+        _dl_tag  = '✅ 득령' if _dl  else '❌ 득령'
+        _dj_tag  = '✅ 득지' if _dj  else '❌ 득지'
+        _ds_tag  = '✅ 득시' if _ds  else '❌ 득시'
+        _dse_tag = '✅ 득세' if _dse else '❌ 득세'
+        out.append(f'**📊 신강/신약 지수** — {_label8}  ({_pct}%)')
+        out.append('')
+        out.append(f' {_pct}%  |  {_dl_tag} · {_dj_tag} · {_ds_tag} · {_dse_tag}')
+        out.append('')
+        _LABEL8_DESC = {
+            '극왕(極旺)': '일간의 기운이 압도적으로 강한 구조예요. 식상·재성·관성으로 강한 기운을 설기하는 것이 인생의 핵심 과제예요.',
+            '태강(太强)': '일간이 매우 강한 구조예요. 강한 에너지를 재물·명예로 분출하는 방향으로 삶을 설계할 때 발복해요.',
+            '신강(身强)': '일간이 강한 구조예요. 독립적으로 일을 추진하는 힘이 강하고 리더 역할에서 진가를 발휘해요.',
+            '중화신강': '일간이 약간 우세한 균형 잡힌 구조예요. 강함과 유연함을 동시에 갖춰 다양한 환경에 잘 적응해요.',
+            '중화신약': '일간이 약간 약한 균형 구조예요. 타인과의 협력에서 더 큰 힘을 발휘하고 귀인의 도움이 자연스럽게 따라와요.',
+            '신약(身弱)': '일간이 약한 구조예요. 혼자보다 팀·조직 안에서 진가가 발휘되고 용신 기운을 가까이할수록 운이 열려요.',
+            '태약(太弱)': '일간이 매우 약한 구조예요. 비겁·인성의 도움이 절실하며 용신 환경에 있을 때 삶의 흐름이 크게 달라져요.',
+            '극약(極弱)': '일간이 극도로 약한 구조예요. 용신 기운을 최우선으로 가까이하고 기신 환경을 피하는 것이 가장 중요해요.',
+        }
+        out.append(_LABEL8_DESC.get(_label8, ''))
+        out.append('')
+    except Exception:
+        pass
+
+    # ①-F 궁성 분석
+    try:
+        _palace_lines = get_palace_analysis(name, pillars)
+        if _palace_lines:
+            out.append('**🏛 궁성(宮星) 분석** — 사주 각 자리가 말하는 인연의 이야기')
+            out.append('')
+            for _pl in _palace_lines:
+                out.append(_pl)
+            out.append('')
+    except Exception:
+        pass
+
     # ①-C 명궁 분석
     try:
         mg_j, mg_name, mg_desc = get_mingung(pillars)
@@ -3864,6 +3998,13 @@ def analyze_saju(name, pillars, gil, hyung):
         '천간충': ('⚡ 천간충', found_gan_chung, '천간 사이의 충돌 에너지로 내면의 갈등이나 외부와의 마찰이 생기기 쉬워요.'),
     }
 
+    # 합에 따른 오행 변환
+    _HAP_TRANS = {}
+    for a, b in _pairs:
+        fs = frozenset([a, b])
+        if fs in YUKAHP:
+            _HAP_TRANS[fs] = (JIJI[a], JIJI[b], YUKAHP[fs])
+
     any_rel = any([found_chung, found_hap, found_pa, found_hae, found_hyung, found_gan_hap, found_gan_chung])
     if any_rel:
         out.append('---')
@@ -3874,6 +4015,22 @@ def analyze_saju(name, pillars, gil, hyung):
             if items:
                 out.append(f'- {label}: **{" · ".join(items)}**')
                 out.append(f'  {desc}')
+        if _HAP_TRANS:
+            _HAP_OH_MAP = {
+                '자합': '토', '축합': '토', '인합': '목', '해합': '목',
+                '묘합': '화', '술합': '화', '진합': '금', '유합': '금',
+                '사합': '수', '신합': '수', '오합': '토', '미합': '토',
+            }
+            _YUKAHP_OH = {
+                frozenset([0,1]):'토', frozenset([2,11]):'목', frozenset([3,10]):'화',
+                frozenset([4,9]):'금', frozenset([5,8]):'수', frozenset([6,7]):'토',
+            }
+            out.append('')
+            out.append('  **오행 변환 (육합 적용):**')
+            for fs, (ja_str, jb_str, hap_name) in _HAP_TRANS.items():
+                changed_oh = _YUKAHP_OH.get(fs, '')
+                if changed_oh:
+                    out.append(f'  - {ja_str}{jb_str}합({hap_name}) → **{changed_oh}** 기운으로 변환')
         out.append('')
 
     # ② 격국 해설
