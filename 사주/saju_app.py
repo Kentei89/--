@@ -669,6 +669,7 @@ def person_form(key: str, title: str = ""):
         time_raw = st.text_input(
             "태어난 시간 (예: 1745)", disabled=no_time,
             placeholder="1745 또는 17:45", key=f"{key}_time_raw",
+            help="입력 시간은 서울 기준 태양시(평균태양시)로 자동 보정됩니다 (표준시 대비 약 ±32분 오차 발생 가능)"
         )
 
     _city_keys = list(_CITY_OFFSETS.keys())
