@@ -18,6 +18,12 @@ OHAENG_IDX_J = [4,2,0,0,2,1,1,2,3,3,2,4]
 
 JANGSAENG = [11,6,2,9,2,9,5,0,8,3]
 UNSUNG_12 = ['장생','목욕','관대','건록','제왕','쇠','병','사','묘','절','태','양']
+# 십이운성별 궁성 강약 가중치 (강할수록 1보다 크고, 약할수록 1보다 작음)
+_UNSUNG_WEIGHT = {
+    '장생':1.2, '목욕':0.5, '관대':1.0, '건록':1.5, '제왕':2.0,
+    '쇠':0.7,   '병':0.5,   '사':0.3,   '묘':0.3,   '절':0.1,
+    '태':0.3,   '양':0.5,
+}
 
 _SS = {
     (0,True):'비견', (0,False):'겁재',
@@ -1065,6 +1071,15 @@ SAMHAP = [
     (frozenset([4,8,0]),  '신자진 삼합(수)'),
     (frozenset([5,9,1]),  '사유축 삼합(금)'),
 ]
+# 합 오행 변환 매핑 (육합·삼합의 변화 오행)
+YUKAHP_OH = {
+    frozenset([0,1]):'토', frozenset([2,11]):'목', frozenset([3,10]):'화',
+    frozenset([4,9]):'금', frozenset([5,8]):'수',  frozenset([6,7]):'토',
+}
+SAMHAP_OH = {
+    frozenset([2,6,10]):'화', frozenset([11,3,7]):'목',
+    frozenset([4,8,0]):'수',  frozenset([5,9,1]):'금',
+}
 CHUNG    = [frozenset([i,(i+6)%12]) for i in range(6)]
 PA       = [frozenset(p) for p in [(0,3),(1,10),(2,11),(4,7),(5,8),(6,9)]]
 HAE      = [frozenset(p) for p in [(0,7),(1,6),(2,5),(3,4),(8,11),(9,10)]]
@@ -1131,9 +1146,12 @@ def check_sal(pillars):
 
     ilji = dj
 
-    # 백호대살 (일주 기반: 甲辰 乙未 丙戌 丁丑 戊辰 庚辰 壬戌 壬辰)
-    if (ilgan, ilji) in {(0,4),(1,7),(2,10),(3,1),(4,4),(6,4),(8,10),(8,4)}:
-        _h('백호대살')
+    # 백호대살 (甲辰 乙未 丙戌 丁丑 戊辰 庚辰 壬戌 壬辰 — 4기둥 전체 체크)
+    _BAEKHO = {(0,4),(1,7),(2,10),(3,1),(4,4),(6,4),(8,10),(8,4)}
+    _PILLAR_NAMES = ['년주','월주','일주','시주']
+    _baekho_hits = [_PILLAR_NAMES[i] for i,(g,j) in enumerate(pillars) if (g,j) in _BAEKHO]
+    if _baekho_hits:
+        _h(f'백호대살({", ".join(_baekho_hits)})')
 
     # 고란살 (일주 기반: 甲寅 乙巳 丙午 丁巳 戊午 壬子 癸亥)
     if (ilgan, ilji) in {(0,2),(1,5),(2,6),(3,5),(4,6),(8,0),(9,11)}:
@@ -1150,6 +1168,12 @@ def check_sal(pillars):
     jset = set(jijis)
     if any(p <= jset for p in _GWIMON):
         _h('귀문관살')
+
+    # 원진살 (지지 쌍: 子未 丑午 寅酉 卯申 辰亥 巳戌)
+    for p in WONJIN:
+        if p <= jset:
+            a, b = sorted(p)
+            _h(f'원진살({JIJI[a]}{JIJI[b]})')
 
     # 홍염살 (일간 기반)
     _HY = {0:6,1:6,2:2,3:7,4:4,5:4,6:10,7:9,8:0,9:8}
@@ -1209,7 +1233,7 @@ def check_sal(pillars):
     _CHUNDUK = {
         2:('g',3), 3:('j',8), 4:('g',8), 5:('g',7),
         6:('j',11),7:('g',0), 8:('g',9), 9:('j',2),
-        10:('g',2),11:('g',1),0:('j',5), 1:('g',6),
+        10:('g',2),11:('g',0),0:('j',5), 1:('g',6),
     }
     cd_type, cd_val = _CHUNDUK[mj_val]
     if cd_type == 'g' and cd_val in gans:
@@ -1264,6 +1288,7 @@ _SAL_DESC = {
     '천라살':   '하늘 그물에 걸린 살. 관재·법적 문제·속임수를 조심하고 계약 시 꼼꼼히 확인해야 해요.',
     '지망살':   '땅에 그물 쳐진 살. 투자·보증·부동산 관련 손실을 조심해야 해요.',
     '귀문관살': '신기(神氣)가 강한 특이한 살. 예지몽·직감이 강하지만 정신적 불안정과 집착이 생기기 쉬워요.',
+    '원진살':   '서로 밀어내는 기운. 없으면 생각나고 있으면 불편한 묘한 갈등이 내면이나 인연에서 반복돼요.',
     '홍염살':   '강한 색정의 살. 이성에 대한 집착이 강하고 감정적 관계에서 에너지 소모가 많아요.',
     '효신살':   '식신을 편인이 겁하는 살. 베풀어도 결실이 없고 공허함을 느끼기 쉬운 기운이에요.',
     '괴강살':   '극단적인 강함의 살. 카리스마가 넘치지만 독선적 면이 있고 굴곡진 운명을 걷기 쉬워요.',
@@ -1387,11 +1412,32 @@ def check_relations(ja, jb=None, ga=None, gb=None):
 
     return r
 
-def analyze_ohaeng(pillars):
+def analyze_ohaeng(pillars, apply_hap=False):
     cnt = {o:0 for o in ['목','화','토','금','수']}
-    for g, j in pillars:
-        cnt[OHAENG_G[g]] += 1
-        cnt[OHAENG_J[j]] += 1
+    if apply_hap:
+        jijis = [p[1] for p in pillars]
+        ji_set = set(jijis)
+        hap_oh = {}  # 인덱스 → 변환된 오행
+        # 삼합 우선 (3개 모두 있을 때만 변환)
+        for fs, oh in SAMHAP_OH.items():
+            if fs.issubset(ji_set):
+                for idx, j in enumerate(jijis):
+                    if j in fs:
+                        hap_oh[idx] = oh
+        # 육합 (삼합에 포함되지 않은 지지만)
+        for i in range(len(jijis)):
+            for k in range(i+1, len(jijis)):
+                fs = frozenset([jijis[i], jijis[k]])
+                if fs in YUKAHP_OH and i not in hap_oh and k not in hap_oh:
+                    hap_oh[i] = YUKAHP_OH[fs]
+                    hap_oh[k] = YUKAHP_OH[fs]
+        for i, (g, j) in enumerate(pillars):
+            cnt[OHAENG_G[g]] += 1
+            cnt[hap_oh[i] if i in hap_oh else OHAENG_J[j]] += 1
+    else:
+        for g, j in pillars:
+            cnt[OHAENG_G[g]] += 1
+            cnt[OHAENG_J[j]] += 1
     return cnt
 
 # ── 대운·세운 계산 ─────────────────────────────────────
@@ -2943,9 +2989,11 @@ def judge_strength(pillars):
         # 지장간 (여기·중기·정기 가중치 반영)
         stems = JIJANGAN_IDX[j]
         sw = _sw2 if len(stems) == 2 else _sw3
+        # 궁성 보정: _APPLY_JOHU ON 시 일간의 십이운성으로 지지 가중치 조정
+        jw_mult = _UNSUNG_WEIGHT.get(get_12unsung(ilgan, j), 1.0) if _APPLY_JOHU else 1.0
         for stem, s in zip(stems, sw):
             ss = get_sipseong(ilgan, OHAENG_IDX[stem], stem % 2)
-            w = _jw[i] * s
+            w = _jw[i] * s * jw_mult
             if ss in ('비견','겁재','편인','정인'): sup += w
             elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
 
@@ -2955,6 +3003,37 @@ def judge_strength(pillars):
     if ratio >= 0.58:   return '신강(身强)'
     elif ratio <= 0.42: return '신약(身弱)'
     else:               return '중화(中和)'
+
+def analyze_ohaeng_strength(pillars):
+    """계절 왕상휴수사(旺相休囚死) 기반 오행별 강도 비율(%) 반환
+    - 천간: 위치 가중치 (월간 1.5배)
+    - 지지: 지장간 비중 + 계절 보정
+    """
+    mj = pillars[1][1]
+    _, season_idx = get_season(mj)
+    _gw = [1.0, 1.5, 1.0, 1.0]   # 년간·월간·일간·시간 (오행 분포라 일간도 포함)
+    _jw = [1.0, 2.0, 1.5, 1.0]   # 년지·월지·일지·시지
+    _sw2 = [0.3, 0.7]
+    _sw3 = [0.1, 0.3, 0.6]
+    # 왕상휴수사: score -2~+2, 최소 0.2로 정규화
+    _oh_idx = {'목':0,'화':1,'토':2,'금':3,'수':4}
+    oh_score = {o: 0.0 for o in OHAENG_NAMES}
+    for i, (g, j) in enumerate(pillars):
+        # 천간
+        oh = OHAENG_G[g]
+        season_mult = max(0.2, 1.0 + WANG_SANG_SCORE[_oh_idx[oh]][season_idx] * 0.3)
+        oh_score[oh] += _gw[i] * season_mult
+        # 지지 지장간
+        stems = JIJANGAN_IDX[j]
+        sw = _sw2 if len(stems) == 2 else _sw3
+        for stem, s in zip(stems, sw):
+            oh = OHAENG_NAMES[OHAENG_IDX[stem]]
+            season_mult = max(0.2, 1.0 + WANG_SANG_SCORE[_oh_idx[oh]][season_idx] * 0.3)
+            oh_score[oh] += _jw[i] * s * season_mult
+    total = sum(oh_score.values())
+    if total == 0:
+        return {o: 0.0 for o in OHAENG_NAMES}
+    return {o: round(v / total * 100, 1) for o, v in oh_score.items()}
 
 # ── 핵심 알고리즘: 득령·조후·용신 ───────────────────────
 
@@ -3204,17 +3283,20 @@ def get_gyeokguk(pillars):
     else:
         return f'{ss}격', jae_oh, [bi_oh]
 
+# 조후+궁성 보정 ON/OFF 플래그 (기본 OFF = 格局 기반)
+_APPLY_JOHU = False
+
 def get_yongshin(pillars):
-    """용신(用神) 확정: 조후 우선 → 격국 기반 억부
-    단, 조후 오행이 사주에 이미 3개 이상이면 태과(太過)로 보고 격국 용신으로 전환.
+    """용신(用神) 확정.
+    _APPLY_JOHU=False(기본): 格局 기반 억부만 사용
+    _APPLY_JOHU=True: 조후 우선 → 格局 기반 억부 (태과 시 전환)
     """
     season_name, johu_oh, temp_adj, _ = get_johu(pillars)
 
-    if johu_oh is not None:
+    if _APPLY_JOHU and johu_oh is not None:
         oa = analyze_ohaeng(pillars)
         johu_name = OHAENG_NAMES[johu_oh]
         if oa.get(johu_name, 0) >= 3:
-            # 조후 오행이 이미 태과 → 억부(격국) 용신으로 전환
             gyeok, yongshin_oh, _ = get_gyeokguk(pillars)
             basis = f'격국({gyeok}) [조후태과 전환]'
         else:
@@ -3243,10 +3325,12 @@ YONGSHIN_GAEUN = {
 
 # ── 통변 헬퍼 함수 ────────────────────────────────────
 
-def _personality_text(ilgan, season_name, yongshin_name, strength, name=''):
+def _personality_text(ilgan, season_name, yongshin_name, strength, name='', gyeok='', ss_cnt=None):
     il_name, il_keyword, _ = ILGAN_DESC[ilgan]
-    nm = f'{name}님은 ' if name else ''
+    nm  = f'{name}님은 ' if name else ''
     nm2 = f'{name}님의 ' if name else '이 사주의 '
+    if ss_cnt is None:
+        ss_cnt = {}
 
     ILGAN_META = {
         0: ('하늘을 향해 곧게 뻗은 거목', '갑목(甲木)이라는 큰 나무'),
@@ -3260,79 +3344,114 @@ def _personality_text(ilgan, season_name, yongshin_name, strength, name=''):
         8: ('막힘없이 넓은 세상을 흘러가는 강물', '임수(壬水)라는 강물'),
         9: ('대지를 촉촉이 스며드는 빗물', '계수(癸水)라는 빗물'),
     }
-
     meta_desc, meta_name = ILGAN_META[ilgan]
 
-    season_core = {
-        '봄': (
-            f'{nm}{meta_desc}처럼 봄의 기운 속에서 태어났어요. '
-            f'새싹이 돋아나고 만물이 깨어나는 생동의 계절이 {meta_name}{_jp(meta_name,"과","와")} 어우러져 힘을 실어주니, '
-            f'새로운 시작을 향한 열정과 도전 정신이 남다른 사람이에요. '
-            f'봄의 목 기운이 {meta_name}과 어우러져 창의성과 진취성이 더욱 빛을 발하고, '
-            f'어떤 상황에서도 가능성의 씨앗을 먼저 발견하는 눈을 가졌어요. '
-            f'다만 봄나무가 너무 무성하게 자라면 가지치기가 필요하듯, '
-            f'뜨거운 열정이 사방으로 흩어지지 않도록 하나에 집중하는 힘을 키우는 것이 삶의 숙제예요. '
-            f'용신인 {yongshin_name}의 기운을 가까이할수록 그 에너지가 올바른 방향으로 흘러가요.'
-        ),
-        '여름': (
-            f'{nm}{meta_desc}처럼 뜨거운 여름의 기운 속에서 태어났어요. '
-            f'강렬한 햇볕이 내리쬐는 계절이 {meta_name}{_jp(meta_name,"과","와")} 만나니 '
-            f'열정과 추진력이 그야말로 활활 타오르는 사람이에요. '
-            f'외향적이고 표현이 강하며 승부욕이 높아 주변 사람들에게 강한 인상을 남기죠. '
-            f'하지만 여름의 과열된 기운은 때로 감정 기복이나 주변과의 마찰을 일으키기도 해요. '
-            f'용신인 {yongshin_name}{_jp(yongshin_name,"은","는")} 이 뜨거운 사주의 온도를 조절해주는 청량제 같은 역할을 해요. '
-            f'{yongshin_name}의 기운을 가까이하며 내면의 열기를 다스리는 것이 인생의 핵심 과제예요.'
-        ),
-        '가을': (
-            f'{nm}{meta_desc}처럼 결실의 계절 가을에 태어났어요. '
-            f'하늘이 높고 공기가 맑아지는 이 계절이 {meta_name}{_jp(meta_name,"과","와")} 어우러지니 '
-            f'냉철함과 분석력, 실용적인 판단력이 뛰어난 사람이에요. '
-            f'감정보다 이성을 앞세우고 원칙과 완벽주의적 성향이 두드러져 '
-            f'주변으로부터 신뢰와 인정을 받는 타입이에요. '
-            f'다만 가을의 냉기가 지나치면 타인에게 차갑고 까다롭게 보일 수 있어요. '
-            f'용신인 {yongshin_name}의 기운으로 딱딱한 기질에 유연함과 따스함을 불어넣어야 '
-            f'진정한 매력이 완성돼요.'
-        ),
-        '겨울': (
-            f'{nm}{meta_desc}처럼 고요한 겨울의 기운 속에서 태어났어요. '
-            f'눈이 쌓이고 세상이 침묵하는 이 계절이 {meta_name}{_jp(meta_name,"과","와")} 만나니 '
-            f'겉으로는 과묵하고 깊어 보이지만 내면에는 누구도 가늠하기 어려운 '
-            f'깊은 감수성과 강인한 의지가 응축되어 있어요. '
-            f'혼자만의 시간을 즐기고 고독을 두려워하지 않으며, '
-            f'그 고요함 속에서 남들은 보지 못하는 것들을 발견하는 통찰력이 있어요. '
-            f'용신인 {yongshin_name}은 이 사주의 냉기를 녹여 생동감을 불어넣는 핵심 기운이에요. '
-            f'{yongshin_name}{_jp(yongshin_name,"을","를")} 가까이할수록 삶의 온기와 활력이 되살아나요.'
-        ),
+    # 일간 오행과 계절의 왕상휴수사 관계
+    _oh_idx = OHAENG_IDX[ilgan]
+    _season_map = {'봄':0,'여름':1,'가을':2,'겨울':3}
+    _season_idx = _season_map.get(season_name, 0)
+    _score = WANG_SANG_SCORE[_oh_idx][_season_idx]
+    # 旺(+2)=왕, 相(+1)=상, 休(0)=휴, 囚(-1)=수, 死(-2)=사
+    if _score >= 2:
+        _season_rel = 'wang'    # 旺 — 일간이 이 계절에 가장 강함
+    elif _score >= 1:
+        _season_rel = 'sang'    # 相 — 일간이 기운을 받음
+    elif _score == 0:
+        _season_rel = 'hyu'     # 休 — 쉬는 시기
+    elif _score == -1:
+        _season_rel = 'su'      # 囚 — 갇힌 기운
+    else:
+        _season_rel = 'sa'      # 死 — 가장 약한 계절
+
+    # 계절 × 왕상휴수사 기반 도입부
+    _SEASON_STRENGTH_TEXT = {
+        ('봄',  'wang'): f'{nm}{meta_desc}처럼 봄의 기운 속에서 태어나 타고난 에너지가 활짝 피어나요. 새싹이 돋아나는 계절이 {meta_name}과 완벽히 어우러져 성장과 도전의 힘이 넘쳐요.',
+        ('봄',  'sang'): f'{nm}{meta_desc}처럼 봄의 기운 속에서 태어났어요. 봄의 생동감이 {meta_name}을 돕는 구조라 활력과 새로운 시작의 에너지가 자연스럽게 따라와요.',
+        ('봄',  'hyu'): f'{nm}{meta_desc}처럼 봄에 태어났어요. 봄은 {meta_name}이 잠시 쉬어가는 계절이에요. 겉으로는 조용해 보여도 내면에서 힘을 비축하며 준비하는 타입이에요.',
+        ('봄',  'su'):  f'{nm}{meta_desc}처럼 봄에 태어났어요. 목의 기운이 강한 봄에 {meta_name}은 억눌리는 구조예요. 하지만 압박 속에서 더 단단해지는 기질이 숨어 있어요.',
+        ('봄',  'sa'):  f'{nm}{meta_desc}처럼 봄에 태어났어요. 봄의 기운은 {meta_name}에게 가장 도전적인 환경이에요. 이 속에서 단련된 만큼 더 빛나는 저력이 생겨요.',
+        ('여름', 'wang'): f'{nm}{meta_desc}처럼 뜨거운 여름의 기운 속에서 태어나 타고난 에너지가 활활 타오르는 사람이에요. 열정과 추진력이 넘치고 존재 자체로 주변을 밝혀요.',
+        ('여름', 'sang'): f'{nm}{meta_desc}처럼 여름에 태어났어요. 여름의 열기가 {meta_name}의 기운을 북돋우는 구조라 활기차고 적극적인 에너지가 자연스럽게 발휘돼요.',
+        ('여름', 'hyu'): f'{nm}{meta_desc}처럼 여름에 태어났어요. 여름은 {meta_name}이 에너지를 쓰고 쉬어가는 계절이에요. 겉으로는 활동적이지만 내면은 조용히 축적하는 타입이에요.',
+        ('여름', 'su'):  f'{nm}{meta_desc}처럼 여름에 태어났어요. 여름의 강한 기운 속에 {meta_name}은 눌리는 구조예요. 역설적으로 이 압박이 단단한 내면을 만들어줘요.',
+        ('여름', 'sa'):  f'{nm}{meta_desc}처럼 여름에 태어났어요. 여름은 {meta_name}에게 가장 도전적인 계절이에요. 뜨거운 환경 속에서 갈고 닦인 만큼 진정한 빛이 나는 사람이에요.',
+        ('가을', 'wang'): f'{nm}{meta_desc}처럼 결실의 가을에 태어나 타고난 기운이 최고조에 달하는 사람이에요. 냉철하고 단단한 판단력이 빛을 발하는 계절이에요.',
+        ('가을', 'sang'): f'{nm}{meta_desc}처럼 가을에 태어났어요. 가을의 기운이 {meta_name}을 돕는 구조라 냉철함과 분석력이 자연스럽게 발휘돼요.',
+        ('가을', 'hyu'): f'{nm}{meta_desc}처럼 가을에 태어났어요. 가을은 {meta_name}이 쉬어가는 계절이에요. 겉으로는 차분해 보여도 내면에서 조용히 힘을 비축하는 타입이에요.',
+        ('가을', 'su'):  f'{nm}{meta_desc}처럼 가을에 태어났어요. 가을의 기운 속에 {meta_name}은 억눌리는 구조예요. 그 절제 속에서 더 깊은 내공을 쌓는 타입이에요.',
+        ('가을', 'sa'):  f'{nm}{meta_desc}처럼 가을에 태어났어요. 가을은 {meta_name}에게 가장 도전적인 환경이에요. 이 속에서 단련된 강인함이 나중에 큰 무기가 돼요.',
+        ('겨울', 'wang'): f'{nm}{meta_desc}처럼 고요한 겨울에 태어나 타고난 기운이 깊고 강하게 응집돼 있어요. 겉으로는 조용해 보여도 내면에 강인한 의지와 깊은 지혜가 흘러요.',
+        ('겨울', 'sang'): f'{nm}{meta_desc}처럼 겨울에 태어났어요. 겨울의 기운이 {meta_name}을 돕는 구조라 깊은 감수성과 내면의 강인함이 자연스럽게 길러져 있어요.',
+        ('겨울', 'hyu'): f'{nm}{meta_desc}처럼 겨울에 태어났어요. 겨울은 {meta_name}이 에너지를 비축하는 계절이에요. 조용히 준비하다 때가 되면 폭발하는 저력이 있어요.',
+        ('겨울', 'su'):  f'{nm}{meta_desc}처럼 겨울에 태어났어요. 겨울의 차가운 기운 속에 {meta_name}은 억눌리는 구조예요. 그 추위를 견디며 더 깊은 내면이 만들어져요.',
+        ('겨울', 'sa'):  f'{nm}{meta_desc}처럼 겨울에 태어났어요. 겨울은 {meta_name}에게 가장 가혹한 계절이에요. 하지만 이 환경이 남들과 다른 깊은 내공을 만들어줘요.',
     }
+    key = (season_name, _season_rel)
+    base = _SEASON_STRENGTH_TEXT.get(key, f'{nm}{meta_desc}처럼 {season_name}에 태어났어요.')
 
-    base = season_core[season_name]
-
+    # 강약 기반 성격 보완
     if '신강' in strength:
         base += (
             f'\n\n  {nm2}사주는 일간의 기운이 강한 신강(身强) 사주예요. '
             f'자기 확신이 강하고 의지가 굳어 독립적으로 일을 추진하는 힘이 대단해요. '
-            f'외부의 어떤 압박에도 쉽게 흔들리지 않고 자신만의 길을 걸어가는 타입이죠. '
-            f'다만 강한 나무가 바람에 꺾이지 않으려면 뿌리 깊이 내려야 하듯, '
-            f'지나친 고집이 타협과 협력을 방해하지 않도록 주의가 필요해요. '
-            f'용신인 {yongshin_name}의 기운이 찾아오는 운에서 진정한 발복과 성취가 이루어져요.'
+            f'외부의 어떤 압박에도 쉽게 흔들리지 않고 자신만의 길을 걸어가는 타입이에요. '
+            f'다만 강한 기운이 지나치면 고집이나 독선으로 보일 수 있어요. '
+            f'용신인 {yongshin_name}의 기운이 찾아오는 운에서 진정한 발복이 이루어져요.'
         )
     elif '신약' in strength:
         base += (
             f'\n\n  {nm2}사주는 일간의 기운이 약한 신약(身弱) 사주예요. '
             f'주변 환경과 인간관계의 흐름에 민감하게 반응하며, '
             f'혼자의 힘보다 타인과의 협력에서 더 큰 힘을 발휘해요. '
-            f'작은 것에도 섬세하게 공감하는 능력은 이 사주만의 남다른 장점이에요. '
-            f'용신인 {yongshin_name}의 기운이 강한 환경에 있을 때 '
-            f'비로소 내면 깊숙이 잠들어 있던 잠재력이 눈을 뜨기 시작해요.'
+            f'공감 능력이 뛰어나고 섬세하게 사람의 마음을 읽는 능력이 있어요. '
+            f'용신인 {yongshin_name}의 기운이 강한 환경에 있을 때 잠재력이 피어나요.'
         )
     else:
         base += (
-            f'\n\n  {nm2}사주는 기운이 균형 잡힌 중화(中和) 사주예요. '
-            f'특정 기운에 치우치지 않아 어떤 환경에서도 안정적으로 적응하며, '
-            f'다양한 사람들과 원만한 관계를 맺는 능력이 있어요. '
-            f'극단적인 기복보다는 꾸준하고 안정적인 흐름으로 삶을 쌓아가는 것이 이 사주의 강점이에요. '
-            f'용신인 {yongshin_name}{_jp(yongshin_name,"을","를")} 적극 활용할수록 이 균형이 더욱 빛을 발해요.'
+            f'\n\n  {nm2}사주는 균형 잡힌 중화(中和) 사주예요. '
+            f'어떤 환경에서도 안정적으로 적응하며 다양한 사람과 원만한 관계를 맺어요. '
+            f'용신인 {yongshin_name}을 적극 활용할수록 이 균형이 더욱 빛을 발해요.'
         )
+
+    # 格局 특성 추가
+    GYEOK_PERSONALITY = {
+        '건록격':  '독립심과 추진력이 강해 스스로 길을 개척하는 자수성가형 기질이 있어요.',
+        '월겁격':  '경쟁심과 승부욕이 강해 어떤 도전도 피하지 않는 불굴의 기질이에요.',
+        '식신격':  '창의력과 표현력이 풍부하고 먹고 즐기는 것에서 행복을 느끼는 복 있는 기질이에요.',
+        '상관격':  '총명하고 예술적 감각이 탁월하며 기존 틀을 깨는 창의적 에너지가 넘쳐요.',
+        '편재격':  '기회를 빠르게 포착하고 과감하게 실행하는 사업가 기질이 타고났어요.',
+        '정재격':  '성실하고 꼼꼼하며 안정적으로 재물을 모으는 현실적인 기질이에요.',
+        '편관격':  '강한 추진력과 리더십으로 어떤 압박도 돌파하는 강인한 기질이에요.',
+        '정관격':  '원칙과 명예를 중시하며 신뢰를 바탕으로 사회적 위치를 쌓는 기질이에요.',
+        '편인격':  '직관력과 통찰력이 뛰어나고 독특한 재능과 신비로운 감각을 가진 기질이에요.',
+        '정인격':  '학문과 지식을 좋아하고 귀인의 도움을 받으며 차근차근 성장하는 기질이에요.',
+        '종아격':  '식상의 에너지를 극도로 발현해 창의·표현·예술 분야에서 독보적인 재능을 발휘해요.',
+        '종재격':  '재물과 현실에 집중해 사업과 투자에서 강한 추진력을 발휘하는 기질이에요.',
+        '종살격':  '강한 책임감과 권위로 조직을 이끄는 리더형 기질이에요.',
+        '종강격':  '강한 자아와 개성으로 독자적인 길을 가는 자기 주도형 기질이에요.',
+    }
+    if gyeok and gyeok in GYEOK_PERSONALITY:
+        base += f'\n\n  {nm2}격국은 **{gyeok}**이에요. {GYEOK_PERSONALITY[gyeok]}'
+
+    # 주도 십성 특성 추가
+    SS_PERSONALITY = {
+        '비견':  '독립심과 자존감이 강하고 자신만의 방식을 고집하는 편이에요.',
+        '겁재':  '승부욕과 경쟁심이 강하고 한번 목표를 잡으면 끝까지 밀어붙이는 기질이에요.',
+        '식신':  '창의적이고 표현력이 풍부하며 삶에서 즐거움을 찾는 능력이 탁월해요.',
+        '상관':  '총명하고 언변이 뛰어나며 기존의 틀에 얽매이지 않는 자유로운 영혼이에요.',
+        '편재':  '활동적이고 대범하며 기회를 보는 눈이 남다른 사업가 기질이 있어요.',
+        '정재':  '성실하고 꼼꼼하며 현실적인 판단력이 뛰어난 안정 지향형이에요.',
+        '편관':  '강한 카리스마와 결단력으로 어려운 환경도 돌파하는 의지가 있어요.',
+        '정관':  '원칙을 중시하고 책임감이 강하며 신뢰받는 삶을 추구해요.',
+        '편인':  '직관력과 통찰력이 뛰어나고 독특한 관심사와 재능을 가졌어요.',
+        '정인':  '학구적이고 사려 깊으며 배움을 통해 성장하는 것을 좋아해요.',
+    }
+    if ss_cnt:
+        top_ss = max(ss_cnt, key=ss_cnt.get)
+        top_cnt = ss_cnt[top_ss]
+        if top_cnt >= 2 and top_ss in SS_PERSONALITY:
+            base += f'\n\n  사주에 **{top_ss}**이(가) 두드러져요. {SS_PERSONALITY[top_ss]}'
+
     return base
 
 
@@ -3852,7 +3971,7 @@ def analyze_saju(name, pillars, gil, hyung):
     }
     out.append(f'**📌 총평 & 성격** — {_personality_subtitle.get(strength, name+"님은 어떤 사람일까요")}')
     out.append('')
-    out.append(_personality_text(ilgan, season_name, yongshin_name, strength, name))
+    out.append(_personality_text(ilgan, season_name, yongshin_name, strength, name, gyeok=get_gyeokguk(pillars)[0], ss_cnt=ss_cnt))
     out.append('')
     if deukryeong:
         out.append(f'> 🌟 **득령(得令)** 태어난 계절({season_name})에서 일간 {il_name}이(가) 왕성한 기운을 얻었어요. 타고난 기질이 뚜렷하고 의지력과 추진력이 강해요.')
@@ -3965,17 +4084,18 @@ def analyze_saju(name, pillars, gil, hyung):
     _gan_pairs = [(gans[i], gans[j]) for i in range(4) for j in range(i+1, 4) if i != 2 and j != 2]
 
     found_chung, found_hap, found_pa, found_hae, found_hyung = [], [], [], [], []
+    _seen_hap, _seen_chung, _seen_pa, _seen_hae = set(), set(), set(), set()
 
     for a, b in _pairs:
         fs = frozenset([a, b])
-        if any(fs == c for c in CHUNG):
-            found_chung.append(f'{JIJI[a]}{JIJI[b]}충')
-        if fs in YUKAHP:
-            found_hap.append(f'{JIJI[a]}{JIJI[b]}합({YUKAHP[fs]})')
-        if any(fs == c for c in PA):
-            found_pa.append(f'{JIJI[a]}{JIJI[b]}파')
-        if any(fs == c for c in HAE):
-            found_hae.append(f'{JIJI[a]}{JIJI[b]}해')
+        if any(fs == c for c in CHUNG) and fs not in _seen_chung:
+            _seen_chung.add(fs); found_chung.append(f'{JIJI[a]}{JIJI[b]}충')
+        if fs in YUKAHP and fs not in _seen_hap:
+            _seen_hap.add(fs); found_hap.append(f'{JIJI[a]}{JIJI[b]}합({YUKAHP[fs]})')
+        if any(fs == c for c in PA) and fs not in _seen_pa:
+            _seen_pa.add(fs); found_pa.append(f'{JIJI[a]}{JIJI[b]}파')
+        if any(fs == c for c in HAE) and fs not in _seen_hae:
+            _seen_hae.add(fs); found_hae.append(f'{JIJI[a]}{JIJI[b]}해')
 
     # 삼형
     jset = set(jijis)
@@ -4183,6 +4303,169 @@ def analyze_saju(name, pillars, gil, hyung):
     return '\n'.join(out)
 
 
+# ── 이성 적성 ──────────────────────────────────────────
+
+_ROMANTIC_OH = {
+    0: ('목(木)', (
+        '따뜻한 배려심과 생명력이 넘치는 이성이에요. '
+        '연인을 진심으로 아끼고 함께 성장하는 관계를 꿈꿔요. '
+        '처음엔 수줍어 보여도 마음을 열면 깊은 정을 쏟아내요. '
+        '감정 기복이 있을 수 있고 가끔 고집을 부리기도 하지만 '
+        '그만큼 진심이 깊고 관계에 최선을 다해요. '
+        '자연과 생명을 좋아하고 함께 무언가를 키워나가는 걸 즐기는 타입이에요. '
+        '연인의 꿈을 응원하고 묵묵히 곁을 지켜주는 헌신적인 이성이에요.'
+    )),
+    1: ('화(火)', (
+        '열정적이고 솔직한 애정 표현이 매력인 이성이에요. '
+        '좋아하면 먼저 다가오고 에너지가 넘쳐 주변을 환하게 밝혀줘요. '
+        '연애에서 설렘과 재미를 중요하게 생각하고 지루한 관계를 싫어해요. '
+        '감정이 뜨겁게 달아오르는 만큼 식는 것도 빠를 수 있어서 '
+        '꾸준히 새로운 자극을 주는 게 중요해요. '
+        '리더십이 강하고 결정도 빠른 편이라 함께 있으면 든든해요. '
+        '애정 표현에 아낌이 없고 상대를 세상에서 제일 특별한 사람으로 대해줘요.'
+    )),
+    2: ('토(土)', (
+        '안정감과 신뢰감이 넘치는 이성이에요. '
+        '처음엔 다가오는 속도가 느리고 표현도 서툴 수 있지만 '
+        '한번 마음을 열면 깊고 오래가는 관계를 만들어요. '
+        '현실적이고 책임감이 강해서 연인의 일상을 세심하게 챙겨줘요. '
+        '화려한 로맨스보다 소소한 일상을 함께하는 것에서 행복을 느끼는 타입이에요. '
+        '가정적이고 미래 지향적이어서 장기적인 파트너로서 가장 이상적이에요. '
+        '변화보다 안정을 선호하기 때문에 급격한 변화보다 천천히 깊어지는 관계를 원해요.'
+    )),
+    3: ('금(金)', (
+        '원칙과 의리, 깊은 책임감을 가진 이성이에요. '
+        '겉으로는 차갑고 까다로워 보여도 속에는 뜨거운 정이 있어요. '
+        '쉽게 마음을 열지 않지만 한번 인연을 맺으면 끝까지 지키려는 성향이에요. '
+        '자존심이 강하고 자신만의 기준이 뚜렷해서 그 기준에 맞는 상대에게만 마음을 줘요. '
+        '연인을 지키고 보호하는 것에 강한 사명감을 느끼고 '
+        '어떤 상황에서도 흔들리지 않는 든든한 버팀목이 되어줘요. '
+        '말보다 행동으로 사랑을 표현하는 타입이에요.'
+    )),
+    4: ('수(水)', (
+        '지적이고 감성이 풍부한 신비로운 이성이에요. '
+        '처음엔 알 수 없는 깊이가 느껴지고 알아갈수록 더 큰 매력이 나와요. '
+        '감수성이 뛰어나 상대의 감정을 섬세하게 읽어내고 공감 능력이 탁월해요. '
+        '자유로운 영혼이지만 진짜 유대감을 쌓으면 그 깊이가 남달라요. '
+        '지적 대화를 즐기고 서로의 내면 세계를 탐구하는 관계를 원해요. '
+        '직관이 강해 상대의 진심을 꿰뚫어 보는 능력이 있어요. '
+        '구속보다는 서로를 존중하는 자유로운 사랑을 추구해요.'
+    )),
+}
+_ROMANTIC_CHEONGAN = {
+    # (재성 일간 목록, 관성 일간 목록)
+    0: (['무토','기토'], ['경금','신금']),
+    1: (['무토','기토'], ['경금','신금']),
+    2: (['경금','신금'], ['임수','계수']),
+    3: (['경금','신금'], ['임수','계수']),
+    4: (['임수','계수'], ['갑목','을목']),
+    5: (['임수','계수'], ['갑목','을목']),
+    6: (['갑목','을목'], ['병화','정화']),
+    7: (['갑목','을목'], ['병화','정화']),
+    8: (['병화','정화'], ['무토','기토']),
+    9: (['병화','정화'], ['무토','기토']),
+}
+
+def analyze_romantic_type(name, pillars, strength, gender):
+    ilgan    = pillars[2][0]
+    ilgan_oh = OHAENG_IDX[ilgan]
+    is_male  = gender == '남'
+    nm  = f'{name}님은 ' if name else ''
+    nm2 = f'{name}님의 ' if name else '이 사주의 '
+    gender_str = '여성' if is_male else '남성'
+
+    # 남: 재성(+2), 여: 관성(+3)
+    partner_oh     = (ilgan_oh + 2) % 5 if is_male else (ilgan_oh + 3) % 5
+    role           = '재성(財星)' if is_male else '관성(官星)'
+    p_name, p_desc = _ROMANTIC_OH[partner_oh]
+
+    yongshin_oh, _, _, _, _ = get_yongshin(pillars)
+    gishin_oh = (yongshin_oh + 3) % 5
+    gi_name   = _ROMANTIC_OH[gishin_oh][0]
+
+    jae_list, gwan_list = _ROMANTIC_CHEONGAN[ilgan]
+    specific  = jae_list if is_male else gwan_list
+
+    il_name = ILGAN_DESC[ilgan][0]
+
+    out = ['---', '**💕 이성 적성 — 어떤 타입의 이성과 잘 맞을까요?**', '']
+
+    out.append(f'{nm}**{il_name}** 일간이에요. '
+               f'사주에서 이성을 나타내는 별은 **{role}({p_name})** 으로, '
+               f'{p_name} 기운을 가진 {gender_str}이 가장 자연스러운 인연이에요.')
+    out.append('')
+
+    out.append(f'**✨ 잘 맞는 이성 타입 — {p_name} 오행**')
+    out.append('')
+    out.append(p_desc)
+    out.append('')
+
+    # 강약별 연애 스타일
+    out.append('**💡 연애에서 나의 모습**')
+    out.append('')
+    if '신강' in strength:
+        out.append(
+            f'{nm}자기 주관이 뚜렷하고 에너지가 강한 사람이에요. '
+            f'연애에서도 주도적인 역할을 맡는 경우가 많고 내 방식대로 관계를 이끌어가려는 경향이 있어요. '
+            f'{p_name} 타입처럼 자신만의 중심이 있는 이성과 만났을 때 '
+            f'서로 존중하며 균형 잡힌 관계가 만들어져요. '
+            f'나를 무조건 따라오는 이성보다 적당히 밀고 당기는 긴장감이 있는 이성에게 더 끌리는 편이에요. '
+            f'단, 고집이 너무 강해지면 관계에서 마찰이 생길 수 있으니 '
+            f'상대의 의견을 들어주는 여유가 필요해요.'
+        )
+    elif '신약' in strength:
+        out.append(
+            f'{nm}감수성이 풍부하고 상대에게 맞춰주는 능력이 뛰어난 사람이에요. '
+            f'연애에서 상대를 세심하게 배려하고 감정적으로 깊이 연결되는 걸 중요하게 생각해요. '
+            f'{p_name} 타입처럼 든든하고 안정감 있는 이성이 '
+            f'내 감성을 지지해주는 버팀목이 되어줘요. '
+            f'나를 이끌어주고 결정을 도와주는 강단 있는 이성에게 끌리는 경향이 있어요. '
+            f'다만 상대에게 너무 의존하다 보면 자신을 잃을 수 있으니 '
+            f'나만의 영역을 지키는 것도 중요해요.'
+        )
+    else:
+        out.append(
+            f'{nm}균형 잡힌 에너지를 가진 사람이에요. '
+            f'연애에서 주도하지도 끌려다니지도 않는 자연스러운 흐름을 선호해요. '
+            f'{p_name} 타입 이성과 만나면 서로의 차이를 인정하며 '
+            f'편안하고 안정적인 관계를 만들어갈 수 있어요. '
+            f'무리하게 맞추거나 억지로 이끌려 하기보다 '
+            f'서로의 속도에 맞춰 천천히 깊어지는 인연이 오래가요.'
+        )
+    out.append('')
+
+    # 인연 일간
+    out.append(f'**🔗 인연이 깊은 일간**')
+    out.append(f'**{", ".join(specific)}** 일간을 가진 이성과 특히 끌림이 강하고 '
+               f'자연스럽게 인연이 이어지는 경우가 많아요. '
+               f'이 일간의 이성은 내가 자연스럽게 편안함을 느끼는 에너지를 가지고 있어요.')
+    out.append('')
+
+    # 주의 타입
+    out.append(f'**⚠️ 조심해야 할 타입**')
+    out.append(
+        f'{gi_name} 기운이 강한 이성은 처음엔 강한 끌림이 느껴질 수 있어요. '
+        f'낯설고 다른 에너지가 묘한 매력으로 다가오기 때문이에요. '
+        f'하지만 장기적으로는 서로의 에너지가 충돌하면서 소모되는 관계가 되기 쉬워요. '
+        f'짧은 만남으로 끝나거나 감정의 기복이 심해질 수 있으니 '
+        f'깊이 빠져들기 전에 신중하게 살펴보는 것이 좋아요.'
+    )
+    out.append('')
+
+    # 연애 조언
+    out.append(f'**💬 연애 조언**')
+    OH_ADVICE = {
+        0: '나무처럼 천천히 뿌리를 내리는 관계가 가장 튼튼해요. 처음부터 완벽한 연애를 바라기보다 함께 성장하는 과정을 즐기세요.',
+        1: '열정이 식지 않도록 꾸준히 새로운 경험을 함께 만들어가세요. 일상에서도 작은 설렘을 만드는 노력이 관계를 오래 유지시켜요.',
+        2: '서두르지 않아도 돼요. 천천히 신뢰를 쌓아가다 보면 어느새 깊고 단단한 관계가 만들어져 있을 거예요.',
+        3: '마음을 표현하는 연습이 필요해요. 속으로만 아끼지 말고 조금씩 표현해주세요. 상대는 그 진심을 느낄 거예요.',
+        4: '자유로운 공간을 서로에게 주되 진짜 유대감을 쌓는 대화를 놓치지 마세요. 깊이 연결될수록 더 오래가는 관계예요.',
+    }
+    out.append(OH_ADVICE[partner_oh])
+
+    return '\n'.join(out)
+
+
 # ── 궁합 점수 ────────────────────────────────────────
 
 def 궁합_점수(pa, pb):
@@ -4217,6 +4500,11 @@ def 궁합_점수(pa, pb):
         score += 10; reasons.append(f'[용신보완 +10] B가 A의 용신({ya_name}) 보유')
     if oa.get(yb_name, 0) > 0:
         score += 10; reasons.append(f'[용신보완 +10] A가 B의 용신({yb_name}) 보유')
+
+    # 신살 점수 보정
+    sinsal_delta, sinsal_reasons = _sinsal_score_adj(pa, pb, 'A', 'B', mode='궁합')
+    score += sinsal_delta
+    reasons.extend(sinsal_reasons)
 
     return max(0, min(100, score)), reasons, rel
 
@@ -5746,6 +6034,16 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
     out.append(f'\n### {cur_year}년 세운  |  올해 이 관계에 작용하는 에너지')
     out.append(_sewoon_rel(pa, pb, na, nb, rel_type))
 
+    # 신살 추가 의견 (연인/전연인 관계에서만)
+    if rel_type in ('인연', '썸', '전연인'):
+        sinsal_ops = _sinsal_relation_opinion(pa, pb, na, nb)
+        if sinsal_ops:
+            out.append(f'\n### 신살 추가 의견  |  사주에 새겨진 관계 패턴')
+            out.append('  이 신살들은 두 분의 관계 방식과 이별·갈등 패턴에 영향을 줘요.\n')
+            for op in sinsal_ops:
+                out.append(f'  {op}')
+                out.append('')
+
     return '\n'.join(out)
 
 
@@ -5936,6 +6234,297 @@ def print_gunghap_typed(pa, pb, na, nb, rel_type,
 
 # ── 재회운 ────────────────────────────────────────────
 
+
+
+def _sinsal_score_adj(pa, pb, na, nb, mode='재회'):
+    """신살 기반 점수 보정. mode: '재회' or '궁합'"""
+    gil_a, hyung_a = check_sal(pa)
+    gil_b, hyung_b = check_sal(pb)
+    all_a = gil_a + hyung_a
+    all_b = gil_b + hyung_b
+
+    def _has(sal_list, keyword):
+        return any(keyword in s for s in sal_list)
+
+    delta = 0
+    reasons = []
+
+    yang_a = _has(all_a, '양인살')
+    yang_b = _has(all_b, '양인살')
+    if yang_a and yang_b:
+        d = -10 if mode == '재회' else -8
+        delta += d; reasons.append(f'[양인살(둘다) {d}] 자존심 충돌 — 먼저 손 내밀기 어려운 구조')
+    elif yang_a or yang_b:
+        who = na if yang_a else nb
+        d = -5 if mode == '재회' else -4
+        delta += d; reasons.append(f'[양인살({who}) {d}] 강한 자존심 — 이별 후 극단적 단절 패턴')
+
+    baekho_a = _has(all_a, '백호대살')
+    baekho_b = _has(all_b, '백호대살')
+    if baekho_a and baekho_b:
+        d = -12 if mode == '재회' else -14
+        delta += d; reasons.append(f'[백호대살(둘다) {d}] 갑작스러운 이별·충격 패턴 — 관계 불안정')
+    elif baekho_a or baekho_b:
+        who = na if baekho_a else nb
+        d = -8 if mode == '재회' else -10
+        delta += d; reasons.append(f'[백호대살({who}) {d}] 갑작스러운 변화로 인연이 끊기는 패턴')
+
+    goran_a = _has(all_a, '고란살')
+    goran_b = _has(all_b, '고란살')
+    if goran_a and goran_b:
+        d = -10 if mode == '재회' else -12
+        delta += d; reasons.append(f'[고란살(둘다) {d}] 두 분 모두 혼자가 편한 타입 — 장기 관계 어려움')
+    elif goran_a or goran_b:
+        who = na if goran_a else nb
+        d = -6 if mode == '재회' else -8
+        delta += d; reasons.append(f'[고란살({who}) {d}] {who}은 혼자가 편한 타입 — 정착 어려움')
+
+    yukma_a = _has(all_a, '역마살')
+    yukma_b = _has(all_b, '역마살')
+    if yukma_a and yukma_b:
+        pass  # 둘 다 역마살이면 중립 — 자유로운 관계 스타일이 맞을 수 있음
+    elif yukma_a or yukma_b:
+        who = na if yukma_a else nb
+        d = -3
+        delta += d; reasons.append(f'[역마살({who}) {d}] {who}은 정착보다 변화 선호 — 한 쪽만 있으면 방향 차이 생길 수 있음')
+
+    dohwa_a = _has(all_a, '도화살')
+    dohwa_b = _has(all_b, '도화살')
+    if dohwa_a or dohwa_b:
+        who = na if dohwa_a else nb
+        if dohwa_a and dohwa_b: who = '둘다'
+        d = -4 if mode == '재회' else -5
+        delta += d; reasons.append(f'[도화살({who}) {d}] 이성 인기 많아 외도·분산 주의')
+
+    gwi_a = _has(all_a, '귀문관살')
+    gwi_b = _has(all_b, '귀문관살')
+    if gwi_a or gwi_b:
+        who = na if gwi_a else nb
+        if gwi_a and gwi_b: who = '둘다'
+        if mode == '재회':
+            delta += 5; reasons.append(f'[귀문관살({who}) +5] 헤어진 후에도 잊지 못하는 강한 집착 에너지')
+
+    # 홍염살
+    hong_a = _has(all_a, '홍염살')
+    hong_b = _has(all_b, '홍염살')
+    if hong_a and hong_b:
+        d = 3
+        delta += d; reasons.append(f'[홍염살(둘다) +{d}] 서로에 대한 강한 끌림 에너지 — 그리움도 강함')
+    elif hong_a or hong_b:
+        who = na if hong_a else nb
+        d = -3 if mode == '궁합' else 0
+        if d != 0:
+            delta += d; reasons.append(f'[홍염살({who}) {d}] 이성에게 인기 많아 외도·분산 주의')
+
+    # 화개살
+    hwagae_a = _has(all_a, '화개살')
+    hwagae_b = _has(all_b, '화개살')
+    if hwagae_a and hwagae_b:
+        d = -5
+        delta += d; reasons.append(f'[화개살(둘다) {d}] 두 분 모두 고독을 즐기는 타입 — 각자의 세계에 빠지는 경향')
+    elif hwagae_a or hwagae_b:
+        who = na if hwagae_a else nb
+        d = -3
+        delta += d; reasons.append(f'[화개살({who}) {d}] {who}은 혼자만의 세계 중시 — 관계보다 고독 선호')
+
+    # 효신살
+    hyoshin_a = _has(all_a, '효신살')
+    hyoshin_b = _has(all_b, '효신살')
+    if hyoshin_a or hyoshin_b:
+        who = na if hyoshin_a else nb
+        if hyoshin_a and hyoshin_b: who = '둘다'
+        d = -5
+        delta += d; reasons.append(f'[효신살({who}) {d}] 진심을 줘도 결실 없이 끝나는 패턴 주의')
+
+    # 괴강살
+    goegang_a = _has(all_a, '괴강살')
+    goegang_b = _has(all_b, '괴강살')
+    if goegang_a and goegang_b:
+        d = -8 if mode == '궁합' else -6
+        delta += d; reasons.append(f'[괴강살(둘다) {d}] 두 분 모두 강한 자아 — 주도권 충돌 위험')
+    elif goegang_a or goegang_b:
+        who = na if goegang_a else nb
+        d = -4 if mode == '궁합' else -3
+        delta += d; reasons.append(f'[괴강살({who}) {d}] {who}의 강한 카리스마가 상대를 압도하는 구조')
+
+    return delta, reasons
+
+def _sinsal_relation_opinion(pa, pb, na, nb):
+    """궁합·재회용 신살 추가 의견 생성"""
+    gil_a, hyung_a = check_sal(pa)
+    gil_b, hyung_b = check_sal(pb)
+    all_a = gil_a + hyung_a
+    all_b = gil_b + hyung_b
+
+    def _has(sal_list, keyword):
+        return any(keyword in s for s in sal_list)
+
+    opinions = []
+
+    # 양인살
+    yang_a = _has(all_a, '양인살')
+    yang_b = _has(all_b, '양인살')
+    if yang_a and yang_b:
+        opinions.append(
+            f'⚡ **양인살 (두 분 모두)** — 두 분 모두 강한 자존심과 폭발적 에너지를 가졌어요.\n'
+            f'  이별할 때 감정이 극단적으로 치닫는 경우가 많아요. '
+            f'"내가 왜 먼저 연락해"라는 자존심 싸움이 재회를 막는 가장 큰 벽이에요.\n'
+            f'  둘 다 먼저 손 내밀기 싫어하는 구조라 중간에서 자연스러운 계기가 필요해요.'
+        )
+    elif yang_a:
+        opinions.append(
+            f'⚡ **양인살 ({na}님)** — {na}님은 이별 시 감정이 폭발하거나 극단적으로 차단하는 패턴이 있어요.\n'
+            f'  화가 나면 아예 연락을 끊거나 "다시는 안 본다"고 선언하지만 속으로는 미련이 남는 타입이에요.\n'
+            f'  {nb}님이 {na}님의 자존심을 건드리지 않는 방식으로 접근하는 것이 재회의 핵심이에요.'
+        )
+    elif yang_b:
+        opinions.append(
+            f'⚡ **양인살 ({nb}님)** — {nb}님은 이별 시 감정을 격하게 표현하거나 완전히 차단하는 성향이에요.\n'
+            f'  강한 자존심 때문에 먼저 연락하기 어려워해요.\n'
+            f'  재회를 원한다면 {nb}님의 자존심을 존중하면서 자연스러운 접점을 만드는 것이 중요해요.'
+        )
+
+    # 백호대살
+    baekho_a = _has(all_a, '백호대살')
+    baekho_b = _has(all_b, '백호대살')
+    if baekho_a or baekho_b:
+        who = f'{na}님' if baekho_a else f'{nb}님'
+        if baekho_a and baekho_b: who = '두 분 모두'
+        opinions.append(
+            f'🔴 **백호대살 ({who})** — 백호대살은 갑작스럽고 충격적인 사건이 인연을 끊는 구조예요.\n'
+            f'  예상하지 못한 순간에 이별이 찾아오거나, 사고·건강 문제가 관계에 영향을 주기도 해요.\n'
+            f'  이별의 원인이 감정적 갈등보다 외부 충격이나 돌발 상황이었을 가능성이 있어요.\n'
+            f'  재회를 원한다면 "그때 그 상황은 어쩔 수 없었어"라는 이해와 공감이 먼저 필요해요.'
+        )
+
+    # 고란살
+    goran_a = _has(all_a, '고란살')
+    goran_b = _has(all_b, '고란살')
+    if goran_a or goran_b:
+        who = f'{na}님' if goran_a else f'{nb}님'
+        if goran_a and goran_b: who = '두 분 모두'
+        opinions.append(
+            f'🌙 **고란살 ({who})** — 고란살은 혼자가 편한 타입임을 나타내요.\n'
+            f'  깊은 관계에 들어가면 자유가 제한되는 느낌을 받고 본능적으로 거리를 두려는 성향이에요.\n'
+            f'  이별의 원인 중 하나가 "혼자만의 공간이 필요해"라는 감정이었을 수 있어요.\n'
+            f'  재회 후에는 각자의 공간과 독립성을 충분히 보장하는 구조를 만드는 것이 중요해요.'
+        )
+
+    # 역마살
+    yukma_a = _has(all_a, '역마살')
+    yukma_b = _has(all_b, '역마살')
+    if yukma_a and yukma_b:
+        opinions.append(
+            f'🏃 **역마살 (두 분 모두)** — 두 분 모두 변화와 자유를 좋아하는 기운이에요.\n'
+            f'  이건 오히려 서로 잘 맞는 포인트예요. 함께 여행하거나 새로운 경험을 나누는 관계에서 빛나요.\n'
+            f'  다만 함께 나아갈 공통 방향이 없으면 각자 다른 곳으로 흘러갈 수 있어요.\n'
+            f'  "어디로 같이 가자"는 공동 목표가 이 인연을 오래 이어주는 핵심이에요.'
+        )
+    elif yukma_a or yukma_b:
+        who = f'{na}님' if yukma_a else f'{nb}님'
+        opinions.append(
+            f'🏃 **역마살 ({who})** — {who}은 정착보다 변화를 선호하는 기운이에요.\n'
+            f'  이별의 원인 중 하나가 "답답함" 또는 "자유롭고 싶다"는 감정이었을 수 있어요.\n'
+            f'  재회 후에는 지나치게 밀착된 관계보다 서로 숨 쉴 공간을 주는 것이 핵심이에요.'
+        )
+
+    # 도화살
+    dohwa_a = _has(all_a, '도화살')
+    dohwa_b = _has(all_b, '도화살')
+    if dohwa_a or dohwa_b:
+        who = f'{na}님' if dohwa_a else f'{nb}님'
+        if dohwa_a and dohwa_b: who = '두 분 모두'
+        opinions.append(
+            f'🌸 **도화살 ({who})** — 도화살은 타고난 이성 매력과 인기의 기운이에요.\n'
+            f'  이성에게 자연스럽게 인기를 끌어 상대방의 질투나 불안을 유발할 수 있어요.\n'
+            f'  이별의 원인 중 이성 관계 문제나 오해가 있었다면 이 기운의 영향일 수 있어요.\n'
+            f'  재회 후엔 이성 관계에서 명확한 선을 보여주는 행동이 신뢰 회복의 핵심이에요.'
+        )
+
+    # 귀문관살
+    gwi_a = _has(all_a, '귀문관살')
+    gwi_b = _has(all_b, '귀문관살')
+    if gwi_a or gwi_b:
+        who = f'{na}님' if gwi_a else f'{nb}님'
+        if gwi_a and gwi_b: who = '두 분 모두'
+        opinions.append(
+            f'🔮 **귀문관살 ({who})** — 귀문관살은 헤어진 후에도 상대를 잊지 못하고 집착하는 에너지예요.\n'
+            f'  직관이 강해 상대방의 감정을 예민하게 감지하고 멀리 있어도 연결된 느낌을 받아요.\n'
+            f'  이것이 재회에 대한 강한 집착으로 이어질 수 있어요.\n'
+            f'  집착과 진심 사이의 균형을 유지하는 것이 건강한 재회를 위한 핵심이에요.'
+        )
+
+    # 홍염살
+    hong_a = _has(all_a, '홍염살')
+    hong_b = _has(all_b, '홍염살')
+    if hong_a and hong_b:
+        opinions.append(
+            f'💋 **홍염살 (두 분 모두)** — 두 분 사이에 강렬한 끌림과 색정 에너지가 흘러요.\n'
+            f'  처음 만났을 때 강하게 끌리는 느낌, 이별 후에도 생각나는 감각적 기억이 남아 있어요.\n'
+            f'  이 에너지는 재회의 동력이 되기도 하지만, 감정에 휩쓸리면 현실을 놓치기 쉬워요.\n'
+            f'  "끌림"과 "맞음"은 다를 수 있어요. 감정이 아닌 관계 자체를 냉정하게 봐야 해요.'
+        )
+    elif hong_a or hong_b:
+        who = f'{na}님' if hong_a else f'{nb}님'
+        opinions.append(
+            f'💋 **홍염살 ({who})** — {who}은 이성에게 강한 매력을 발산하는 기운이에요.\n'
+            f'  의도와 무관하게 이성의 관심을 끌어 상대방이 불안함을 느꼈을 수 있어요.\n'
+            f'  재회 후엔 이성 관계에서 명확한 선을 행동으로 보여주는 것이 신뢰 회복의 핵심이에요.'
+        )
+
+    # 화개살
+    hwagae_a = _has(all_a, '화개살')
+    hwagae_b = _has(all_b, '화개살')
+    if hwagae_a and hwagae_b:
+        opinions.append(
+            f'🌙 **화개살 (두 분 모두)** — 두 분 모두 혼자만의 세계와 고독을 소중히 여기는 타입이에요.\n'
+            f'  예술·철학·영적인 것에 깊이 빠지는 성향이라 관계보다 자신의 내면에 집중하는 시간이 많아요.\n'
+            f'  이별 후 각자 자신만의 세계에 빠져 시간이 흘러가는 구조예요.\n'
+            f'  재회하려면 서로의 고독한 공간을 인정하고 침범하지 않는 관계 방식이 필요해요.'
+        )
+    elif hwagae_a or hwagae_b:
+        who = f'{na}님' if hwagae_a else f'{nb}님'
+        opinions.append(
+            f'🌙 **화개살 ({who})** — {who}은 혼자만의 세계와 고독을 중요하게 생각하는 타입이에요.\n'
+            f'  이별 후 자신의 세계에 깊이 빠져들어 연락 자체를 차단하는 패턴일 수 있어요.\n'
+            f'  억지로 끌어내려 하기보다 그 세계를 존중하면서 자연스럽게 접근하는 것이 핵심이에요.'
+        )
+
+    # 효신살
+    hyoshin_a = _has(all_a, '효신살')
+    hyoshin_b = _has(all_b, '효신살')
+    if hyoshin_a or hyoshin_b:
+        who = f'{na}님' if hyoshin_a else f'{nb}님'
+        if hyoshin_a and hyoshin_b: who = '두 분 모두'
+        opinions.append(
+            f'💧 **효신살 ({who})** — 효신살은 진심을 다해도 결실이 공허하게 끝나는 패턴이에요.\n'
+            f'  사랑을 열심히 줬지만 뭔가 허무하게 끝난 느낌이 이별 과정에 있었을 수 있어요.\n'
+            f'  재회를 원한다면 "이번엔 무엇이 다른가"를 스스로 먼저 확인해야 해요.\n'
+            f'  같은 패턴이 반복되지 않으려면 관계 방식 자체를 바꾸는 용기가 필요해요.'
+        )
+
+    # 괴강살
+    goegang_a = _has(all_a, '괴강살')
+    goegang_b = _has(all_b, '괴강살')
+    if goegang_a and goegang_b:
+        opinions.append(
+            f'⚔️ **괴강살 (두 분 모두)** — 두 분 모두 강한 카리스마와 자아를 가졌어요.\n'
+            f'  함께할 때 강렬한 에너지가 충돌하거나 주도권 싸움이 생기기 쉬운 구조예요.\n'
+            f'  이별의 원인 중 "누가 더 강한가"의 무언의 싸움이 있었을 수 있어요.\n'
+            f'  재회 후엔 서로의 강함을 경쟁이 아닌 시너지로 보는 시각 전환이 필요해요.'
+        )
+    elif goegang_a or goegang_b:
+        who = f'{na}님' if goegang_a else f'{nb}님'
+        other = f'{nb}님' if goegang_a else f'{na}님'
+        opinions.append(
+            f'⚔️ **괴강살 ({who})** — {who}은 강한 카리스마와 극단적인 에너지를 가진 타입이에요.\n'
+            f'  {other}이 관계에서 압도당하거나 자신을 잃는 느낌을 받았을 수 있어요.\n'
+            f'  재회를 원한다면 {who}이 먼저 상대를 동등한 파트너로 대하는 변화를 보여줘야 해요.\n'
+            f'  강함은 매력이지만 관계에서는 부드러움이 더 오래가요.'
+        )
+
+    return opinions
+
 def 재회운_분석(pa, pb, na, nb):
     cur_year = datetime.now().year
     ia, ib   = pa[2][0], pb[2][0]
@@ -5986,6 +6575,18 @@ def 재회운_분석(pa, pb, na, nb):
                 score += 8; reasons.append(f'[{name} 도화살 세운 +8] 올해 도화살 발동 — 이성 매력 극대화')
                 break
 
+        # 세운 지지 ↔ 일지 관계 (정확도 핵심 보완)
+        ilji = pillars[2][1]
+        fs_yj = frozenset([yj_cur, ilji])
+        if fs_yj in YUKAHP:
+            score += 8; reasons.append(f'[{name} 세운지지합 +8] 세운지지({JIJI[yj_cur]})가 일지({JIJI[ilji]})와 합 — 이성 인연 강하게 열림')
+        elif fs_yj in CHUNG:
+            score -= 6; reasons.append(f'[{name} 세운지지충 -6] 세운지지({JIJI[yj_cur]})가 일지({JIJI[ilji]})와 충 — 변화·이동 에너지, 재회보다 이별 쪽')
+        for fs, name_s in SAMHAP:
+            if yj_cur in fs and ilji in fs and yj_cur != ilji:
+                score += 5; reasons.append(f'[{name} 세운삼합 +5] 세운지지가 {name_s}에 합류 — 인연 에너지 상승')
+                break
+
     # 4. 용신 교차 보완
     ya_oh = get_yongshin(pa)[0]; yb_oh = get_yongshin(pb)[0]
     ya_name = OHAENG_NAMES[ya_oh]; yb_name = OHAENG_NAMES[yb_oh]
@@ -6003,11 +6604,17 @@ def 재회운_분석(pa, pb, na, nb):
     if any(j in gm_b for j in ja):
         score -= 8; reasons.append(f'[공망 -8] {na}의 지지가 {nb}의 공망에 해당 — 인연이 공허하게 느껴질 수 있음')
 
+    # 6. 신살 점수 보정
+    sinsal_delta, sinsal_reasons = _sinsal_score_adj(pa, pb, na, nb, mode='재회')
+    score += sinsal_delta
+    reasons.extend(sinsal_reasons)
+
     return max(0, min(100, score)), reasons, rel
 
 
 def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
-                   dw_a=None, is_male_a=True, dw_b=None, is_male_b=False):
+                   dw_a=None, is_male_a=True, dw_b=None, is_male_b=False,
+                   is_blocked=False):
     cur_year = datetime.now().year
     cur_month = datetime.now().month
     ia, ib   = pa[2][0], pb[2][0]
@@ -6074,6 +6681,12 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     }
     jma_desc, jma_short = ILGAN_META_J[ia]
     jmb_desc, jmb_short = ILGAN_META_J[ib]
+    # 차단 상태 점수 보정 및 안내
+    blocked_penalty = 0
+    if is_blocked:
+        blocked_penalty = 20
+        score = max(0, score - blocked_penalty)
+
     if score >= 75:
         _jtitle = f'{score}점 — 다시 이어질 인연의 흐름이 강하게 감지돼요'
     elif score >= 58:
@@ -6084,6 +6697,12 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         _jtitle = f'{score}점 — 운의 흐름이 재회보다 다른 방향을 가리키고 있어요'
 
     out = ['## ◈ 재회 상세 해설']
+    if is_blocked:
+        out.append(
+            f'\n  ⛔ **차단 상태 반영** — 상대방이 현재 연락을 차단한 상태예요.\n'
+            f'  차단은 감정적 방어 표현이지 인연의 끝을 의미하지 않아요.\n'
+            f'  사주 점수에서 {blocked_penalty}점을 차감한 **{score}점**으로 현실적인 가능성을 분석했어요.'
+        )
     out.append(f'\n  {_jtitle}')
     out.append(
         f'  {na}님은 {jma_desc}이고, {nb}님은 {jmb_desc}이에요.\n'
@@ -6354,24 +6973,226 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         f'  더 깊은 대화로 이어지는 지름길이에요.'
     )
 
+
+    # ⑦-A 이별 원인 분석
+    out.append(f'\n### 이별 원인 분석  |  사주로 보는 헤어진 이유')
+    breakup_reasons = []
+    # 일지 관계 기반
+    if frozenset([da, db]) in CHUNG:
+        breakup_reasons.append(
+            '  • **성격 충돌형** — 배우자궁(일지)이 충(沖)하는 구조예요.\n'
+            '    처음엔 강렬하게 끌렸지만 함께할수록 서로의 다름이 갈등으로 이어지는 패턴이에요.\n'
+            '    "왜 이 사람은 나를 이해 못 할까"라는 답답함이 쌓여 이별로 이어졌을 가능성이 높아요.\n'
+            '    재회하려면 서로의 다름을 적으로 보지 않고 개성으로 받아들이는 연습이 필수예요.'
+        )
+    elif frozenset([da, db]) in WONJIN:
+        breakup_reasons.append(
+            '  • **감정 소진형** — 배우자궁(일지)이 원진(怨嗔) 구조예요.\n'
+            '    묘하게 끌리지만 함께하면 말로 설명하기 어려운 답답함과 불편함이 생겨요.\n'
+            '    "왜 이 사람 곁에 있으면 피곤할까"라는 감정이 누적돼 이별에 이른 경우가 많아요.\n'
+            '    없으면 생각나고 만나면 또 부딪히는 이 패턴을 인식하는 것이 재회의 출발점이에요.'
+        )
+    # 십성 분포 기반
+    ss_all_a = []
+    ss_all_b = []
+    for i2, (g2, j2) in enumerate(pa):
+        if i2 != 2: ss_all_a.append(get_sipseong(ia, OHAENG_IDX[g2], g2 % 2))
+        for stem in JIJANGAN_IDX[j2]:
+            ss_all_a.append(get_sipseong(ia, OHAENG_IDX[stem], stem % 2))
+    for i2, (g2, j2) in enumerate(pb):
+        if i2 != 2: ss_all_b.append(get_sipseong(ib, OHAENG_IDX[g2], g2 % 2))
+        for stem in JIJANGAN_IDX[j2]:
+            ss_all_b.append(get_sipseong(ib, OHAENG_IDX[stem], stem % 2))
+    sang_a = ss_all_a.count('상관')
+    sang_b = ss_all_b.count('상관')
+    pjae_a = ss_all_a.count('편재')
+    pjae_b = ss_all_b.count('편재')
+    gub_a  = ss_all_a.count('겁재')
+    gub_b  = ss_all_b.count('겁재')
+    if sang_a >= 2 or sang_b >= 2:
+        heavy = na if sang_a >= 2 else nb
+        breakup_reasons.append(
+            f'  • **언쟁·표현 충돌형** — {heavy}님 사주에 상관(傷官)이 강해요.\n'
+            f'    말이 날카롭거나 상대의 기분을 건드리는 표현이 반복돼 감정의 골이 깊어졌을 수 있어요.\n'
+            f'    의도치 않은 말 한마디가 상처가 되는 패턴을 인식하고 대화 방식을 바꾸는 것이 핵심이에요.'
+        )
+    if (pjae_a >= 2 and is_male_a) or (pjae_b >= 2 and is_male_b):
+        heavy = na if (pjae_a >= 2 and is_male_a) else nb
+        breakup_reasons.append(
+            f'  • **이성 분산형** — {heavy}님 사주에 편재(偏財)가 강해요.\n'
+            f'    이성에게 자연스럽게 인기가 많아지는 기운이라 상대방이 불안함을 느꼈을 수 있어요.\n'
+            f'    의도와 무관하게 오해가 생기기 쉬운 구조이므로 신뢰를 쌓는 행동이 중요해요.'
+        )
+    if gub_a >= 2 or gub_b >= 2:
+        heavy = na if gub_a >= 2 else nb
+        breakup_reasons.append(
+            f'  • **자존심 충돌형** — {heavy}님 사주에 겁재(劫財)가 강해요.\n'
+            f'    경쟁심과 자존심이 강해 관계에서 주도권 싸움이 생겼을 가능성이 있어요.\n'
+            f'    "내가 양보해야 하나"라는 심리 갈등이 이별의 씨앗이 됐을 수 있어요.'
+        )
+    # 공망 기반
+    gm_a = get_gongmang(pa[2][0], pa[2][1])
+    gm_b = get_gongmang(pb[2][0], pb[2][1])
+    if any(j in gm_a for j in jb) or any(j in gm_b for j in ja):
+        breakup_reasons.append(
+            '  • **허무한 이별형** — 한 쪽의 공망이 상대 지지에 걸려 있어요.\n'
+            '    아무리 노력해도 인연이 손에 잡히지 않는 허무한 느낌이 들었을 수 있어요.\n'
+            '    공망 구조에서는 "노력했는데 왜 안 될까"라는 무력감이 이별을 앞당기기도 해요.'
+        )
+    if not breakup_reasons:
+        breakup_reasons.append(
+            '  • **타이밍 불일치형** — 두 분의 사주 구조상 특별한 충돌보다\n'
+            '    각자의 운세 흐름이 서로 다른 방향을 가리키던 시기에 헤어진 것으로 보여요.\n'
+            '    관계 자체의 문제보다 시기와 상황이 맞지 않았던 것일 수 있어요.\n'
+            '    서로 충분히 성장한 지금, 재회의 가능성이 오히려 더 열려 있어요.'
+        )
+    for r in breakup_reasons:
+        out.append(r)
+
+    # ⑦-B 상대방 그리움 분석
+    out.append(f'\n### 지금 상대방은  |  {nb}님은 {na}님을 어떻게 기억하고 있을까요')
+    ya_oh_val = get_yongshin(pa)[0]
+    yb_oh_val = get_yongshin(pb)[0]
+    # 상대 사주에서 나의 일간 오행이 용신 오행인지 확인
+    a_oh = OHAENG_IDX[ia]
+    b_oh = OHAENG_IDX[ib]
+    a_is_yong_for_b = (a_oh == yb_oh_val)
+    b_is_yong_for_a = (b_oh == ya_oh_val)
+    # 일지합 여부
+    ilji_hap = frozenset([da, db]) in YUKAHP
+    # 상대(pb) 현재 세운에서 이성 활성화 여부
+    b_ss_this_year = get_sipseong(ib, OHAENG_IDX[yg_cur], yg_cur % 2)
+    b_active = b_ss_this_year in (spouse_stars_b | {'정관','편관','정재','편재'})
+
+    memory_score = 0
+    memory_factors = []
+    if ilji_hap:
+        memory_score += 3
+        memory_factors.append(f'일지합 — 배우자궁이 합을 이뤄 {nb}님 안에서 {na}님의 기억이 각별하게 남아 있어요')
+    if a_is_yong_for_b:
+        memory_score += 2
+        memory_factors.append(f'{na}님의 오행이 {nb}님의 용신 — {nb}님은 {na}님 곁에 있을 때 에너지가 채워지는 느낌을 받아요')
+    if frozenset([da, db]) in CHUNG:
+        memory_score += 1
+        memory_factors.append(f'일지충 — 강렬한 인연이라 쉽게 잊히지 않아요. 미운 감정도 있지만 그만큼 선명하게 기억해요')
+    if frozenset([da, db]) in WONJIN:
+        memory_score += 1
+        memory_factors.append(f'일지원진 — 없으면 생각나는 구조라 지금도 {nb}님 머릿속에 {na}님이 종종 떠오를 가능성이 높아요')
+    if not b_active:
+        memory_score -= 1
+        memory_factors.append(f'{nb}님 세운({b_ss_this_year}) — 현재 이성 인연보다 다른 방향에 집중하는 시기예요')
+
+    if memory_score >= 4:
+        out.append(
+            f'  **{nb}님은 {na}님을 강하게 기억하고 있을 가능성이 높아요.**\n'
+            f'  사주 구조상 {na}님이 {nb}님에게 특별한 기운으로 남아 있어요.\n'
+            f'  완전히 잊었다기보다 애써 생각 안 하려 노력 중일 수 있어요.\n'
+        )
+    elif memory_score >= 2:
+        out.append(
+            f'  **{nb}님은 {na}님을 여전히 기억하고 있지만, 감정을 정리 중일 수 있어요.**\n'
+            f'  완전히 잊은 것은 아니지만 앞으로 나아가려 노력하는 시기일 수 있어요.\n'
+            f'  자연스러운 계기가 생기면 감정이 다시 열릴 여지가 있어요.\n'
+        )
+    else:
+        out.append(
+            f'  **{nb}님은 현재 {na}님과의 감정을 정리하고 자신의 삶에 집중하는 시기로 보여요.**\n'
+            f'  이것이 영원한 이별을 의미하진 않아요.\n'
+            f'  지금은 {nb}님이 스스로 성장하는 시간이 필요한 것일 수 있어요.\n'
+        )
+    for f_str in memory_factors:
+        out.append(f'  — {f_str}')
+
+    # ⑦-C 연락 전략
+    out.append(f'\n### 연락 전략  |  {"차단 상태에서 어떻게 접근할까요" if is_blocked else "어떻게, 언제 다가가면 좋을까요"}')
+    # 상대 일간 성향 기반 접근법
+    IB_APPROACH = {
+        0: f'{nb}님(갑목)은 원칙과 자존심을 중요하게 생각해요. 감정적인 호소보다 진심 어린 솔직한 말이 더 잘 통해요. "많이 생각했어"라는 짧고 진솔한 한 마디가 시작이 될 수 있어요.',
+        1: f'{nb}님(을목)은 유연하고 눈치가 빠른 편이에요. 직접적인 고백보다 자연스러운 만남의 자리를 만드는 게 효과적이에요. 공통 관심사나 추억을 매개로 접근해보세요.',
+        2: f'{nb}님(병화)은 밝고 솔직한 성격이에요. 돌려말하기보다 직접적으로 감정을 표현하는 게 오히려 통해요. 유머와 긍정적 에너지로 먼저 분위기를 풀어보세요.',
+        3: f'{nb}님(정화)은 내면이 깊고 섬세해요. 가벼운 안부보다 "네가 떠올랐어"처럼 진지하고 감성적인 메시지가 마음을 건드려요. 억지로 만남을 강요하지 말고 감정의 문을 천천히 두드리세요.',
+        4: f'{nb}님(무토)은 신중하고 묵직해요. 즉각적인 반응을 기대하지 마세요. 한번 연락한 뒤 충분히 기다리는 여유가 필요해요. 안정감과 진지함을 보여주는 것이 핵심이에요.',
+        5: f'{nb}님(기토)은 현실적이고 꼼꼼해요. "잘 지내?"보다는 구체적인 이야깃거리를 함께 전달하세요. 상대를 생각해서 준비한 흔적이 느껴질 때 마음이 열려요.',
+        6: f'{nb}님(경금)은 원칙과 의리를 중시해요. 애매한 태도는 오히려 역효과예요. 진심이라면 분명하게 표현하는 것이 오히려 신뢰를 줘요. 행동으로 변화를 보여주는 것이 말보다 강해요.',
+        7: f'{nb}님(신금)은 자존심이 강하고 섬세해요. 상처받은 게 있다면 먼저 그 부분을 인정하는 말이 필요해요. 진심 어린 사과 한마디가 닫힌 문을 여는 열쇠가 될 수 있어요.',
+        8: f'{nb}님(임수)은 지혜롭고 자유로운 영혼이에요. 집착이나 강요로는 절대 안 통해요. 가볍게 존재를 알리고 상대가 먼저 다가올 공간을 열어두는 전략이 더 효과적이에요.',
+        9: f'{nb}님(계수)은 감성적이고 직관이 강해요. 말보다 감정이 담긴 메시지에 반응해요. "그때 그 노래 들었어", "그곳 지나쳤어"처럼 추억을 자연스럽게 소환하는 방식이 마음을 건드려요.',
+    }
+    out.append(f'  **{nb}님의 성향({ILGAN_DESC[ib][0]})에 맞는 접근법:**')
+    if is_blocked:
+        out.append(f'  {IB_APPROACH[ib]}')
+        out.append('')
+        out.append(
+            f'  ⛔ **차단 상태 전용 전략**\n\n'
+            f'  직접 연락은 현재 불가능하거나 역효과가 날 수 있어요.\n'
+            f'  차단은 감정이 아직 정리되지 않았다는 신호이기도 해요.\n\n'
+            f'  **1단계 — 존재 알리기 (지금~1개월)**\n'
+            f'  공통 지인의 SNS에 좋아요, 댓글 등 간접적으로 존재를 인식시키세요.\n'
+            f'  직접 메시지보다 {nb}님이 자연스럽게 {na}님 소식을 접하게 하는 환경을 만드세요.\n\n'
+            f'  **2단계 — 성장한 모습 노출 (1~3개월)**\n'
+            f'  SNS에 행복하고 성장하는 일상을 꾸준히 올리세요.\n'
+            f'  "나는 잘 지내고 있어"라는 메시지가 가장 강력한 어필이에요.\n'
+            f'  집착하거나 슬퍼 보이는 게시물은 오히려 역효과예요.\n\n'
+            f'  **3단계 — 공통 접점 만들기 (3개월 이후)**\n'
+            f'  공통 지인, 동창회, 우연한 만남 같은 자연스러운 접점을 노려보세요.\n'
+            f'  이 단계에서도 재회를 목적으로 다가가지 말고\n'
+            f'  "어떻게 지냈어?"라는 가벼운 안부로 시작하세요.\n\n'
+            f'  **절대 하지 말아야 할 것**\n'
+            f'  • 새 번호나 다른 SNS로 연락 시도 → 더 강한 차단 or 법적 문제\n'
+            f'  • 주변에 수소문해서 동향 파악 → 집착으로 인식됨\n'
+            f'  • 술김에 감정적인 메시지 → 호감도 -100\n'
+            f'  • "왜 차단했어?" 따지기 → 역효과 확정'
+        )
+    else:
+        out.append(f'  {IB_APPROACH[ib]}')
+        out.append('')
+        if score >= 75:
+            out.append(
+                f'  **타이밍:** 지금 바로 연락해도 좋아요.\n'
+                f'  운세 흐름이 재회에 강하게 열려 있는 시기이에요.\n'
+                f'  가벼운 안부로 시작해서 자연스럽게 만남으로 이어가세요.\n'
+                f'  첫 만남에서 과거 이야기를 꺼내기보다 현재의 모습을 보여주는 데 집중하세요.'
+            )
+        elif score >= 58:
+            out.append(
+                f'  **타이밍:** 서두르지 말고 자연스러운 계기를 만드세요.\n'
+                f'  직접 "보고 싶어"보다 가벼운 안부나 공통 관심사로 시작하세요.\n'
+                f'  한 번 연락 후 상대의 반응을 충분히 살핀 뒤 다음 단계를 결정하세요.\n'
+                f'  억지로 빠르게 진도를 나가려 하면 오히려 멀어질 수 있어요.'
+            )
+        elif score >= 42:
+            out.append(
+                f'  **타이밍:** 지금 당장보다 조금 더 기다리는 것이 유리해요.\n'
+                f'  연락보다 먼저 스스로 성장하는 모습을 갖추는 것이 더 강한 끌림을 만들어요.\n'
+                f'  SNS에 긍정적이고 성장하는 일상을 자연스럽게 노출하는 것도 간접적인 어필이 돼요.\n'
+                f'  아래 재회 적기 달을 확인하고 그 시기를 노려보세요.'
+            )
+        else:
+            out.append(
+                f'  **타이밍:** 지금 연락은 신중하게 고려해보세요.\n'
+                f'  현재 운 흐름이 재회에 불리한 구조이에요.\n'
+                f'  연락 전 먼저 "나는 어떻게 달라졌는가"를 스스로 확인해보세요.\n'
+                f'  변한 게 없다면 같은 이유로 다시 상처를 주고받을 가능성이 있어요.'
+            )
+
     # ⑦ 월별 재회 적기
     # 절기 기준 월지 매핑 (1~12월 → 지지 인덱스)
     MONTH_TO_JI = {1:1, 2:2, 3:3, 4:4, 5:5, 6:6,
                    7:7, 8:8, 9:9, 10:10, 11:11, 12:0}
-    da_ji, db_ji = ja[2], jb[2]
+    da, db = ja[2], jb[2]
     month_scores = []
     for mon in range(1, 13):
         mj = MONTH_TO_JI[mon]
         ms = 0
-        if frozenset([mj, da_ji]) in YUKAHP:  ms += 10
-        if frozenset([mj, db_ji]) in YUKAHP:  ms += 10
-        if frozenset([mj, da_ji]) in CHUNG:   ms -= 8
-        if frozenset([mj, db_ji]) in CHUNG:   ms -= 8
-        if frozenset([mj, da_ji]) in WONJIN:  ms -= 5
-        if frozenset([mj, db_ji]) in WONJIN:  ms -= 5
+        if frozenset([mj, da]) in YUKAHP:  ms += 10
+        if frozenset([mj, db]) in YUKAHP:  ms += 10
+        if frozenset([mj, da]) in CHUNG:   ms -= 8
+        if frozenset([mj, db]) in CHUNG:   ms -= 8
+        if frozenset([mj, da]) in WONJIN:  ms -= 5
+        if frozenset([mj, db]) in WONJIN:  ms -= 5
         for fs, _ in SAMHAP:
-            if mj in fs and da_ji in fs and db_ji in fs: ms += 12
-            elif mj in fs and (da_ji in fs or db_ji in fs): ms += 5
+            if mj in fs and da in fs and db in fs: ms += 12
+            elif mj in fs and (da in fs or db in fs): ms += 5
         month_scores.append((ms, mon))
 
     month_scores.sort(key=lambda x: (-x[0], x[1]))
@@ -6397,8 +7218,8 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
 
     # ⑧ 재회하지 않는 것이 나을 수 있는 경우
     bad_rels = len(rel.get('충',[])) + len(rel.get('원진',[])) + len(rel.get('형',[]))
-    has_ilji_chung = frozenset([da_ji, db_ji]) in CHUNG
-    has_ilji_wonjin = frozenset([da_ji, db_ji]) in WONJIN
+    has_ilji_chung = frozenset([da, db]) in CHUNG
+    has_ilji_wonjin = frozenset([da, db]) in WONJIN
     if score < 45 or (bad_rels >= 3) or (has_ilji_chung and score < 60):
         out.append(f'\n### 재회 전 꼭 점검해야 할 신호  |  냉정하게 한번 더 생각해봐요')
         signals = []
@@ -6430,6 +7251,143 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'    각자의 길에서 성장한 후 운이 바뀌는 시기에 자연스럽게 재회하는 것이\n'
             f'    더 오래가는 관계를 만드는 지혜로운 방법일 수 있어요.'
         )
+
+
+    # ⑨ 잊어지는 시기 + 마음 내려놓기
+    out.append(f'\n### 마음을 내려놓는 시기  |  언제쯤 괜찮아질까요')
+
+    # 일간별 이별 회복 성향
+    HEALING_TYPE = {
+        0: ('갑목', '머리로는 빨리 정리하지만 마음속 뿌리가 깊어요. 혼자 조용한 시간이 많이 필요하지만, 한번 정리되면 다시는 미련 갖지 않는 타입이에요.'),
+        1: ('을목', '유연하게 적응하려 노력하지만 감정의 끝자락을 오래 잡고 있어요. 새로운 환경이나 사람이 생기면 자연스럽게 회복돼요.'),
+        2: ('병화', '겉으로는 빨리 털어내는 것처럼 보이지만 속으로는 꽤 오래 기억해요. 활발한 활동과 새로운 경험이 회복을 빠르게 해요.'),
+        3: ('정화', '내면이 깊어서 이별 후 감정 정리에 가장 시간이 많이 필요한 타입이에요. 감정을 글이나 예술로 표현하면 치유가 빨라져요.'),
+        4: ('무토', '묵묵히 감당하지만 속에서 오래 삭혀요. 일상의 루틴을 유지하고 몸을 움직이는 활동이 마음 회복을 도와줘요.'),
+        5: ('기토', '꼼꼼하게 과거를 곱씹는 성향이라 스스로를 너무 탓하는 경향이 있어요. "내 탓이 아니야"라는 자기 허용이 회복의 열쇠예요.'),
+        6: ('경금', '자존심 때문에 아프다고 표현 못 하고 억누르는 타입이에요. 믿을 수 있는 한 명에게라도 솔직하게 털어놓으면 훨씬 빨리 회복돼요.'),
+        7: ('신금', '예민하고 상처를 오래 기억해요. 그만큼 회복도 섬세하게 이루어져야 해요. 자신을 돌보는 루틴이 생기면 자연스럽게 앞으로 나아가요.'),
+        8: ('임수', '표면적으로 빨리 흘려보내는 것처럼 보이지만 무의식 깊이 남아있어요. 새로운 지적 자극이나 여행이 회복을 도와줘요.'),
+        9: ('계수', '감수성이 강해서 이별 후 오래 아파하는 편이에요. 음악, 글, 자연 속에서 감정을 충분히 소화하는 시간이 필요해요.'),
+    }
+
+    ia_type, ia_heal = HEALING_TYPE[ia]
+    out.append(f'  **{na}님({ia_type})의 회복 성향:**')
+    out.append(f'  {ia_heal}')
+    out.append('')
+
+    # 새 인연이 들어오는 세운 예측 (향후 5년)
+    SPOUSE_SS_A = {'정재','편재'} if is_male_a else {'정관','편관'}
+    SPOUSE_SS_B = {'정재','편재'} if is_male_b else {'정관','편관'}
+
+    def _next_inyeon_years(pillars, spouse_ss, base_year, n=5):
+        ilgan = pillars[2][0]
+        result = []
+        for offset in range(1, 10):
+            yr = base_year + offset
+            yg, yj = _year_pillar(yr)
+            ss_g  = get_sipseong(ilgan, OHAENG_IDX[yg], yg % 2)
+            # 지장간 정기(正氣)만 체크 — 여기·중기까지 확장하면 오진 발생
+            jeongi = JIJANGAN_IDX[yj][-1]
+            ss_j  = get_sipseong(ilgan, OHAENG_IDX[jeongi], jeongi % 2)
+            # 도화살 체크
+            dohwa = False
+            for base_j in [pillars[0][1], pillars[2][1]]:
+                grp = -1
+                for i2, s2 in enumerate([{2,6,10},{5,9,1},{8,0,4},{11,3,7}]):
+                    if base_j in s2: grp = i2; break
+                if grp >= 0 and [3,0,9,6][grp] == yj:
+                    dohwa = True; break
+            if ss_g in spouse_ss or ss_j in spouse_ss or dohwa:
+                if dohwa:          tag = '도화★'
+                elif ss_g in spouse_ss: tag = ss_g
+                else:              tag = ss_j
+                result.append((yr, tag))
+            if len(result) >= n:
+                break
+        return result
+
+    # 회복 예상 기간 (일간 오행 + 신강신약 기반)
+    _OH_MONTHS = {0:(3,5), 1:(2,4), 2:(6,9), 3:(3,6), 4:(6,12)}  # 목화토금수
+    ia_oh = OHAENG_IDX[ia]
+    lo, hi = _OH_MONTHS[ia_oh]
+    strength_a = judge_strength(pa)
+    if '신강' in strength_a: lo = max(1, lo-1); hi = max(2, hi-1)
+    elif '신약' in strength_a: lo += 2; hi += 2
+    out.append(f'  **{na}님 예상 회복 기간:** 약 **{lo}~{hi}개월**')
+    _OH_REASON = {
+        0:'목(木) 일간은 머리로 정리하는 편이라 비교적 빠르게 앞으로 나아가요.',
+        1:'화(火) 일간은 감정을 빠르게 태워버리려 하지만 충분히 슬퍼하는 시간도 필요해요.',
+        2:'토(土) 일간은 모든 걸 천천히 소화하는 타입이에요. 서두르지 않아도 괜찮아요.',
+        3:'금(金) 일간은 자존심으로 버티다 한 순간 완전히 정리되는 패턴이에요.',
+        4:'수(水) 일간은 감정이 깊게 스며드는 타입이에요. 시간이 걸리지만 완전히 회복돼요.',
+    }
+    strength_note = ' 신강이라 자기 중심이 있어 조금 더 빨라요.' if '신강' in strength_a else (' 신약이라 감수성이 강해 조금 더 걸릴 수 있어요.' if '신약' in strength_a else '')
+    out.append(f'  {_OH_REASON[ia_oh]}{strength_note}')
+    out.append('')
+
+    # 올해 기운이 바뀌는 달 (월운 기반)
+    MONTH_TO_JI_H = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:0}
+    KOR_MON = ['','1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+    ya_oh_val2 = get_yongshin(pa)[0]
+    ya_nm2 = OHAENG_NAMES[ya_oh_val2]
+    good_months = []
+    for mon in range(cur_month + 1, 13):
+        mj = MONTH_TO_JI_H[mon]
+        mj_oh = OHAENG_J[mj]
+        ss_m = get_sipseong(ia, OHAENG_IDX_J[mj], mj % 2)
+        is_yong = (mj_oh == ya_nm2)
+        dohwa_set = {frozenset([3,0]),frozenset([0,9]),frozenset([9,6]),frozenset([6,3])}
+        is_dohwa = any(frozenset([mj,bj]) in dohwa_set for bj in [pa[0][1], pa[2][1]])
+        if is_yong or is_dohwa or ss_m in SPOUSE_SS_A:
+            tag = '도화' if is_dohwa else ('용신달' if is_yong else ss_m)
+            good_months.append((mon, tag))
+    out.append(f'  **올해 마음이 편해지는 달:**')
+    if good_months:
+        for mon, tag in good_months[:3]:
+            out.append(f'  • {KOR_MON[mon]} [{tag}] — 기운이 바뀌고 마음이 가벼워지는 달이에요')
+        out.append(f'  → {KOR_MON[good_months[0][0]]}부터 조금씩 나아지는 걸 느낄 수 있어요.')
+    else:
+        out.append(f'  → 올해 남은 기간은 감정을 충분히 소화하는 시간으로 삼으세요. 내년에 기운이 바뀌어요.')
+    out.append('')
+
+    # 마음 내려놓는 방법 (용신 오행 기반)
+    ya_oh_heal = get_yongshin(pa)[0]
+    FORGET_METHOD = {
+        0: ['숲 산책이나 등산으로 목(木) 기운을 채우세요. 초록색 자연 속에서 감정이 정화돼요.',
+            '새로운 것을 배우고 성장하는 활동이 마음을 앞으로 이끌어요.',
+            '식물을 키우거나 텃밭 가꾸기 — 생명을 돌보는 행위가 자신을 치유해요.'],
+        1: ['뜨거운 운동이나 춤으로 화(火) 기운을 발산하세요. 감정을 억누르지 말고 태워버리세요.',
+            '빨간색이나 주황색 아이템이 에너지를 끌어올려요.',
+            '새로운 사람들과의 만남, 모임에 나가는 것이 회복을 빠르게 해요.'],
+        2: ['명상이나 요가로 토(土) 기운을 안정시키세요. 흔들리는 감정을 지면 아래 내려보내요.',
+            '규칙적인 식사와 수면 루틴을 만드세요. 일상의 안정이 감정의 안정으로 이어져요.',
+            '가까운 가족이나 오래된 친구와 시간을 보내세요.'],
+        3: ['금(金) 기운으로 불필요한 것을 과감히 정리하세요. 상대방 흔적을 정돈하는 것이 시작이에요.',
+            '흰색이나 은색 아이템이 감정을 맑게 정리해줘요.',
+            '악기 연주나 정밀한 취미 활동이 마음을 집중시키고 잡념을 줄여줘요.'],
+        4: ['수(水) 기운으로 감정을 흘려보내세요. 물가 산책, 수영, 목욕이 효과적이에요.',
+            '독서와 글쓰기로 감정을 언어로 표현하세요. 일기 쓰기가 특히 도움이 돼요.',
+            '여행이나 새로운 환경의 변화가 빠른 회복을 도와줘요.'],
+    }
+    out.append(f'  **마음을 내려놓는 방법 (용신 {OHAENG_NAMES[ya_oh_heal]} 기운 활용):**')
+    for tip in FORGET_METHOD[ya_oh_heal]:
+        out.append(f'  • {tip}')
+    out.append('')
+    out.append(
+        f'  사주에서 이별은 끝이 아니라 다음 인연을 위한 공간을 비우는 과정이에요.\n'
+        f'  억지로 잊으려 하기보다 충분히 슬퍼하고, 그 시간만큼 성장하세요.\n'
+        f'  운이 새롭게 열리는 시기에는 반드시 더 맞는 인연이 찾아와요.'
+    )
+
+
+    # ⑩ 신살 추가 의견
+    sinsal_ops = _sinsal_relation_opinion(pa, pb, na, nb)
+    if sinsal_ops:
+        out.append(f'\n### 신살 추가 의견  |  사주에 새겨진 이별·재회 패턴')
+        out.append('  사주 신살은 두 분의 이별 방식과 재회 가능성에 영향을 주는 특별한 기운이에요.\n')
+        for op in sinsal_ops:
+            out.append(f'  {op}')
+            out.append('')
 
     return '\n'.join(out)
 
@@ -7463,3 +8421,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
