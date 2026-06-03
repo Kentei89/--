@@ -2697,7 +2697,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     # 신강/신약 키
     if '신강' in strength: sk = '신강'
     elif '신약' in strength: sk = '신약'
-    else: sk = '신강'   # 중화는 신강쪽으로 fallback
+    else: sk = '중화'   # 중화 사주 전용 키 (없으면 아래 dom 조회에서 신강 fallback)
 
     ss_data = _YEAR_DOMAIN.get(ss_g, {})
     dom = ss_data.get(sk) or ss_data.get('신강') or ss_data.get('신약') or {}
@@ -4441,9 +4441,10 @@ def _health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name=''
 
     if any('현침살' in s for s in hyung):
         result += (
-            '\n\n  현침살이 있어 의료 기구나 수술과 인연이 생기기 쉬운 사주예요. '
-            '몸에서 보내는 이상 신호를 절대 무시하지 말고 조기에 병원을 찾으세요. '
-            '1년에 한 번 이상 종합검진을 받는 것이 특히 중요해요.'
+            '\n\n  현침살이 있어 날카롭고 정밀한 분야(의료·법·분석·기술)에 재능이 있어요. '
+            '반면 수술·치료·날카로운 것에 의한 부상을 조심해야 하는 살이기도 해요. '
+            '몸에서 이상 신호가 오면 방치하지 말고 조기에 병원을 찾는 것이 중요해요. '
+            '정기 건강검진을 꾸준히 받는 습관이 이 살의 부정적 기운을 예방하는 핵심이에요.'
         )
     if any('탕화살' in s for s in hyung):
         result += (
