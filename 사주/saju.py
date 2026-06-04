@@ -3899,7 +3899,7 @@ def analyze_ilchin_day(pillars, year, month, day):
                 lines.append(f'**{icon} {domain}**')
                 lines.append(main)
                 if sub:
-                    lines.append(f'↳ 지지({ss_j}) 영향: {sub}')
+                    lines.append(f'> 💡 **지지({ss_j}) 영향:** {sub}')
                 lines.append('')
 
     return '\n'.join(lines)
