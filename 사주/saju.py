@@ -50,7 +50,7 @@ def _jp(word, jong, cho):
 
 def get_sipseong(ilgan, t_ohaeng, t_euyang):
     diff = (t_ohaeng - OHAENG_IDX[ilgan]) % 5
-    return _SS[(diff, ilgan%2 == t_euyang)]
+    return _SS[(diff, (ilgan % 2 == 0) == t_euyang)]
 
 def get_12unsung(cheongan, jiji):
     s = JANGSAENG[cheongan]
