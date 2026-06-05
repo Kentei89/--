@@ -459,7 +459,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.05.15")
+        st.caption("v2026.06.05.16")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -836,7 +836,8 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     info_chips += (f'<span style="background:#f5f0ff;border:1px solid #ddd4f8;'
                    f'color:#5b21b6;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;">'
                    f'{_JIJI_EMOJI[yj]} {ANIMALS[yj]}띠</span>')
-    if gm:
+    gm_hit_jijis = [j for i, (g, j) in enumerate(pillars) if j in gm and i != 2]
+    if gm_hit_jijis:
         gm_str = ' '.join(JIJI[x] for x in sorted(gm))
         info_chips += (f'<span style="background:#fff1f2;border:1px solid #fca5a5;'
                        f'color:#be123c;padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;">🕳 공망 {gm_str}</span>')
@@ -1359,7 +1360,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.05.15")
+st.caption("v2026.06.05.16")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  "])
