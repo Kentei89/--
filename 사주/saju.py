@@ -5735,6 +5735,58 @@ def _love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name=''):
     return result
 
 
+
+def _job_holistic_text(ilgan, strength, yongshin_oh, ss_cnt, name='', gyeok='', oa=None):
+    if oa is None: oa = {}
+    result = _job_text(ilgan, strength, yongshin_oh, ss_cnt, name)
+    _GYEOK_CAT_J = {
+        '편관격':'관성','정관격':'관성','편재격':'재성','정재격':'재성',
+        '식신격':'식상','상관격':'식상','편인격':'인성','정인격':'인성',
+        '비견격':'비겁','건록격':'비겁','월겁격':'비겁',
+    }
+    _sk = '신강' if ('신강' in strength or '태강' in strength) else ('신약' if ('신약' in strength or '태약' in strength) else '중화')
+    _GCAT_STR_J = {
+        ('관성','신강'): '조직에서 리더십을 발휘하는 구조예요. 직위가 올라갈수록 진가가 나타나는 타입으로, 공직·조직·군경 분야에서 두각을 나타내요.',
+        ('관성','신약'): '리더십 기질은 있지만 에너지가 뒷받침되지 않는 구조예요. 과도한 책임을 혼자 떠안기보다 협력과 위임을 적극 활용하는 것이 커리어를 지키는 핵심이에요.',
+        ('관성','중화'): '조직 내 안정적인 커리어와 리더십을 균형 있게 발휘해요. 신뢰와 성실함으로 꾸준히 올라가는 유형이에요.',
+        ('재성','신강'): '사업·영업·투자 분야에서 재능이 두드러져요. 직장보다 독립·창업 쪽에서 더 빛나는 경우가 많아요. 움직일수록 기회가 열리는 구조예요.',
+        ('재성','신약'): '재물 감각은 있지만 에너지 부족으로 큰 도전이 어려운 구조예요. 현재 환경에서 실력을 쌓으면서 때를 기다리는 전략이 유리해요.',
+        ('재성','중화'): '사업과 직장을 균형 있게 운용하는 기질이에요. 안정적 직장 수입을 유지하면서 부업·투자를 병행하는 방식이 잘 맞아요.',
+        ('식상','신강'): '창의성과 표현력이 커리어 최대 강점이에요. 기획·콘텐츠·교육·서비스 분야에서 즐기면서 성과를 내는 구조예요.',
+        ('식상','신약'): '창의 에너지는 풍부하지만 지속력이 약한 구조예요. 하나에 집중해서 완성도를 높이는 것이 커리어를 키우는 핵심이에요.',
+        ('식상','중화'): '창의성과 실용성을 균형 있게 발휘해요. 아이디어를 실행으로 연결하는 능력이 커리어 강점이에요.',
+        ('인성','신강'): '학문·전문성·연구에서 독보적인 깊이를 만들어가는 기질이에요. 한 분야 전문가로 자리잡을수록 커리어가 빠르게 올라가요.',
+        ('인성','신약'): '배움에 대한 욕구는 강하지만 실천으로 연결하는 것이 숙제예요. 자격증·학위·전문 기술이 커리어의 핵심 무기가 돼요.',
+        ('인성','중화'): '전문성과 안정적 커리어를 균형 있게 만들어가는 기질이에요. 귀인의 도움으로 좋은 기회가 열리는 구조예요.',
+        ('비겁','신강'): '독립적으로 커리어를 개척하는 자수성가형 기질이에요. 경쟁 속에서 오히려 강해지는 타입으로 창업·프리랜서·전문직이 잘 맞아요.',
+        ('비겁','신약'): '독립 의지는 강하지만 혼자 다 하려다 번아웃이 오기 쉬운 구조예요. 협력을 선택하는 것이 커리어를 지속하는 전략이에요.',
+        ('비겁','중화'): '독립적으로도 팀 안에서도 자기 역할을 잘 해내는 기질이에요.',
+    }
+    _gcat = _GYEOK_CAT_J.get(gyeok, '')
+    _job_base = _GCAT_STR_J.get((_gcat, _sk), '')
+    _OA_ZERO_J = {
+        '목': '사주에 목 기운이 없어 리더십보다 전문 기술직·후방 지원 역할이 더 잘 맞아요.',
+        '화': '사주에 화 기운이 없어 대외적 업무보다 연구·분석·후방 지원 직무가 편안해요.',
+        '토': '사주에 토 기운이 없어 아이디어는 잘 내도 운영·관리 단계에서 파트너의 도움이 필요해요.',
+        '금': '사주에 금 기운이 없어 결단이 늦어지는 경향이 있어요. 명확한 마감이 있는 환경에서 능률이 올라가요.',
+        '수': '사주에 수 기운이 없어 트렌드 파악과 정보 수집에 의식적으로 더 노력해야 해요.',
+    }
+    _add = []
+    if _job_base:
+        _add.append(_job_base)
+    for _z in [k for k, v in oa.items() if v == 0]:
+        if _z in _OA_ZERO_J:
+            _add.append(_OA_ZERO_J[_z]); break
+    if _add:
+        _nn = '\n\n  '
+        _insert = _nn + ' '.join(_add)
+        _first = result.find('\n\n')
+        if _first != -1:
+            result = result[:_first] + _insert + result[_first:]
+        else:
+            result += _insert
+    return result
+
 def _job_text(ilgan, strength, yongshin_oh, ss_cnt, name=''):
     yn = OHAENG_NAMES[yongshin_oh]
     il_name = ILGAN_DESC[ilgan][0]
@@ -5831,6 +5883,53 @@ def _job_text(ilgan, strength, yongshin_oh, ss_cnt, name=''):
     result += f'\n\n  ✦ 직업 개운법\n  {job_gaeun[yongshin_oh]}'
     return result
 
+
+
+def _health_holistic_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name='', gyeok='', oa=None):
+    if oa is None: oa = {}
+    result = _health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name)
+    _GYEOK_CAT_H = {
+        '편관격':'관성','정관격':'관성','편재격':'재성','정재격':'재성',
+        '식신격':'식상','상관격':'식상','편인격':'인성','정인격':'인성',
+        '비견격':'비겁','건록격':'비겁','월겁격':'비겁',
+    }
+    _sk = '신강' if ('신강' in strength or '태강' in strength) else ('신약' if ('신약' in strength or '태약' in strength) else '중화')
+    _GCAT_STR_H = {
+        ('관성','신강'): '강한 책임감과 외부 압박이 지속되는 구조라 스트레스성 질환에 주의하세요. 정기적인 완전한 휴식이 건강 관리의 핵심이에요.',
+        ('관성','신약'): '책임은 강한데 에너지가 부족한 구조라 만성 피로와 번아웃이 오기 쉬워요. 몸이 보내는 피로 신호를 절대 무시하지 마세요.',
+        ('재성','신강'): '활동적이고 에너지가 넘치지만 과욕으로 몸을 혹사하는 패턴이 있어요. 좋을 때일수록 무리하지 않는 것이 중요해요.',
+        ('재성','신약'): '체력 소모가 크고 회복이 느린 구조예요. 수입·지출 관리처럼 에너지도 의식적으로 관리해야 해요.',
+        ('식상','신강'): '표현하고 활동하는 에너지가 넘치지만 소화기가 가장 먼저 신호를 보내요. 식습관 관리가 건강의 핵심이에요.',
+        ('식상','신약'): '하고 싶은 것은 많지만 체력이 따라주지 않는 구조예요. 충분한 수면과 규칙적 식사가 가장 중요한 건강 습관이에요.',
+        ('인성','신강'): '지적 활동이 많아 신경계 피로가 쌓이기 쉬워요. 정신적 휴식을 의식적으로 챙겨야 해요.',
+        ('인성','신약'): '에너지가 약한 구조라 면역력 유지가 핵심이에요. 충분한 수면과 규칙적인 생활 리듬이 건강을 지켜요.',
+        ('비겁','신강'): '에너지가 넘쳐서 과로·과식·과도한 경쟁으로 건강을 해치는 패턴이 있어요. 경쟁 상황에서도 몸의 신호를 먼저 들으세요.',
+        ('비겁','신약'): '독립 의지는 강하지만 혼자 버티다 무너지는 구조예요. 도움을 받는 것이 건강을 지키는 방법이에요.',
+    }
+    _gcat = _GYEOK_CAT_H.get(gyeok, '')
+    _health_base = _GCAT_STR_H.get((_gcat, _sk), '')
+    _OA_EXCESS_H = {
+        '목': '목 기운이 강해서 신경 피로·두통·어깨 결림이 오기 쉬워요.',
+        '화': '화 기운이 강해서 혈압·심장 두근거림·불면에 주의하세요.',
+        '토': '토 기운이 강해서 습과 담이 쌓이기 쉬워요. 과식을 피하세요.',
+        '금': '금 기운이 강해서 호흡기가 예민하고 알레르기가 나타날 수 있어요.',
+        '수': '수 기운이 강해서 냉증·부종이 생기기 쉬워요. 몸을 따뜻하게 유지하세요.',
+    }
+    _add = []
+    if _health_base:
+        _add.append(_health_base)
+    for _ex in [k for k, v in oa.items() if v >= 4]:
+        if _ex in _OA_EXCESS_H:
+            _add.append(_OA_EXCESS_H[_ex]); break
+    if _add:
+        _nn = '\n\n  '
+        _insert = _nn + ' '.join(_add)
+        _first = result.find('\n\n')
+        if _first != -1:
+            result = result[:_first] + _insert + result[_first:]
+        else:
+            result += _insert
+    return result
 
 def _health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name=''):
     OHAENG_JANG = {
@@ -6372,7 +6471,7 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('---')
     out.append(f'**💼 직업·직장운** — {_job_subtitle}')
     out.append('')
-    out.append(_job_text(ilgan, strength, yongshin_oh, ss_cnt, name))
+    out.append(_job_holistic_text(ilgan, strength, yongshin_oh, ss_cnt, name, gyeok=gyeok, oa=oa))
     out.append('')
     # 직업운 통합 단락
     _jp2 = []
@@ -6417,7 +6516,7 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('---')
     out.append(f'**🌿 건강운** — {_health_subtitle.get(season_name, "건강운 분석")}')
     out.append('')
-    out.append(_health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name))
+    out.append(_health_holistic_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name, gyeok=gyeok, oa=oa))
     out.append('')
     # 건강운 통합 단락
     _hp2 = []
