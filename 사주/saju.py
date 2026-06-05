@@ -2744,6 +2744,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     _, ya_name, _, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
+    oa = analyze_ohaeng(pillars)
 
     sewoon = get_sewoon(birth_year,
                         past=max(cur - target_year, 0) + 1,
@@ -2798,6 +2799,62 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     elif is_yong and is_ki:
         lines.append(f'')
         lines.append(f'> 올해 용신({ya_name})과 기신({", ".join(ki_names)}) 기운이 함께 들어와요. 기회와 변수가 공존하는 해예요.')
+
+    # 格局 기질 + 세운 십성 impact 통합 맥락 (모든 경우 커버)
+    _GYEOK_BASE = {
+        '편관격': '리더십·도전 기질',   '정관격': '조직·신뢰 기질',
+        '편재격': '사업·기회 기질',     '정재격': '안정 실무 기질',
+        '식신격': '창의·표현 기질',     '상관격': '혁신·자유 기질',
+        '편인격': '학문·직관 기질',     '정인격': '학문·원칙 기질',
+        '비견격': '독립·경쟁 기질',     '건록격': '자립·전문 기질',
+        '월겁격': '경쟁·협력 기질',
+    }
+    _SS_IMPACT = {
+        '비견': '비견이 들어와 자립 의지와 경쟁 구도가 강해져요.',
+        '겁재': '겁재가 들어와 재물 경쟁과 충동적 결정 위험이 올라가는 해예요.',
+        '식신': '식신이 들어와 창의성과 표현력이 풍부해지고 먹고사는 기반이 안정돼요.',
+        '상관': '상관이 들어와 날카로운 표현력과 구설 위험이 동시에 올라가는 해예요.',
+        '편재': '편재가 들어와 새로운 재물 기회와 대담한 실행 욕구가 생기는 해예요.',
+        '정재': '정재가 들어와 꾸준한 수입과 실무적 기회가 열리는 해예요.',
+        '편관': '편관이 들어와 외부 압박과 강한 도전이 찾아오는 해예요.',
+        '정관': '정관이 들어와 사회적 책임과 공식적인 인정 기회가 생기는 해예요.',
+        '편인': '편인이 들어와 학문·예술·직관적 감각이 강화되는 해예요.',
+        '정인': '정인이 들어와 배움·안정·귀인의 도움이 따르는 해예요.',
+    }
+    # 충돌·시너지 특이 케이스 (있으면 우선 사용)
+    _CONFLICT_NOTE = {
+        ('식신격', '편관'): '창의 에너지가 외부 압박에 억눌릴 수 있어요. 표현의 출구를 의식적으로 만드세요.',
+        ('상관격', '정관'): '자유로운 기질과 조직 틀이 충돌해요. 소통 방식에 특히 신경 쓰세요.',
+        ('상관격', '편관'): '내·외부 압박이 동시에 강해지는 해예요. 외부 충돌보다 실력을 쌓는 방향이 유리해요.',
+        ('편재격', '겁재'): '재물 경쟁이 치열해지는 해예요. 분산 투자와 리스크 관리가 핵심이에요.',
+        ('편재격', '편재'): '사업·투자 기회가 크게 열리는 해예요. 올인 패턴도 강해지니 분산 전략을 쓰세요.',
+        ('정재격', '겁재'): '안정적 재물에 위협이 생기는 해예요. 검증 없는 투자·보증은 피하세요.',
+        ('정관격', '편관'): '관성이 두 겹으로 강해지는 해예요. 직장 기회는 있지만 건강이 최우선이에요.',
+        ('편관격', '편관'): '외부 압박이 이중으로 강해지는 해예요. 충돌보다 전략적 포지션 선택이 중요해요.',
+        ('편인격', '식신'): '막혔던 것이 풀리는 반전의 해예요. 아이디어를 실행으로 옮기세요.',
+        ('편관격', '정관'): '조직 내 책임이 두 겹으로 쌓여요. 인정받을 기회가 오지만 체력 관리를 병행하세요.',
+    }
+    _yh_parts = []
+    _conflict = _CONFLICT_NOTE.get((gyeok_name, ss_g), '')
+    _gyeok_base = _GYEOK_BASE.get(gyeok_name, '')
+    _ss_imp = _SS_IMPACT.get(ss_g, '')
+    if _conflict:
+        _yh_parts.append(f'{gyeok_name}({_gyeok_base})에 {_conflict}')
+    elif _gyeok_base and _ss_imp:
+        _yh_parts.append(f'{gyeok_name}({_gyeok_base})에 올해 {_ss_imp}')
+    # 세운 오행이 사주에 없는 경우
+    if oa.get(yg_oh, 0) == 0:
+        _yh_parts.append(f'사주에 {yg_oh} 기운이 없어서 올해 {yg_oh} 에너지가 낯설게 느껴져요. 이 기운을 활용하는 법을 익히면 새로운 가능성이 열려요.')
+    # 세운 오행이 과다인 경우
+    elif oa.get(yg_oh, 0) >= 4:
+        _yh_parts.append(f'사주에 {yg_oh} 기운이 이미 강한데 올해 더 들어와 극단적으로 발현될 수 있어요. 균형 잡기가 중요한 해예요.')
+    # 신강/신약 × 용신/기신
+    if is_yong and strength in ('신약(身弱)', '태약(太弱)'):
+        _yh_parts.append(f'신약한 사주에 용신({ya_name}) 기운이 들어오는 해라 올해야말로 적극적으로 움직여야 할 타이밍이에요.')
+    elif is_ki and strength in ('신강(身强)', '태강(太强)'):
+        _yh_parts.append(f'신강한 사주에 기신({", ".join(ki_names)}) 기운까지 겹쳐 에너지가 과잉 상태가 돼요. 분출보다 조율이 중요해요.')
+    if _yh_parts:
+        lines.append(f'> 🔍 **{name}님 사주 맥락** — ' + ' '.join(_yh_parts))
 
     lines.append('')
     lines.append('---')
