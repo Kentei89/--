@@ -6407,10 +6407,11 @@ def _health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name=''
 
 # ── 사주 해설 (통변) ──────────────────────────────────
 
-def analyze_saju(name, pillars, gil, hyung):
+def analyze_saju(name, pillars, gil, hyung, gender='남'):
     ilgan    = pillars[2][0]
     mj       = pillars[1][1]
     il_name  = ILGAN_DESC[ilgan][0]
+    is_male  = (gender == '남')
 
     yongshin_oh, yongshin_name, basis, season_name, temp_adj = get_yongshin(pillars)
     deukryeong, dr_score, _  = get_deukryeong(pillars)
@@ -6830,9 +6831,29 @@ def analyze_saju(name, pillars, gil, hyung):
         _lp.append('역마살로 인해 원거리 연애나 이동 중 만난 인연이 중요한 관계가 되는 경우가 많아요.')
     if any('충' in s for s in (gil + hyung)):
         _lp.append('사주에 충(沖)이 있어서 이별이나 관계 변화를 경험할 수 있어요. 그 변화가 더 맞는 인연으로 이어지는 구조이기도 해요.')
+    # 성별 기반 이성성(관성/재성) 분석
     _gwan_cnt = ss_cnt.get('편관', 0) + ss_cnt.get('정관', 0)
-    if _gwan_cnt >= 3:
-        _lp.append('관성이 많아서 이성 인연이 여러 방향에서 들어오지만 관계가 복잡해지기 쉬워요. 하나에 집중하는 것이 중요해요.')
+    _jae_cnt  = ss_cnt.get('편재', 0) + ss_cnt.get('정재', 0)
+    if is_male:
+        if _jae_cnt == 0:
+            _lp.append('사주에 재성(이성성)이 없어서 이성 인연이 자연스럽게 찾아오지 않는 구조예요. 먼저 적극적으로 다가가고 관계를 의식적으로 만드는 노력이 필요해요.')
+        elif _jae_cnt >= 3:
+            _lp.append('재성이 많아서 이성 인연이 여러 방향에서 들어오지만 선택과 집중이 필요해요. 여러 인연을 동시에 유지하다 모두 놓치는 패턴을 조심하세요.')
+    else:
+        if _gwan_cnt == 0:
+            _lp.append('사주에 관성(이성성)이 없어서 이성 인연이 자연스럽게 찾아오지 않는 구조예요. 의식적으로 만남의 기회를 만들어야 해요.')
+        elif _gwan_cnt >= 3:
+            _lp.append('관성이 많아서 이성 인연이 여러 방향에서 들어오지만 관계가 복잡해지기 쉬워요. 하나에 집중하는 것이 중요해요.')
+        # 여성 格局별 결혼 특성
+        if gyeok == '상관격':
+            _lp.append('상관格 여성은 상관이 관성(남편성)을 극하는 구조라 결혼 인연이 늦거나 남편과 주도권 갈등이 생기기 쉬워요. 경제적으로 독립적이고 나를 존중해주는 파트너십형 관계가 가장 잘 맞아요.')
+        elif gyeok in ('편관격', '정관격'):
+            _lp.append('관성格 여성은 이성 인연이 자연스럽게 따르는 구조예요. 하지만 관성이 강하면 결혼 후 남편에게 지나치게 의지하거나 반대로 남편을 제압하는 패턴이 생길 수 있어요.')
+        # 여성 신강약
+        if '신강' in strength or '태강' in strength:
+            _lp.append('신강한 여성 사주는 독립심과 자기 주관이 강한 구조예요. 결혼 후에도 자신의 커리어와 영역을 유지하는 것이 중요하고, 나를 존중해주고 대등하게 대해주는 파트너가 가장 잘 맞아요.')
+        elif '신약' in strength or '태약' in strength:
+            _lp.append('신약한 여성 사주는 든든하게 지지해주는 이성에게 자연스럽게 끌리는 구조예요. 믿고 의지할 수 있는 안정형 파트너가 와야 관계가 오래가요.')
     # 일지 12운성 → 배우자궁 기질
     _ilji_uns = get_12unsung(ilgan, pillars[2][1])
     _ILJI_UNS_LOVE = {
