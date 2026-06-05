@@ -458,6 +458,9 @@ def _profile_transfer_panel():
             except Exception:
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
+        st.divider()
+        st.caption("v2026.06.05")
+
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
 _CITY_OFFSETS: dict[str, int] = {
