@@ -2868,8 +2868,52 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     love_status_text = _YEAR_LOVE_STATUS.get((ss_g, sk), {}).get(rel_status, '')
     rel_label = {'솔로': '💔 솔로', '연애중': '💑 연애중', '기혼': '💍 기혼·동거'}.get(rel_status, rel_status)
 
+    # 총평 格局×오행×신강약 맞춤 도입부 생성
+    _GYEOK_CAT_Y = {
+        '편관격':'관성', '정관격':'관성',
+        '편재격':'재성', '정재격':'재성',
+        '식신격':'식상', '상관격':'식상',
+        '편인격':'인성', '정인격':'인성',
+        '비견격':'비겁', '건록격':'비겁', '월겁격':'비겁',
+    }
+    _GCAT_DESC_Y = {
+        '관성': '리더십·도전', '재성': '사업·기회',
+        '식상': '창의·표현',   '인성': '학문·직관',
+        '비겁': '독립·경쟁',
+    }
+    _SS_YEAR_DESC = {
+        '비견': '경쟁과 자립 욕구', '겁재': '강한 경쟁과 재물 변동',
+        '식신': '창의성과 여유', '상관': '혁신적 표현과 구설 위험',
+        '편재': '새로운 재물 기회', '정재': '꾸준한 수입과 안정',
+        '편관': '외부 압박과 도전', '정관': '사회적 책임과 인정 기회',
+        '편인': '학문과 직관 강화', '정인': '배움과 귀인의 도움',
+    }
+    _OA_ZERO_YEAR = {
+        '목': '사주에 목 기운이 없어 추진력 보완이 올해 핵심 과제예요.',
+        '화': '사주에 화 기운이 없어 사교와 감정 표현에 의식적인 노력이 필요한 해예요.',
+        '토': '사주에 토 기운이 없어 현실 감각과 지출 관리에 더 신경 써야 해요.',
+        '금': '사주에 금 기운이 없어 결단력을 의식적으로 강화하는 것이 올해 핵심이에요.',
+        '수': '사주에 수 기운이 없어 계획성과 정보 수집에 더 신경 써야 하는 해예요.',
+    }
+    _gcat_y = _GYEOK_CAT_Y.get(gyeok_name, '')
+    _gcat_desc_y = _GCAT_DESC_Y.get(_gcat_y, '')
+    _ss_desc_y = _SS_YEAR_DESC.get(ss_g, '')
+    _year_intro_parts = []
+    if _gcat_desc_y and _ss_desc_y:
+        _year_intro_parts.append(f'{gyeok_name}({_gcat_desc_y} 기질)에 올해 {ss_g}({_ss_desc_y}) 기운이 더해지는 해예요.')
+    if '신약' in strength or '태약' in strength:
+        _year_intro_parts.append(f'일간 에너지가 약한 구조라 이 기운에 더 크게 영향받는 해예요.')
+    elif '신강' in strength or '태강' in strength:
+        _year_intro_parts.append(f'일간 에너지가 강해서 이 기운을 능동적으로 활용할 수 있는 구조예요.')
+    for _z in [k for k, v in oa.items() if v == 0]:
+        if _z in _OA_ZERO_YEAR:
+            _year_intro_parts.append(_OA_ZERO_YEAR[_z]); break
+    _year_intro = ' '.join(_year_intro_parts)
+
     for domain in ['총평', '재물', '직업', '연애', '건강']:
         text = dom.get(domain, '─')
+        if domain == '총평' and _year_intro:
+            text = _year_intro + '\n\n' + text
         combo_text = combo_flavor.get(domain, '')
         flavor = ilgan_flavor.get(domain, '')
         lines.append(f'**{icons[domain]} {domain}**')
