@@ -3979,9 +3979,14 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
                 if _w_intro and text:
                     text = _w_intro + '\n\n' + text
             else:
-                text = _wolun_domain_holistic(domain, gyeok_name, ss_g)
-                if not text:
-                    text = domain_data.get(domain, '')
+                _hol = _wolun_domain_holistic(domain, gyeok_name, ss_g)
+                _tmpl = domain_data.get(domain, '')
+                if _hol and _tmpl:
+                    text = _hol + '\n\n' + _tmpl
+                elif _hol:
+                    text = _hol
+                else:
+                    text = _tmpl
             if text:
                 lines.append(f'**{icon} {domain}**')
                 lines.append(text)
