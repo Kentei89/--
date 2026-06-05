@@ -5485,6 +5485,7 @@ def analyze_saju(name, pillars, gil, hyung):
     deukryeong, dr_score, _  = get_deukryeong(pillars)
     strength = judge_strength(pillars)
     oa = analyze_ohaeng(pillars)
+    gyeok = get_gyeokguk(pillars)[0]
 
     # 십성 집계
     ss_cnt = {}
@@ -5834,6 +5835,37 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('')
     out.append(_finance_text(ilgan, strength, yongshin_oh, oa, name))
     out.append('')
+    # 재물운 통합 단락
+    _fp = []
+    _FZERO = {
+        '목': '추진력·새 시작의 기운이 부족해서 기회가 와도 먼저 나서기 어렵고 결단 타이밍을 놓치기 쉬워요.',
+        '화': '사교·인맥의 기운이 약해서 사람을 통한 기회 채널이 잘 안 열려요. 혼자 실력을 쌓는 방향이 더 유리해요.',
+        '토': '현실 감각·관리 기운이 약해서 번 돈을 지키는 것이 숙제예요. 수입보다 지출 관리에 더 신경 쓰세요.',
+        '금': '마무리·수확의 기운이 약해서 회수 타이밍을 놓치기 쉬워요. 투자 시 출구 전략을 먼저 정해두세요.',
+        '수': '계획성·지혜의 기운이 약해서 즉흥 지출이나 정보 부족 투자로 손실이 생기기 쉬워요.',
+    }
+    _FEXCESS = {
+        '목': '벌여놓은 일이 많아 분산되기 쉬워요. 집중할 분야를 좁히는 것이 재물을 키우는 핵심이에요.',
+        '화': '충동 소비나 급등 투자에 끌리는 성향이 있어요. 감정이 흥분된 상태의 재물 결정은 한 번 더 검토하세요.',
+        '토': '지나치게 보수적이어서 좋은 기회를 놓칠 수 있어요. 안정 자산 외에 소량 새 시도를 병행하세요.',
+        '금': '원칙이 강해 유연한 협상이 어려울 때가 있어요. 조금 양보하는 것이 장기 이익이 되기도 해요.',
+        '수': '생각이 너무 많아 실행이 늦어지는 패턴이 있어요. 정보 수집보다 실행이 먼저인 국면도 있어요.',
+    }
+    for _z in [k for k, v in oa.items() if v == 0]:
+        if _z in _FZERO:
+            _fp.append(_FZERO[_z]); break
+    for _ex in [k for k, v in oa.items() if v >= 4]:
+        if _ex in _FEXCESS:
+            _fp.append(_FEXCESS[_ex]); break
+    if any('역마살' in s for s in hyung):
+        _fp.append('역마살이 있어서 이동·유통·무역·해외 관련 분야에서 재물이 더 잘 열려요.')
+    if any('천을귀인' in s for s in gil):
+        _fp.append('천을귀인이 있어서 막힌 재물 흐름이 귀인의 도움으로 뚫리는 경험이 생겨요.')
+    if ('편재' in gyeok or '정재' in gyeok) and strength in ('신약(身弱)', '태약(太弱)'):
+        _fp.append('재성이 강한데 일간이 약해서 큰돈이 한 번에 오기보다 꾸준히 모아가는 방식이 더 안정적이에요.')
+    if _fp:
+        out.append(f'  {name}님 재물운을 더 보면 — ' + ' '.join(_fp))
+        out.append('')
 
     # ⑤ 연애·이성운
     has_dohwa  = any('도화살' in s for s in hyung)
@@ -5849,6 +5881,30 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('')
     out.append(_love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name))
     out.append('')
+    # 연애운 통합 단락
+    _lp = []
+    _LZERO = {
+        '목': '감정 표현력·유연성의 기운이 약해서 마음이 있어도 표현이 서툴러 오해가 생기기 쉬워요. 의식적으로 먼저 말을 건네는 연습이 도움이 돼요.',
+        '화': '감정 에너지가 약해서 설레는 감정을 오래 유지하기 어렵고 권태기가 빨리 올 수 있어요. 자주 작은 이벤트로 불꽃을 살려두는 것이 중요해요.',
+        '토': '안정감·신뢰의 기운이 약해서 관계가 깊어지기 전에 끊기거나 표면에서만 맴도는 경향이 있어요.',
+        '금': '결단력·선택의 기운이 약해서 좋아해도 고백하거나 결정을 내리기 어렵고 질질 끄는 패턴이 생겨요.',
+        '수': '감수성·공감 기운이 약해서 상대의 감정을 읽는 것이 어렵고 감성적 연결감을 만드는 것이 숙제예요.',
+    }
+    for _z in [k for k, v in oa.items() if v == 0]:
+        if _z in _LZERO:
+            _lp.append(_LZERO[_z]); break
+    if any('홍염살' in s for s in hyung):
+        _lp.append('홍염살이 있어서 이성에게 본능적인 매력을 발산해요. 연애 기회 자체는 많아요.')
+    if any('역마살' in s for s in hyung):
+        _lp.append('역마살로 인해 원거리 연애나 이동 중 만난 인연이 중요한 관계가 되는 경우가 많아요.')
+    if any('충' in s for s in (gil + hyung)):
+        _lp.append('사주에 충(沖)이 있어서 이별이나 관계 변화를 경험할 수 있어요. 그 변화가 더 맞는 인연으로 이어지는 구조이기도 해요.')
+    _gwan_cnt = ss_cnt.get('편관', 0) + ss_cnt.get('정관', 0)
+    if _gwan_cnt >= 3:
+        _lp.append('관성이 많아서 이성 인연이 여러 방향에서 들어오지만 관계가 복잡해지기 쉬워요. 하나에 집중하는 것이 중요해요.')
+    if _lp:
+        out.append(f'  {name}님 연애운을 더 보면 — ' + ' '.join(_lp))
+        out.append('')
 
     # ⑥ 직업·직장운
     _job_subtitle = [
@@ -5863,6 +5919,37 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('')
     out.append(_job_text(ilgan, strength, yongshin_oh, ss_cnt, name))
     out.append('')
+    # 직업운 통합 단락
+    _jp2 = []
+    _JZERO = {
+        '목': '리더십·추진력의 기운이 약해서 관리직보다 전문 기술직이나 후방 지원 역할이 더 잘 맞아요.',
+        '화': '소통·발표의 기운이 약해서 대외적 업무보다 연구·분석·후방 지원 직무가 편안해요.',
+        '토': '실무·관리의 기운이 약해서 아이디어나 기획은 잘 내도 운영 단계에서 파트너의 도움이 필요해요.',
+        '금': '결단·실행의 기운이 약해서 결정이 늦어지는 경향이 있어요. 명확한 마감과 목표가 있는 환경에서 능률이 올라가요.',
+        '수': '전략·정보력의 기운이 약해서 트렌드 파악에 의식적으로 노력해야 해요.',
+    }
+    for _z in [k for k, v in oa.items() if v == 0]:
+        if _z in _JZERO:
+            _jp2.append(_JZERO[_z]); break
+    if any('역마살' in s for s in hyung):
+        _jp2.append('역마살이 있어서 이동이 많은 직업·영업·무역·해외 근무 분야에서 능력이 꽃 피워요.')
+    if any('화개살' in s for s in hyung):
+        _jp2.append('화개살이 있어서 학문·예술·종교·철학 등 깊이 파고드는 전문직에서 두각을 나타내요.')
+    if any('천을귀인' in s for s in gil):
+        _jp2.append('천을귀인이 있어서 직장 내 귀인을 만나거나 추천·소개로 좋은 기회를 얻는 경험이 생겨요.')
+    _gyeok_job = {
+        '편관격': '편관격은 조직에서 리더십을 발휘하는 구조예요. 직위가 올라갈수록 진가가 나타나는 타입이에요.',
+        '정관격': '정관격은 조직·공직 중심의 안정적 커리어가 강점이에요. 신뢰와 성실함으로 꾸준히 올라가는 유형이에요.',
+        '편재격': '편재격은 사업·투자·영업 분야에서 재능이 두드러져요. 직장보다 독립·창업 쪽에서 더 빛나는 경우가 많아요.',
+        '정재격': '정재격은 꼼꼼한 실무 능력이 강해요. 회계·금융·관리직 분야에서 신뢰받는 전문가로 성장해요.',
+        '식신격': '식신격은 창의성과 아이디어가 재능이에요. 기획·콘텐츠·교육 분야에서 즐기면서 일하는 구조예요.',
+        '상관격': '상관격은 기존 틀을 벗어난 창의적 직업에서 빛나요. 예술·방송·프리랜서·기술 개발 분야가 잘 맞아요.',
+    }
+    if gyeok in _gyeok_job and not _jp2:
+        _jp2.append(_gyeok_job[gyeok])
+    if _jp2:
+        out.append(f'  {name}님 직업운을 더 보면 — ' + ' '.join(_jp2))
+        out.append('')
 
     # ⑦ 건강운
     zero = [k for k, v in oa.items() if v == 0]
@@ -5877,6 +5964,35 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('')
     out.append(_health_text(ilgan, strength, yongshin_oh, zero, season_name, hyung, name))
     out.append('')
+    # 건강운 통합 단락
+    _hp2 = []
+    _HZERO = {
+        '목': '목(木) 기운이 없어서 간·담·근육·눈이 취약해요. 피로가 쌓이면 눈이 침침해지거나 근육이 당기는 증상이 먼저 나타나요.',
+        '화': '화(火) 기운이 없어서 심장·소장·혈관이 약해요. 손발이 차거나 혈액 순환이 안 되는 느낌이 자주 올 수 있어요.',
+        '토': '토(土) 기운이 없어서 비장·위·소화기가 약해요. 스트레스를 받으면 속이 더부룩하거나 소화가 잘 안 돼요.',
+        '금': '금(金) 기운이 없어서 폐·대장·호흡기가 취약해요. 환절기에 호흡기 질환이 반복되기 쉬워요.',
+        '수': '수(水) 기운이 없어서 신장·방광·뼈·귀가 취약해요. 수분 섭취와 허리·무릎 관리가 중요해요.',
+    }
+    _HEXCESS = {
+        '목': '목 기운이 과해서 신경 피로·두통·어깨 결림이 오기 쉬워요.',
+        '화': '화 기운이 강해서 혈압·심장 두근거림·불면에 주의하세요.',
+        '토': '토 기운이 강해서 습(濕)과 담이 쌓이기 쉬워요. 과식과 과로를 피하세요.',
+        '금': '금 기운이 강해서 호흡기가 예민하고 알레르기·피부 트러블이 나타날 수 있어요.',
+        '수': '수 기운이 강해서 냉증·부종이 생기기 쉬워요. 몸을 따뜻하게 유지하는 것이 중요해요.',
+    }
+    for _z in zero:
+        if _z in _HZERO:
+            _hp2.append(_HZERO[_z]); break
+    for _ex in [k for k, v in oa.items() if v >= 4]:
+        if _ex in _HEXCESS:
+            _hp2.append(_HEXCESS[_ex]); break
+    if strength in ('신약(身弱)', '태약(太弱)'):
+        _hp2.append('일간이 약한 구조라 체력 소모가 크고 회복이 느려요. 몸이 보내는 피로 신호를 무시하지 말고 충분한 수면을 챙기세요.')
+    elif strength in ('신강(身强)', '태강(太强)'):
+        _hp2.append('일간이 강한 구조라 과로·과식으로 건강을 해치는 패턴이 있어요. 몸 상태가 좋을 때일수록 무리하지 않는 것이 중요해요.')
+    if _hp2:
+        out.append(f'  {name}님 건강을 더 보면 — ' + ' '.join(_hp2))
+        out.append('')
 
     # ⑨ 지지·천간 관계 해설
     rel = check_relations([p[1] for p in pillars], ga=[p[0] for p in pillars])
