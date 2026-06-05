@@ -3470,6 +3470,7 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
     strength  = judge_strength(pillars)
     _sk = '신강' if '신강' in strength or '태강' in strength else ('신약' if '신약' in strength or '태약' in strength else '중화')
+    oa = analyze_ohaeng(pillars)
 
     wolun = get_wolun(target_year)
 
@@ -3499,8 +3500,42 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
         ilgan_oh_idx = OHAENG_IDX[ilgan]
         wolun_combo = _ILGAN_OH_WOLUN_DOMAIN.get((ilgan_oh_idx, ss_g), {})
         ilgan_name = CHEONGAN[ilgan]
+        # 총운 格局×십성×신강약×오행 맞춤 도입부
+        _GYEOK_CAT_W = {
+            '편관격':'관성','정관격':'관성','편재격':'재성','정재격':'재성',
+            '식신격':'식상','상관격':'식상','편인격':'인성','정인격':'인성',
+            '비견격':'비겁','건록격':'비겁','월겁격':'비겁',
+        }
+        _GCAT_DESC_W = {'관성':'리더십·도전','재성':'사업·기회','식상':'창의·표현','인성':'학문·직관','비겁':'독립·경쟁'}
+        _SS_W_DESC = {
+            '비견':'경쟁과 자립','겁재':'강한 경쟁과 변동','식신':'창의와 여유',
+            '상관':'혁신과 표현','편재':'새 기회와 실행','정재':'꾸준한 안정',
+            '편관':'압박과 도전','정관':'책임과 인정','편인':'직관과 탐구','정인':'배움과 귀인',
+        }
+        _OA_ZERO_W = {
+            '목':'목 기운이 없어 추진력 보완이 이달 과제예요.',
+            '화':'화 기운이 없어 사교와 표현에 의식적 노력이 필요해요.',
+            '토':'토 기운이 없어 현실 관리에 신경 써야 하는 달이에요.',
+            '금':'금 기운이 없어 결단력을 의식적으로 챙겨야 해요.',
+            '수':'수 기운이 없어 계획성과 정보 수집이 이달 핵심이에요.',
+        }
+        _gcat_w = _GYEOK_CAT_W.get(gyeok_name, '')
+        _w_intro_parts = []
+        if _gcat_w and ss_g in _SS_W_DESC:
+            _w_intro_parts.append(f'{gyeok_name}({_GCAT_DESC_W.get(_gcat_w,"")})에 이달 {ss_g}({_SS_W_DESC[ss_g]}) 기운이 더해지는 달이에요.')
+        if _sk == '신약':
+            _w_intro_parts.append('에너지가 약한 구조라 이 기운에 더 크게 영향받아요.')
+        elif _sk == '신강':
+            _w_intro_parts.append('에너지가 강해서 이 기운을 능동적으로 활용할 수 있어요.')
+        for _z in [k for k, v in oa.items() if v == 0]:
+            if _z in _OA_ZERO_W:
+                _w_intro_parts.append(_OA_ZERO_W[_z]); break
+        _w_intro = ' '.join(_w_intro_parts)
+
         for domain, icon in _DOMAIN_ICONS:
             text = domain_data.get(domain, '')
+            if domain == '총운' and _w_intro and text:
+                text = _w_intro + '\n\n' + text
             if text:
                 lines.append(f'**{icon} {domain}**')
                 lines.append(text)
