@@ -5470,6 +5470,48 @@ def _finance_text(ilgan, strength, yongshin_oh, oa, name=''):
     return result
 
 
+
+def _love_holistic_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name='', gyeok='', ss_cnt=None):
+    if ss_cnt is None:
+        ss_cnt = {}
+    result = _love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name)
+    _GYEOK_LOVE = {
+        '편관격': '편관格이라 강하고 카리스마 있는 이성에게 자연스럽게 끌려요. 긴장감 있는 관계가 오히려 매력으로 느껴지는 타입이에요. 상대를 압박하지 않는 관계 방식이 장기적으로 더 잘 맞아요.',
+        '정관격': '정관格이라 안정적이고 신뢰감 있는 이성을 원해요. 감정보다 신뢰가 먼저 쌍여야 깊어지는 타입이에요. 원칙과 책임감이 연애에서도 그대로 드러나요.',
+        '편재격': '편재格이라 활발하고 매력 넘치는 이성에게 끌리는 기질이에요. 여러 인연이 자연스럽게 생기지만 진짜 하나를 선택하는 결단이 중요해요.',
+        '정재격': '정재格이라 성실하고 현실적인 이성을 원해요. 화려함보다 내실 있는 관계를 선호하고 시간을 들여 천시히 깊어지는 관계가 더 오래가요.',
+        '식신격': '식신格이라 편안하고 따뜻한 이성과 자연스럽게 가까워지는 기질이에요. 억지로 잘 보이려 하지 않아도 온화한 매력이 발산돼요. 함께 있을 때 웃음이 나오는 이성이 가장 잘 맞아요.',
+        '상관격': '상관格이라 독특하고 자유로운 이성에게 끌려요. 평범한 스타일보다 개성 있는 이성이 마음을 사로잡아요. 관계에서 서로의 자유와 공간이 보장되어야 오래가요.',
+        '편인격': '편인格이라 예술적이거나 신비로운 이성에게 끌려요. 지적 공감대가 있는 이성과 깊어지는 구조예요. 처음에 친 한 알아가다가 갑자기 깊어지는 패턴이 있어요.',
+        '정인격': '정인格이라 학식 있고 나를 지지해주는 이성이 인연이 돼요. 나를 인정해주는 이성에게 마음이 자연스럽게 열려요.',
+        '비견격': '비견格이라 나와 비슷한 독립심과 기질을 가진 이성과 잘 맞아요. 서로의 공간을 존중하는 관계가 오래가요.',
+        '건록격': '건록格이라 자립심 있고 실력 있는 이성을 선호해요. 대등한 파트너십이 잘 맞아요.',
+        '월겡격': '월겡格이라 경쟁심과 강한 개성의 이성에게 끌리는 기질이에요. 서로 자극하며 성장하는 관계가 가장 잘 맞아요.',
+    }
+    _add = []
+    if gyeok in _GYEOK_LOVE:
+        _add.append(_GYEOK_LOVE[gyeok])
+    if '신강' in strength or '태강' in strength:
+        _add.append('에너지가 강해서 연애에서도 주도적인 역할을 맡으려 해요. 너무 강하게 밀어붙이면 상대가 부담을 느낄 수 있으니 상대의 속도를 맞춰주는 여유가 필요해요.')
+    elif '신약' in strength or '태약' in strength:
+        _add.append('감수성이 풍부하고 상대에게 잘 맞춰주는 편이에요. 나를 지지해주는 든든한 이성이 좋은 인연이 돼요. 너무 맞춰다 자신을 잊지 않도록 나만의 기준을 유지하는 것이 중요해요.')
+    else:
+        _add.append('연애에서 주도하지도 끌려다니지도 않는 자연스러운 균형감이 있어요. 서로의 속도에 맞춰 천청히 깊어지는 인연이 오래가요.')
+    _gwan = ss_cnt.get('편관', 0) + ss_cnt.get('정관', 0)
+    _jae  = ss_cnt.get('편재', 0) + ss_cnt.get('정재', 0)
+    if _gwan >= 3:
+        _add.append('관성이 많아서 이성 인연이 여러 방향에서 들어오지만 관계가 복잡해지기 쉽어요. 하나에 집중하는 것이 중요해요.')
+    elif _jae >= 3:
+        _add.append('재성이 많아서 이성 인연 기회가 자주 생기지만 선택과 집중이 필요해요.')
+    if _add:
+        _insert = '\n\n  ' + ' '.join(_add)
+        _first = result.find('\n\n')
+        if _first != -1:
+            result = result[:_first] + _insert + result[_first:]
+        else:
+            result += _insert
+    return result
+
 def _love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name=''):
     yn = OHAENG_NAMES[yongshin_oh]
     nm = f'{name}님은 ' if name else ''
@@ -6206,7 +6248,7 @@ def analyze_saju(name, pillars, gil, hyung):
     out.append('---')
     out.append(f'**❤️ 연애·이성운** — {_love_subtitle}')
     out.append('')
-    out.append(_love_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name))
+    out.append(_love_holistic_text(ilgan, strength, yongshin_oh, has_dohwa, has_cheonul, name, gyeok=gyeok, ss_cnt=ss_cnt))
     out.append('')
     # 연애운 통합 단락
     _lp = []
