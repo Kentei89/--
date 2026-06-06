@@ -3992,6 +3992,8 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
                 lines.append(text)
                 if domain == '연애' and love_hint:
                     lines.append(f'> {rel_label} — {love_hint}')
+                if domain in ('재물', '직장') and wolun_combo.get(domain):
+                    lines.append(f'\n> 💡 **{ilgan_name}일간:** {wolun_combo[domain]}')
                 lines.append('')
 
         if is_yong and not is_ki:
