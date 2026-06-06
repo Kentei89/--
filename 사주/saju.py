@@ -4750,7 +4750,7 @@ def analyze_sewoon_narrative(name, pillars, birth_year):
     ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
-    sewoon = get_sewoon(birth_year, past=3, future=5)
+    sewoon = get_sewoon(birth_year, past=5, future=10)
     _GYEOK_CAT = {
         '편관격':'관성','정관격':'관성','편재격':'재성','정재격':'재성',
         '식신격':'식상','상관격':'식상','편인격':'인성','정인격':'인성',
