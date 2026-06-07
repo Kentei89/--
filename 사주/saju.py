@@ -3021,12 +3021,46 @@ def _year_total_holistic(gyeok_name, ss_g, strength, oa, ya_name, ki_names, is_y
         parts.append(_strat)
     return ' '.join(parts) if parts else ''
 
+# 일지(日支) 12가지 × 연애·건강 맞춤 특성
+# key: ilji(0~11) → str
+_ILJI_LOVE = {
+    0:  '자수(子) 일지는 지적이고 유머 있는 이성에게 끌려요. 대화와 자극을 중요시하며 감정 표현이 자유로운 편이에요. 단, 안정보다 신선함을 더 원하는 경향이 있어 신뢰를 꾸준히 쌓아가는 노력이 중요해요.',
+    1:  '축토(丑) 일지는 성실하고 헌신적인 이성을 원해요. 느리지만 깊고 오래가는 관계를 추구하며, 가정적이고 신뢰할 수 있는 파트너를 가장 소중하게 여겨요.',
+    2:  '인목(寅) 일지는 카리스마 있고 독립적인 이성에게 끌려요. 서로의 공간을 존중하면서 함께 성장하는 관계를 원하지만, 자기주장이 강해 충돌이 생기기 쉬우니 양보하는 연습이 필요해요.',
+    3:  '묘목(卯) 일지는 부드럽고 감수성 풍부한 이성에게 끌려요. 예술적이거나 따뜻한 성격의 파트너와 잘 맞으며, 세심한 배려를 주고받는 관계를 원해요.',
+    4:  '진토(辰) 일지는 다재다능하고 이상적인 이성을 원해요. 내면이 복잡하고 이상이 높아 현실에서 딱 맞는 파트너를 찾기까지 시간이 걸리는 편이에요.',
+    5:  '사화(巳) 일지는 총명하고 깊이 있는 이성에게 끌려요. 겉으로 드러내지 않지만 강한 감정을 품고 있어, 신뢰가 쌓이면 깊은 유대가 형성되는 스타일이에요.',
+    6:  '오화(午) 일지는 열정적이고 자유로운 이성에게 끌려요. 함께 있으면 즐겁고 활동적인 관계를 원하지만, 구속받는 느낌을 싫어해 서로의 자유를 존중하는 것이 관계 핵심이에요.',
+    7:  '미토(未) 일지는 온화하고 감성적인 이성에게 끌려요. 예술적 감각이나 따뜻한 정서를 가진 파트너와 잘 맞으며, 함께하는 시간의 질을 무엇보다 중요시해요.',
+    8:  '신금(申) 일지는 영리하고 유머 넘치는 이성에게 끌려요. 변화무쌍하고 재미있는 관계를 원하지만, 감정 기복이 있어 정서적으로 안정감을 주는 파트너가 잘 맞아요.',
+    9:  '유금(酉) 일지는 세련되고 자존심 강한 이성에게 끌려요. 완벽주의 성향으로 파트너에게도 기준이 높은 편이지만, 한번 마음을 준 상대에게는 깊이 헌신하는 스타일이에요.',
+    10: '술토(戌) 일지는 의리 있고 솔직한 이성에게 끌려요. 한번 믿으면 끝까지 지키는 충성스러운 관계를 원하지만, 융통성이 부족해 작은 오해가 갈등으로 커지지 않도록 주의하세요.',
+    11: '해수(亥) 일지는 순수하고 관대한 이성에게 끌려요. 다재다능한 파트너와 다양한 것을 함께 즐기는 관계를 원하며, 낙관적이고 따뜻한 분위기의 연애가 가장 잘 맞아요.',
+}
+
+_ILJI_HEALTH = {
+    0:  '자수(子) 일지는 신장·방광·허리·냉증에 취약해요. 하체와 허리 보온을 꼼꼼히 챙기고 규칙적인 허리 강화 운동이 건강 핵심이에요.',
+    1:  '축토(丑) 일지는 소화기·비장·관절에 부담이 가기 쉬워요. 과식을 피하고 규칙적인 식사와 관절 스트레칭을 꾸준히 챙기세요.',
+    2:  '인목(寅) 일지는 간·담·근육·신경계에 취약해요. 스트레스가 몸으로 나타나기 쉬우니 규칙적인 운동과 충분한 수면이 중요해요.',
+    3:  '묘목(卯) 일지는 간·눈·손가락·근육에 부담이 쌓이기 쉬워요. 눈의 피로 관리와 규칙적인 스트레칭이 건강 기본이에요.',
+    4:  '진토(辰) 일지는 소화기·피부·근육에 취약해요. 과식과 스트레스성 피부 트러블에 주의하고 규칙적인 식습관을 챙기세요.',
+    5:  '사화(巳) 일지는 심장·혈압·소장에 부담이 가기 쉬워요. 과열되기 쉬운 체질이라 충분한 수분 섭취와 규칙적인 유산소 운동이 중요해요.',
+    6:  '오화(午) 일지는 심장·혈액순환·혈압에 취약해요. 열이 많은 체질이라 과로와 과음을 피하고 규칙적인 유산소 운동으로 심혈관을 관리하세요.',
+    7:  '미토(未) 일지는 소화기·비장·피부에 부담이 쌓이기 쉬워요. 규칙적인 식사와 위장 관리, 꾸준한 스트레스 해소가 건강의 핵심이에요.',
+    8:  '신금(申) 일지는 폐·대장·호흡기에 취약해요. 환절기 면역력 관리와 규칙적인 유산소 운동으로 폐와 호흡기를 챙기세요.',
+    9:  '유금(酉) 일지는 폐·호흡기·피부·기관지에 부담이 가기 쉬워요. 공기 질 관리와 충분한 수분 섭취가 건강 기본이에요.',
+    10: '술토(戌) 일지는 소화기·위장·피부에 취약해요. 과로와 과식으로 위장 트러블이 생기기 쉬우니 규칙적인 식사와 충분한 휴식이 핵심이에요.',
+    11: '해수(亥) 일지는 신장·방광·생식기·허리에 취약해요. 냉증과 수분 대사 관리가 중요하고, 규칙적인 하체 운동이 건강을 지켜줘요.',
+}
+
+
 def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로'):
     """target_year 에 해당하는 연운 개인화 상세 해설 반환
     rel_status: '솔로' | '연애중' | '기혼'
     """
     cur   = datetime.now().year
     ilgan = pillars[2][0]
+    ilji  = pillars[2][1]
     ilgan_name = CHEONGAN[ilgan]
     ilgan_oh   = OHAENG_NAMES[OHAENG_IDX[ilgan]]
     strength   = judge_strength(pillars)
@@ -3227,6 +3261,14 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
             lines.append(f'\n> 💡 **{ilgan_name}일간:** {combo_text}')
         elif flavor:
             lines.append(f'\n> 💡 **{ilgan_name}일간 특성:** {flavor}')
+        if domain == '연애':
+            _ilji_love = _ILJI_LOVE.get(ilji, '')
+            if _ilji_love:
+                lines.append(f'> 🌙 **{JIJI[ilji]}일지** — {_ilji_love}')
+        elif domain == '건강':
+            _ilji_health = _ILJI_HEALTH.get(ilji, '')
+            if _ilji_health:
+                lines.append(f'> 🌙 **{JIJI[ilji]}일지** — {_ilji_health}')
         lines.append('')
 
     # 핵심 고민별 Q&A (중화일 때 신강/신약 fallback)
@@ -4166,6 +4208,7 @@ def _wolun_domain_holistic(domain, gyeok_name, ss_g):
 def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
     """target_year 의 12개월 월운 상세 해설 반환"""
     ilgan = pillars[2][0]
+    ilji  = pillars[2][1]
     ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
@@ -4268,6 +4311,14 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로'):
                     lines.append(f'> {rel_label} — {love_hint}')
                 if domain in ('재물', '직장') and wolun_combo.get(domain):
                     lines.append(f'\n> 💡 **{ilgan_name}일간:** {wolun_combo[domain]}')
+                if domain == '연애':
+                    _ilji_love_w = _ILJI_LOVE.get(ilji, '')
+                    if _ilji_love_w:
+                        lines.append(f'> 🌙 **{JIJI[ilji]}일지** — {_ilji_love_w}')
+                elif domain == '건강':
+                    _ilji_health_w = _ILJI_HEALTH.get(ilji, '')
+                    if _ilji_health_w:
+                        lines.append(f'> 🌙 **{JIJI[ilji]}일지** — {_ilji_health_w}')
                 lines.append('')
 
         if is_yong and not is_ki:
