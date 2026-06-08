@@ -916,7 +916,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         unsafe_allow_html=True,
     )
     with st.expander("🎯 올해 운세 — 총평·재물·직업·연애·건강", expanded=True):
-        _render_thisyear_section(name, pillars, year, card_id=card_id, rel_status=rel_status)
+        _render_thisyear_section(name, pillars, year, card_id=card_id, rel_status=rel_status, daeun=daeun)
 
     with st.expander("📖 사주 해설 — 성격·재물·연애·직업·건강", expanded=False):
         _narr(analyze_saju(name, pillars, gil, hyung, gender))
@@ -1025,7 +1025,86 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
     except Exception as e:
         return f"⚠️ API 오류: {e}"
 
-def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_status='솔로'):
+
+def _daeun_sewoon_combo(pillars, daeun, target_year):
+    """대운 x 세운 조합 분석 텍스트 반환"""
+    from saju import get_sewoon, _year_pillar
+    ilgan = pillars[2][0]
+    ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
+    _, _, ki_list = get_gyeokguk(pillars)
+    ki_names = [OHAENG_NAMES[k] for k in ki_list]
+
+    # 해당 연도의 대운 찾기
+    cur_dae = None
+    for age, yr, dg, dj in daeun:
+        if yr <= target_year < yr + 10:
+            cur_dae = (age, yr, dg, dj)
+            break
+    if cur_dae is None:
+        return ''
+
+    age, yr, dg, dj = cur_dae
+    dg_oh = OHAENG_NAMES[OHAENG_IDX[dg]]
+    dj_oh = OHAENG_NAMES[OHAENG_IDX_J[dj]]
+    dg_ss = get_sipseong(ilgan, OHAENG_IDX[dg], dg % 2)
+    dj_ss = get_sipseong(ilgan, OHAENG_IDX_J[dj], dj % 2)
+
+    dae_is_yong = (dg_oh == ya_name or dj_oh == ya_name)
+    dae_is_ki   = (dg_oh in ki_names or dj_oh in ki_names)
+
+    # 세운 오행
+    yg, yj = _year_pillar(target_year)
+    yg_oh = OHAENG_NAMES[OHAENG_IDX[yg]]
+    yj_oh = OHAENG_NAMES[OHAENG_IDX_J[yj]]
+    sew_is_yong = (yg_oh == ya_name or yj_oh == ya_name)
+    sew_is_ki   = (yg_oh in ki_names or yj_oh in ki_names)
+
+    # 대운 지지 × 세운 지지 충 여부
+    dj_sew_chung = any(frozenset([dj, yj]) == c for c in JIJI_CHUNG)
+    dj_sew_hap   = frozenset([dj, yj]) in YUKAHP
+
+    # 조합 메시지
+    _combo_map = {
+        (True,  False, True,  False): ('최길', '대운·세운 모두 용신이에요. 인생에서 손꼽히는 전성기예요. 크게 움직여도 좋은 해예요.'),
+        (True,  False, False, True ): ('주의', '좋은 대운이 기신 세운을 상당 부분 막아줘요. 신중하게 움직이면 피해를 크게 줄일 수 있어요.'),
+        (False, True,  True,  False): ('반전', '기신 대운이지만 세운이 용신이에요. 올해만큼은 숨통이 트이고 움직일 기회가 찾아와요.'),
+        (False, True,  False, True ): ('수비', '대운·세운 모두 기신이에요. 올해는 안정 유지와 수비 전략이 최선이에요. 큰 도전은 내년 이후로.'),
+        (True,  False, False, False): ('안정', '용신 대운이 탄탄하게 받쳐줘요. 세운이 중립이니 무리 없이 안정적으로 전진하는 해예요.'),
+        (False, True,  False, False): ('완충', '기신 대운 속에서 세운이 중립이에요. 크게 나쁘지는 않지만 무리한 확장은 피하는 게 좋아요.'),
+        (False, False, True,  False): ('순풍', '세운 용신이 이 해를 이끌어줘요. 대운이 중립이니 세운의 흐름에 맞게 적극 움직이세요.'),
+        (False, False, False, True ): ('경계', '세운 기신에 주의가 필요한 해예요. 대운이 중립이라 버텨낼 수 있지만 중요 결정은 신중하게.'),
+        (False, False, False, False): ('평온', '대운·세운 모두 중립이에요. 급격한 변화 없이 꾸준히 쌓아가기 좋은 해예요.'),
+    }
+    key = (dae_is_yong, dae_is_ki, sew_is_yong, sew_is_ki)
+    label, msg = _combo_map.get(key, ('', ''))
+
+    # 충/합 보조 설명
+    extra = ''
+    if dj_sew_chung:
+        extra = f'  \n> ⚡ 대운 지지({JIJI[dj]})와 세운 지지({JIJI[yj]})가 **충(冲)**이에요. 이사·직장 변동·관계 변화가 생길 수 있어요.'
+    elif dj_sew_hap:
+        extra = f'  \n> 🤝 대운 지지({JIJI[dj]})와 세운 지지({JIJI[yj]})가 **합(合)**이에요. 안정적으로 흘러가는 흐름이에요.'
+
+    # 십성 증폭 (대운 × 세운 같은 십성)
+    amplify = ''
+    if dg_ss == get_sipseong(ilgan, OHAENG_IDX[yg], yg % 2):
+        amplify = f' **{dg_ss}** 에너지가 대운·세운 양쪽에서 겹쳐 이 해에 특히 강하게 작용해요.'
+
+    if not label:
+        return ''
+
+    lines = [
+        '---',
+        f'🌊 **대운 맥락** — {CHEONGAN[dg]}{JIJI[dj]} 대운({age}세~) × {target_year}년 세운',
+        '',
+        f'**[ {label} ]** {msg}{amplify}',
+    ]
+    if extra:
+        lines.append(extra)
+    lines.append('')
+    return '\n'.join(lines)
+
+def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_status='솔로', daeun=None):
     cur = datetime.now(_KST).year
     year_range = list(range(cur - 3, cur + 8))
     safe_name = name.replace(" ", "_")
@@ -1037,6 +1116,10 @@ def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_stat
         key=sel_key,
     )
     result_text = analyze_this_year(name, pillars, birth_year, sel_year, rel_status)
+    if daeun:
+        _combo = _daeun_sewoon_combo(pillars, daeun, sel_year)
+        if _combo:
+            st.markdown(_combo)
     st.markdown(result_text)
 
     share_key = f"share_{safe_name}_{card_id}_{sel_year}"
