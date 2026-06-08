@@ -24,6 +24,7 @@ from saju import (
     OHAENG_NAMES,
     get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin,
     analyze_romantic_type, judge_strength,
+    get_gyeokguk, get_yongshin, _year_pillar,
     YUKAHP, CHUNG as JIJI_CHUNG,
 )
 
@@ -459,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.08.10")
+        st.caption("v2026.06.08.11")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -943,6 +944,65 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _render_sal_detail(pillars)
 
 
+
+# ── Gemini 고민상담 헬퍼 ──────────────────────────────────────────────────
+
+def _build_saju_ctx(r: dict, sel_year: int) -> str:
+    """사주 정보를 Gemini 프롬프트용 텍스트로 변환"""
+    pillars = r['pillars']
+    ilgan   = pillars[2][0]
+    strength = judge_strength(pillars)
+    gyeok_name, _, ki_list = get_gyeokguk(pillars)
+    ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
+    ki_names = [OHAENG_NAMES[k] for k in ki_list]
+    yg, yj = _year_pillar(sel_year)
+    ss_g = get_sipseong(ilgan, OHAENG_IDX[yg], yg % 2)
+    return (
+        f"- 이름: {r['name']}\n"
+        f"- 일간: {CHEONGAN[ilgan]}({OHAENG_NAMES[OHAENG_IDX[ilgan]]})\n"
+        f"- 格局: {gyeok_name}\n"
+        f"- 신강/신약: {strength}\n"
+        f"- 용신: {ya_name}\n"
+        f"- 기신: {', '.join(ki_names) if ki_names else '없음'}\n"
+        f"- {sel_year}년 세운: {CHEONGAN[yg]}{JIJI[yj]}년 ({ss_g}운)\n"
+        f"- 연애 상태: {r.get('rel_status', '솔로')}"
+    )
+
+
+def _ask_gemini(question: str, saju_ctx: str) -> str:
+    """Gemini 2.0 Flash에 사주 기반 고민 답변 요청"""
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        return "⚠️ google-generativeai 패키지가 설치되지 않았어요. `pip install google-generativeai` 실행 후 재시작하세요."
+    api_key = ""
+    try:
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
+    except Exception:
+        pass
+    if not api_key:
+        api_key = st.session_state.get("_gemini_api_key", "")
+    if not api_key:
+        return "⚠️ Gemini API 키를 사이드바에 입력해주세요."
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        prompt = (
+            "당신은 사주팔자 전문 상담사입니다. "
+            "아래 사주 정보를 바탕으로 사용자의 고민에 실용적인 조언을 해주세요.\n\n"
+            f"[사주 정보]\n{saju_ctx}\n\n"
+            f"[고민]\n{question}\n\n"
+            "답변 조건:\n"
+            "- 사주 정보(일간, 格局, 용신/기신, 올해 세운)를 구체적으로 언급\n"
+            "- 올해 운세 흐름과 연결해서 답변\n"
+            "- 실용적이고 구체적인 행동 조언 포함\n"
+            "- 한국어로 자연스럽게, 350자 내외"
+        )
+        resp = model.generate_content(prompt)
+        return resp.text
+    except Exception as e:
+        return f"⚠️ API 오류: {e}"
+
 def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_status='솔로'):
     cur = datetime.now(_KST).year
     year_range = list(range(cur - 3, cur + 8))
@@ -1360,10 +1420,10 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.08.10")
+st.caption("v2026.06.08.11")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  "])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
 
 # ── 탭 1: 사주 ────────────────────────────────────────────────
 with tab1:
@@ -1624,3 +1684,83 @@ with tab4:
             st.markdown(analyze_ilchin_day(cal_pillars, cal_year, cal_month, sel_day))
         else:
             st.markdown(analyze_ilchin_basic(cal_year, cal_month, sel_day))
+
+
+# ── 탭 5: 고민 상담 ─────────────────────────────────────────────────────────
+with tab5:
+    # 사이드바에 API 키 입력
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown(
+            '<div style="font-size:0.8rem;font-weight:700;color:#6d28d9;margin-bottom:4px;">💭 고민 상담 설정</div>',
+            unsafe_allow_html=True,
+        )
+        _gkey_in = st.text_input(
+            "Gemini API 키",
+            value=st.session_state.get("_gemini_api_key", ""),
+            type="password",
+            key="_gemini_key_input",
+            placeholder="AIza...",
+            help="aistudio.google.com 에서 무료 발급",
+        )
+        if _gkey_in:
+            st.session_state["_gemini_api_key"] = _gkey_in
+
+    if 'saju_res' not in st.session_state:
+        st.info("먼저 🔮 사주 보기 탭에서 사주를 분석해주세요.")
+    else:
+        r5 = st.session_state['saju_res']
+        n5 = r5['name']
+        cur5 = datetime.now(_KST).year
+
+        st.markdown(
+            f'<div style="font-size:1.1rem;font-weight:800;color:#6d28d9;margin-bottom:2px;">💭 {n5}님 사주 기반 고민 상담</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("사주 데이터를 자동으로 불러와 Gemini AI가 맞춤 답변을 드려요.")
+
+        # 연도 선택
+        _cy5 = st.select_slider(
+            "기준 연도",
+            options=list(range(cur5 - 2, cur5 + 6)),
+            value=cur5,
+            key="concern_year_sel",
+        )
+
+        # 사주 컨텍스트 미리보기
+        _ctx5 = _build_saju_ctx(r5, _cy5)
+        with st.expander(f"📋 {n5}님 사주 정보 (AI에게 전달되는 내용)", expanded=False):
+            st.code(_ctx5, language=None)
+
+        # API 키 없으면 안내
+        _has_key = st.session_state.get("_gemini_api_key", "")
+        try:
+            _has_key = _has_key or st.secrets.get("GEMINI_API_KEY", "")
+        except Exception:
+            pass
+        if not _has_key:
+            st.warning("사이드바에 Gemini API 키를 입력하면 상담이 시작돼요.\n\n👉 [Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료 발급 (구글 계정 필요)")
+
+        # 채팅 히스토리
+        _hist_key = f"concern_hist_{n5}"
+        if _hist_key not in st.session_state:
+            st.session_state[_hist_key] = []
+
+        for _msg5 in st.session_state[_hist_key]:
+            with st.chat_message(_msg5['role']):
+                st.markdown(_msg5['content'])
+
+        if _concern5 := st.chat_input(f"{n5}님의 고민을 입력하세요... (예: 이직 제안받았어요, 투자해도 될까요?)"):
+            st.session_state[_hist_key].append({'role': 'user', 'content': _concern5})
+            with st.chat_message('user'):
+                st.markdown(_concern5)
+            with st.chat_message('assistant'):
+                with st.spinner('사주를 풀어드리는 중...'):
+                    _ans5 = _ask_gemini(_concern5, _ctx5)
+                st.markdown(_ans5)
+            st.session_state[_hist_key].append({'role': 'assistant', 'content': _ans5})
+
+        if st.session_state.get(_hist_key):
+            if st.button("🗑️ 대화 초기화", key="clear_concern_hist"):
+                st.session_state[_hist_key] = []
+                st.rerun()
