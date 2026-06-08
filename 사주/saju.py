@@ -1143,6 +1143,10 @@ SAMHAP_OH = {
     frozenset([2,6,10]):'화', frozenset([11,3,7]):'목',
     frozenset([4,8,0]):'수',  frozenset([5,9,1]):'금',
 }
+BANGHAP_OH = {
+    frozenset([2,3,4]):'목',  frozenset([5,6,7]):'화',
+    frozenset([8,9,10]):'금', frozenset([11,0,1]):'수',
+}
 CHUNG    = [frozenset([i,(i+6)%12]) for i in range(6)]
 PA       = [frozenset(p) for p in [(0,3),(1,10),(2,11),(4,7),(5,8),(6,9)]]
 HAE      = [frozenset(p) for p in [(0,7),(1,6),(2,5),(3,4),(8,11),(9,10)]]
@@ -1497,7 +1501,13 @@ def analyze_ohaeng(pillars, apply_hap=False):
                 for idx, j in enumerate(jijis):
                     if j in fs:
                         hap_oh[idx] = oh
-        # 육합 (삼합에 포함되지 않은 지지만)
+        # 방합 (삼합에 포함되지 않은 지지만)
+        for fs, oh in BANGHAP_OH.items():
+            if fs.issubset(ji_set):
+                for idx, j in enumerate(jijis):
+                    if j in fs and idx not in hap_oh:
+                        hap_oh[idx] = oh
+        # 육합 (삼합/방합에 포함되지 않은 지지만)
         for i in range(len(jijis)):
             for k in range(i+1, len(jijis)):
                 fs = frozenset([jijis[i], jijis[k]])
@@ -6175,6 +6185,25 @@ def judge_strength(pillars):
             if ss in ('비견','겁재','편인','정인'): sup += w
             elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
 
+    # 삼합/방합 보너스 — 지지 3개가 모여 오행이 강해지는 효과
+    jijis = [p[1] for p in pillars]
+    ji_set = set(jijis)
+    _OH_IDX = {'목':0,'화':1,'토':2,'금':3,'수':4}
+    _SENG = [1, 2, 3, 4, 0]   # i가 생하는 오행 인덱스
+    il_oh = OHAENG_IDX[ilgan]
+    def _side(oh_name):
+        r = _OH_IDX[oh_name]
+        if r == il_oh: return 'sup'          # 비겁
+        if _SENG[r] == il_oh: return 'sup'   # 인성
+        return 'opp'                          # 식상/재/관
+    for fs, oh in SAMHAP_OH.items():
+        if fs.issubset(ji_set):
+            if _side(oh) == 'sup': sup += 1.5
+            else: opp += 1.5
+    for fs, oh in BANGHAP_OH.items():
+        if fs.issubset(ji_set):
+            if _side(oh) == 'sup': sup += 1.0
+            else: opp += 1.0
     total = sup + opp
     if total == 0: return '중화(中和)'
     ratio = sup / total
