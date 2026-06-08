@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.08.11")
+        st.caption("v2026.06.08.12")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -970,11 +970,11 @@ def _build_saju_ctx(r: dict, sel_year: int) -> str:
 
 
 def _ask_gemini(question: str, saju_ctx: str) -> str:
-    """Gemini 2.0 Flash에 사주 기반 고민 답변 요청"""
+    """Gemini 2.0 Flash에 사주 기반 고민 답변 요청 (google-genai SDK)"""
     try:
-        import google.generativeai as genai
+        from google import genai as _genai
     except ImportError:
-        return "⚠️ google-generativeai 패키지가 설치되지 않았어요. `pip install google-generativeai` 실행 후 재시작하세요."
+        return "⚠️ google-genai 패키지가 설치되지 않았어요. `pip install google-genai` 실행 후 재시작하세요."
     api_key = ""
     try:
         api_key = st.secrets.get("GEMINI_API_KEY", "")
@@ -985,8 +985,7 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
     if not api_key:
         return "⚠️ Gemini API 키를 사이드바에 입력해주세요."
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        client = _genai.Client(api_key=api_key)
         prompt = (
             "당신은 사주팔자 전문 상담사입니다. "
             "아래 사주 정보를 바탕으로 사용자의 고민에 실용적인 조언을 해주세요.\n\n"
@@ -998,7 +997,10 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
             "- 실용적이고 구체적인 행동 조언 포함\n"
             "- 한국어로 자연스럽게, 350자 내외"
         )
-        resp = model.generate_content(prompt)
+        resp = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         return resp.text
     except Exception as e:
         return f"⚠️ API 오류: {e}"
@@ -1420,7 +1422,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.08.11")
+st.caption("v2026.06.08.12")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
