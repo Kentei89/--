@@ -3488,52 +3488,176 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     if rel_line:
         lines.append(f'오행 관계: {rel_line}.')
 
-    if is_yong and not is_ki:
-        lines.append(f'')
-        lines.append(f'> 🌟 올해 세운({yg_oh}·{yj_oh})이 용신(**{ya_name}**)에 해당해요. 적극적으로 움직일수록 운이 열리는 해예요.')
-    elif is_ki and not is_yong:
-        lines.append(f'')
-        lines.append(f'> ⚠️ 올해 세운({yg_oh}·{yj_oh})이 기신(**{", ".join(ki_names)}**)에 해당해요. 무리한 변화보다 안정을 지키는 전략이 유리해요.')
-    elif is_yong and is_ki:
-        lines.append(f'')
-        lines.append(f'> 올해 용신({ya_name})과 기신({", ".join(ki_names)}) 기운이 함께 들어와요. 기회와 변수가 공존하는 해예요.')
+    _DOMAIN_GOOD_PREVIEW = {
+        '식신': {'재물': '수입 흐름이 자연스럽게 열려요.', '직업': '창의적 성과가 나오는 해예요.', '연애': '자연스러운 만남과 감정 교류가 활발해요.', '건강': '여유롭지만 과식·과음 조심.'},
+        '정재': {'재물': '꾸준한 수입이 쌓이는 안정적 흐름이에요.', '직업': '실무 성과와 평가가 좋은 해예요.', '연애': '현실적이고 진지한 관계 진전 기회.', '건강': '무리 없이 루틴을 지키기 좋은 해예요.'},
+        '정관': {'재물': '안정적 수입과 재물 흐름이 유지돼요.', '직업': '승진·인정·공식 기회가 찾아와요.', '연애': '진지하고 책임감 있는 관계로 발전하기 좋아요.', '건강': '과로하지 않도록 의식적으로 쉬어야 해요.'},
+        '정인': {'재물': '재물보다 실력을 쌓는 해. 장기적 보상이 따라와요.', '직업': '배움·자격·전문성이 빛나는 해예요.', '연애': '마음이 통하는 사람과 깊어지는 흐름이에요.', '건강': '스트레스 관리와 충분한 수면이 핵심이에요.'},
+        '편재': {'재물': '사업·투자 기회가 찾아오는 활발한 해예요.', '직업': '새 프로젝트·도전 기회가 생겨요.', '연애': '설레는 새 만남이나 관계 변화가 생겨요.', '건강': '과도한 활동에 지치지 않도록 쉬어야 해요.'},
+        '편관': {'재물': '기회는 크지만 지출도 늘어나는 해예요.', '직업': '도전적 과제와 리더십 기회가 생겨요.', '연애': '강렬한 감정과 관계 변화가 찾아와요.', '건강': '체력 소모가 크니 건강 관리가 최우선이에요.'},
+        '편인': {'재물': '재물보다 전문성·아이디어가 자산이 되는 해예요.', '직업': '연구·기획·창작에서 빛나는 해예요.', '연애': '정서적 교감을 중시하는 관계가 발전해요.', '건강': '고립·스트레스 주의. 소통을 의식적으로 늘리세요.'},
+        '비견': {'재물': '재물 흐름은 보통. 독립 추진력이 강해지는 해예요.', '직업': '자립·독립·전문가로 나서기 좋은 해예요.', '연애': '독립심이 강해져 관계에서 내 페이스 챙기기.', '건강': '무리한 독단적 결정이 스트레스를 유발해요.'},
+        '겁재': {'재물': '기회는 오지만 경쟁도 강해지는 해예요.', '직업': '경쟁 속에서 치고 나가기 좋은 해예요.', '연애': '강한 매력과 감정 기복이 공존하는 해예요.', '건강': '충동적 결정에서 오는 스트레스 관리 필요.'},
+        '상관': {'재물': '창의적 수입 활동이 열리는 해예요.', '직업': '혁신·표현·프리랜서 활동이 빛나는 해예요.', '연애': '감정 표현이 강해져 관계가 생동감 있어요.', '건강': '감정 소모 주의. 충분한 휴식이 필요해요.'},
+    }
+    _DOMAIN_BAD_PREVIEW = {
+        '겁재': {'재물': '충동 투자·동업 보증은 이 해에 절대 피하세요.', '직업': '경쟁·갈등이 강해지는 해. 신중한 대응이 핵심.', '연애': '감정 충돌과 다툼이 잦아지기 쉬운 해예요.', '건강': '스트레스성 소화·두통 주의.'},
+        '상관': {'재물': '구설·실수로 인한 재물 손실을 조심하세요.', '직업': '직장 내 갈등·상사 충돌 조심. 말을 아끼세요.', '연애': '말로 인한 상처와 오해가 쌓이기 쉬운 해예요.', '건강': '신경계·두통·소화 관련 증상 주의.'},
+        '편관': {'재물': '지출이 수입보다 빠르게 늘어나는 해예요.', '직업': '압박·과로·갈등이 몰아치는 해. 선택과 집중 필요.', '연애': '압박·집착·갈등이 강해지기 쉬운 해예요.', '건강': '심혈관·근골격 과로 조심. 건강검진 필수.'},
+        '편인': {'재물': '재물보다 학습에 투자하는 해. 단기 수익은 적어요.', '직업': '고립·고집이 직장 관계를 어렵게 만들 수 있어요.', '연애': '감정을 혼자 삭이다 거리가 생기기 쉬운 해예요.', '건강': '우울·불안·불면 주의. 소통이 치료제예요.'},
+        '비견': {'재물': '동업·보증은 절대 피하세요. 독립 재무 관리 필수.', '직업': '경쟁·갈등·권력 다툼이 잦아지는 해예요.', '연애': '고집과 자존심 충돌로 관계가 삐걱이기 쉬워요.', '건강': '독단적 결정에서 오는 스트레스 관리 필요.'},
+    }
 
+    if is_yong and not is_ki:
+        _yong_ss_tips = {
+            '식신': '창의·표현 활동이 빛나고 재물 흐름이 자연스럽게 열려요.',
+            '정재': '꾸준한 노력이 안정적 수입으로 이어지는 흐름이에요.',
+            '정관': '직업·대인관계에서 신뢰받고 인정받는 기회가 찾아와요.',
+            '정인': '배움·시험·자격 취득 등 준비해온 것들이 빛을 발하는 해예요.',
+            '편재': '새로운 사업·투자 기회가 찾아오는 활발한 흐름이에요.',
+            '편관': '도전과 돌파력으로 장애를 넘어서는 해예요. 단 체력 관리는 필수.',
+            '편인': '직관과 아이디어가 빛나며 전문성이 깊어지는 흐름이에요.',
+            '비견': '독립 의지와 자립 욕구가 강해지는 자수성가의 해예요.',
+            '겁재': '경쟁 에너지가 올라가 적극적으로 치고 나가기 좋은 해예요.',
+            '상관': '표현력과 혁신이 강해지며 창의적 결과물이 나오는 해예요.',
+        }
+        _yss_tip = _yong_ss_tips.get(ss_g, '에너지 흐름이 사주와 잘 맞는 해예요.')
+        _dp = _DOMAIN_GOOD_PREVIEW.get(ss_g, {})
+        lines.append('')
+        lines.append('---')
+        lines.append('')
+        lines.append(f'🌟 **{ya_name} 용신운** — {target_year}년 핵심 요약')
+        lines.append('')
+        lines.append(f'올해 세운({yg_oh}·{yj_oh})이 용신({ya_name})에 해당하는 좋은 해예요.')
+        lines.append(f'{ss_g}운이 들어와 {_yss_tip}')
+        lines.append(f'계획해온 것, 미뤄왔던 도전을 실행에 옮기기 가장 좋은 타이밍이에요. 기대달에 집중하면 이 해의 흐름을 최대한 살릴 수 있어요.')
+        lines.append('')
+        if _dp:
+            lines.append(f'💰 **재물** — {_dp.get("재물", "")}')
+            lines.append(f'💼 **직업** — {_dp.get("직업", "")}')
+            lines.append(f'❤️ **연애** ({rel_label}) — {_dp.get("연애", "")}')
+            lines.append(f'🌿 **건강** — {_dp.get("건강", "")}')
+    elif is_ki and not is_yong:
+        _ki_ss_tips = {
+            '겁재': '재물 경쟁과 충동적 결정 위험이 올라가는 해예요.',
+            '상관': '날카로운 말실수와 구설 위험이 동시에 올라가는 해예요.',
+            '편관': '외부 압박과 강한 도전이 몰아치는 해예요.',
+            '편인': '고집과 고립이 강해지기 쉬운 해예요.',
+            '비견': '경쟁·다툼·독단적 결정에 주의해야 하는 해예요.',
+        }
+        _kss_tip = _ki_ss_tips.get(ss_g, '에너지가 충돌하기 쉬운 해예요.')
+        _dp = _DOMAIN_BAD_PREVIEW.get(ss_g, {})
+        lines.append('')
+        lines.append('---')
+        lines.append('')
+        lines.append(f'⚠️ **{", ".join(ki_names)} 기신운** — {target_year}년 핵심 요약')
+        lines.append('')
+        lines.append(f'올해 세운({yg_oh}·{yj_oh})이 기신({", ".join(ki_names)})에 해당하는 해예요.')
+        lines.append(f'{ss_g}운이 들어오며 {_kss_tip} 무리한 변화보다 지금 있는 자리를 단단히 지키는 전략이 훨씬 유리해요.')
+        lines.append(f'조심달에는 중요한 결정을 미루고, 기대달에 집중하는 방식으로 이 해를 헤쳐나가세요.')
+        lines.append('')
+        if _dp:
+            lines.append(f'💰 **재물** — {_dp.get("재물", "")}')
+            lines.append(f'💼 **직업** — {_dp.get("직업", "")}')
+            lines.append(f'❤️ **연애** ({rel_label}) — {_dp.get("연애", "")}')
+            lines.append(f'🌿 **건강** — {_dp.get("건강", "")}')
+    elif is_yong and is_ki:
+        _dp_g = _DOMAIN_GOOD_PREVIEW.get(ss_g, {})
+        _dp_b = _DOMAIN_BAD_PREVIEW.get(ss_g, {})
+        lines.append('')
+        lines.append('---')
+        lines.append('')
+        lines.append(f'⚡ **혼재 운** — {target_year}년 핵심 요약')
+        lines.append('')
+        lines.append(f'올해 용신({ya_name})과 기신({", ".join(ki_names)}) 기운이 함께 들어와요.')
+        lines.append(f'{ss_g}운이 오면서 기회와 변수가 동시에 강해지는 해예요. 좋은 흐름이 갑자기 뒤집히거나, 막혀있던 것이 풀리는 반전이 있는 해예요.')
+        lines.append(f'기대달에는 적극적으로, 조심달에는 신중하게 — 월별 흐름을 잘 구분해서 움직이는 것이 올해 핵심 전략이에요.')
+        lines.append('')
+        if _dp_g:
+            lines.append(f'💰 **재물** — {_dp_g.get("재물", "")}')
+            lines.append(f'💼 **직업** — {_dp_g.get("직업", "")}')
+            lines.append(f'❤️ **연애** ({rel_label}) — {_dp_g.get("연애", "")}')
+            lines.append(f'🌿 **건강** — {_dp_g.get("건강", "")}')
+    else:
+        lines.append('')
+        lines.append('---')
+        lines.append('')
+        lines.append(f'📌 **{target_year}년 핵심 요약')
+        lines.append('')
 
     if is_tg and not is_yong and not is_ki:
         lines.append(f'')
         lines.append(f'> 🔗 올해 통관(通關) 오행({tg_name})이 들어와 사주 내 상극 에너지가 자연스럽게 해소되는 해예요. 막혔던 흐름이 풀리면서 의외의 기회가 찾아올 수 있어요.')
 
-    # 월별 흐름 요약 배너 (용신/기신/십성 기반 점수화)
+    # 월별 흐름 요약 배너 (이유 포함 — 테이블 형식)
     _yg_b, _ = _year_pillar(target_year)
     _MJM_B = {1:2,2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:0,12:1}
     _GOOD_SS_B = {'식신','정재','정관','정인'}
     _BAD_SS_B  = {'겁재','상관','편관','편인','비견'}
+    _SS_GOOD_TIP = {
+        '식신': '창의·재물 흐름', '정재': '안정 수입 기회',
+        '정관': '직업·평판 인정', '정인': '배움·귀인 흐름',
+    }
+    _SS_BAD_TIP = {
+        '겁재': '충동·금전 조심', '상관': '말실수·구설 조심',
+        '편관': '압박·과로 조심', '편인': '고집·고립 주의', '비견': '경쟁·다툼 조심',
+    }
     _mon_sc = []
+    _mon_reason = {}
     for _mb in range(1, 13):
-        _mjb   = _MJM_B[_mb]
+        _mjb = _MJM_B[_mb]
         _mgb, _ = _month_pillar(_yg_b, _mjb)
         _mgb_oh = OHAENG_NAMES[OHAENG_IDX[_mgb]]
         _mjb_oh = OHAENG_NAMES[OHAENG_IDX_J[_mjb]]
-        _ssb   = get_sipseong(ilgan, OHAENG_IDX[_mgb], _mgb % 2)
-        _sc    = 0
-        if _mgb_oh == ya_name:    _sc += 2
-        if _mjb_oh == ya_name:    _sc += 2
-        if _ssb in _GOOD_SS_B:   _sc += 1
-        if _ssb in _BAD_SS_B:    _sc -= 1
-        if _mgb_oh in ki_names:  _sc -= 1
-        if _mjb_oh in ki_names:  _sc -= 1
+        _ssb = get_sipseong(ilgan, OHAENG_IDX[_mgb], _mgb % 2)
+        _sc = 0
+        _pos_r = []
+        _neg_r = []
+        if _mgb_oh == ya_name and _mjb_oh == ya_name:
+            _sc += 4; _pos_r.append(f'용신({ya_name}) 천간·지지')
+        elif _mgb_oh == ya_name:
+            _sc += 2; _pos_r.append(f'용신({ya_name}) 천간')
+        elif _mjb_oh == ya_name:
+            _sc += 2; _pos_r.append(f'용신({ya_name}) 지지')
+        if _ssb in _GOOD_SS_B:
+            _sc += 1; _pos_r.append(f'{_ssb}운')
+        if _ssb in _BAD_SS_B:
+            _sc -= 1; _neg_r.append(f'{_ssb}운')
+        if _mgb_oh in ki_names and _mjb_oh in ki_names and _mgb_oh == _mjb_oh:
+            _sc -= 2; _neg_r.append(f'기신({_mgb_oh}) 천간·지지')
+        elif _mgb_oh in ki_names and _mjb_oh in ki_names:
+            _sc -= 2; _neg_r.append(f'기신({_mgb_oh}) 천간'); _neg_r.append(f'기신({_mjb_oh}) 지지')
+        elif _mgb_oh in ki_names:
+            _sc -= 1; _neg_r.append(f'기신({_mgb_oh}) 천간')
+        elif _mjb_oh in ki_names:
+            _sc -= 1; _neg_r.append(f'기신({_mjb_oh}) 지지')
         _mon_sc.append((_mb, _sc))
+        _mon_reason[_mb] = (_pos_r, _neg_r, _ssb)
     _KMB = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
-    _good_b = [_KMB[m-1] for m, s in sorted(_mon_sc, key=lambda x: -x[1]) if s >= 2][:3]
-    _bad_b  = [_KMB[m-1] for m, s in sorted(_mon_sc, key=lambda x:  x[1]) if s <= -1][:3]
-    if _good_b or _bad_b:
-        _bp = []
-        if _good_b: _bp.append(f'\U0001f31f 기대달 **{"·".join(_good_b)}**')
-        if _bad_b:  _bp.append(f'\u26a0\ufe0f 조심달 **{"·".join(_bad_b)}**')
+    _good_months = [(m, s) for m, s in sorted(_mon_sc, key=lambda x: -x[1]) if s >= 2][:3]
+    _bad_months  = [(m, s) for m, s in sorted(_mon_sc, key=lambda x:  x[1]) if s <= -1][:3]
+    if _good_months or _bad_months:
         lines.append('')
-        lines.append(f'> \U0001f4ca **{target_year}년 월별 흐름** — {" / ".join(_bp)}')
+        lines.append(f'**📊 {target_year}년 기대달 · 조심달**')
+        lines.append('')
+        lines.append('| 구분 | 달 | 이유 |')
+        lines.append('|:--|:--|:--|')
+        for _m, _s in _good_months:
+            _pr, _nr, _ss = _mon_reason[_m]
+            _col_r = ' + '.join(_pr) if _pr else '흐름이 좋은 달'
+            _col_t = _SS_GOOD_TIP.get(_ss, '') if _ss in _GOOD_SS_B else ''
+            _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
+            lines.append(f'| 🌟 기대 | **{_KMB[_m-1]}** | {_col} |')
+        for _m, _s in _bad_months:
+            _pr, _nr, _ss = _mon_reason[_m]
+            _col_r = ' + '.join(_nr) if _nr else '주의가 필요한 달'
+            _col_t = _SS_BAD_TIP.get(_ss, '') if _ss in _BAD_SS_B else ''
+            _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
+            lines.append(f'| ⚠️ 조심 | **{_KMB[_m-1]}** | {_col} |')
+        lines.append('')
+        lines.append('---')
+        lines.append('')
 
-    # 格局 기질 + 세운 십성 impact 통합 맥락 (모든 경우 커버)
     _GYEOK_BASE = {
         '편관격': '리더십·도전 기질',   '정관격': '조직·신뢰 기질',
         '편재격': '사업·기회 기질',     '정재격': '안정 실무 기질',
@@ -3597,7 +3721,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     ilgan_flavor = _ILGAN_DOMAIN_FLAVOR.get(ilgan, {})
     combo_flavor = _ILGAN_OH_SS_DOMAIN.get((ilgan, ss_g), {})
     # 연애 상태별 텍스트 (솔로/연애중/기혼)
-    love_status_text = _YEAR_LOVE_STATUS.get((ss_g, sk), {}).get(rel_status, '')
+    love_status_text = (_YEAR_LOVE_STATUS.get((ss_g, sk)) or _YEAR_LOVE_STATUS.get((ss_g, '신강')) or {}).get(rel_status, '')
     rel_label = {'솔로': '💔 솔로', '연애중': '💑 연애중', '기혼': '💍 기혼·동거'}.get(rel_status, rel_status)
 
     # 총평 格局×오행×신강약 맞춤 도입부 생성
