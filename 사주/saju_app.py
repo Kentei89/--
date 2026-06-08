@@ -977,9 +977,19 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
         return "⚠️ google-genai 패키지가 설치되지 않았어요. `pip install google-genai` 실행 후 재시작하세요."
     api_key = ""
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY", "")
+        api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
         pass
+    if not api_key:
+        import os, re as _re
+        _sp = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.streamlit', 'secrets.toml')
+        try:
+            with open(_sp, 'r', encoding='utf-8') as _f:
+                _m = _re.search(r'^GEMINI_API_KEY\s*=\s*"([^"]+)"', _f.read(), _re.MULTILINE)
+            if _m:
+                api_key = _m.group(1)
+        except Exception:
+            pass
     if not api_key:
         api_key = st.session_state.get("_gemini_api_key", "")
     if not api_key:
@@ -997,11 +1007,21 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
             "- 실용적이고 구체적인 행동 조언 포함\n"
             "- 한국어로 자연스럽게, 350자 내외"
         )
-        resp = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
-        return resp.text
+        import time as _time
+        _models = ["gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-2.0-flash"]
+        _last_err = None
+        for _mdl in _models:
+            for _try in range(3):
+                try:
+                    resp = client.models.generate_content(model=_mdl, contents=prompt)
+                    return resp.text
+                except Exception as _e:
+                    _last_err = _e
+                    if "503" in str(_e) or "UNAVAILABLE" in str(_e):
+                        _time.sleep(3 + _try * 2)
+                        continue
+                    break
+        return f"⚠️ 잠시 후 다시 시도해주세요. ({_last_err})"
     except Exception as e:
         return f"⚠️ API 오류: {e}"
 
@@ -1737,9 +1757,19 @@ with tab5:
         # API 키 없으면 안내
         _has_key = st.session_state.get("_gemini_api_key", "")
         try:
-            _has_key = _has_key or st.secrets.get("GEMINI_API_KEY", "")
+            _has_key = _has_key or st.secrets["GEMINI_API_KEY"]
         except Exception:
             pass
+        if not _has_key:
+            import os, re as _re2
+            _sp2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.streamlit', 'secrets.toml')
+            try:
+                with open(_sp2, 'r', encoding='utf-8') as _f2:
+                    _m2 = _re2.search(r'^GEMINI_API_KEY\s*=\s*"([^"]+)"', _f2.read(), _re2.MULTILINE)
+                if _m2:
+                    _has_key = _m2.group(1)
+            except Exception:
+                pass
         if not _has_key:
             st.warning("사이드바에 Gemini API 키를 입력하면 상담이 시작돼요.\n\n👉 [Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료 발급 (구글 계정 필요)")
 
