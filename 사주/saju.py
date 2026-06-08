@@ -3246,6 +3246,37 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         lines.append(f'')
         lines.append(f'> 올해 용신({ya_name})과 기신({", ".join(ki_names)}) 기운이 함께 들어와요. 기회와 변수가 공존하는 해예요.')
 
+
+    # 월별 흐름 요약 배너 (용신/기신/십성 기반 점수화)
+    _yg_b, _ = _year_pillar(target_year)
+    _MJM_B = {1:2,2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:0,12:1}
+    _GOOD_SS_B = {'식신','정재','정관','정인'}
+    _BAD_SS_B  = {'겁재','상관','편관','편인','비견'}
+    _mon_sc = []
+    for _mb in range(1, 13):
+        _mjb   = _MJM_B[_mb]
+        _mgb, _ = _month_pillar(_yg_b, _mjb)
+        _mgb_oh = OHAENG_NAMES[OHAENG_IDX[_mgb]]
+        _mjb_oh = OHAENG_NAMES[OHAENG_IDX_J[_mjb]]
+        _ssb   = get_sipseong(ilgan, OHAENG_IDX[_mgb], _mgb % 2)
+        _sc    = 0
+        if _mgb_oh == ya_name:    _sc += 2
+        if _mjb_oh == ya_name:    _sc += 2
+        if _ssb in _GOOD_SS_B:   _sc += 1
+        if _ssb in _BAD_SS_B:    _sc -= 1
+        if _mgb_oh in ki_names:  _sc -= 1
+        if _mjb_oh in ki_names:  _sc -= 1
+        _mon_sc.append((_mb, _sc))
+    _KMB = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+    _good_b = [_KMB[m-1] for m, s in sorted(_mon_sc, key=lambda x: -x[1]) if s >= 2][:3]
+    _bad_b  = [_KMB[m-1] for m, s in sorted(_mon_sc, key=lambda x:  x[1]) if s <= -1][:3]
+    if _good_b or _bad_b:
+        _bp = []
+        if _good_b: _bp.append(f'\U0001f31f 기대달 **{"·".join(_good_b)}**')
+        if _bad_b:  _bp.append(f'\u26a0\ufe0f 조심달 **{"·".join(_bad_b)}**')
+        lines.append('')
+        lines.append(f'> \U0001f4ca **{target_year}년 월별 흐름** — {" / ".join(_bp)}')
+
     # 格局 기질 + 세운 십성 impact 통합 맥락 (모든 경우 커버)
     _GYEOK_BASE = {
         '편관격': '리더십·도전 기질',   '정관격': '조직·신뢰 기질',
