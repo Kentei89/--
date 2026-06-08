@@ -2872,6 +2872,37 @@ _YEAR_LOVE_STATUS = {
 }
 
 
+
+# 상극 관계별 통관 오행: (극하는 오행idx, 극당하는 오행idx) -> 통관 오행idx
+_TONGGWAN_TBL = {
+    (0, 2): 1,  # 목克토 -> 화 통관
+    (2, 4): 3,  # 토克수 -> 금 통관
+    (4, 1): 0,  # 수克화 -> 목 통관
+    (1, 3): 2,  # 화克금 -> 토 통관
+    (3, 0): 4,  # 금克목 -> 수 통관
+}
+
+def get_tonggwan(pillars, yong_oh, ki_list):
+    """통관(通關) 오행: 상극 구도를 매개하는 보조 용신 오행.
+    조건: 상극하는 두 오행이 각각 cnt>=2, 통관 후보가 기신/용신이 아닐 것.
+    반환: (tonggwan_oh, tonggwan_name) or (None, None)
+    """
+    oa = analyze_ohaeng(pillars)
+    ki_set = set(ki_list)
+    best, best_score = None, 0
+    for (a, b), c in _TONGGWAN_TBL.items():
+        if oa.get(OHAENG_NAMES[a], 0) < 2 or oa.get(OHAENG_NAMES[b], 0) < 2:
+            continue
+        if c in ki_set or c == yong_oh:
+            continue
+        score = oa.get(OHAENG_NAMES[a], 0) + oa.get(OHAENG_NAMES[b], 0)
+        if score > best_score:
+            best_score, best = score, c
+    if best is None:
+        return None, None
+    return best, OHAENG_NAMES[best]
+
+
 def explain_yongshin(pillars):
     """용신·기신이 왜 그 오행인지 평문으로 설명"""
     ya_oh, ya_name, basis, season_name, temp_adj = get_yongshin(pillars)
@@ -2918,6 +2949,9 @@ def explain_yongshin(pillars):
     if ki_names:
         ki_str = ', '.join(f'{n}(오행)' for n in ki_names)
         lines.append(f'- **기신: {ki_str}** — 용신을 극(剋)하거나 방해하는 기운이에요. 기신이 강한 날·운·환경은 신중하게 움직이는 게 좋아요.')
+    tg_oh, tg_name = get_tonggwan(pillars, ya_oh, ki_list)
+    if tg_name:
+        lines.append(f'- **통관(通關) 보조 오행: {tg_name}** — 사주 내 두 기운이 충돌하는 구도를 매개해 흐름을 연결하는 오행이에요. 용신에 준하는 보조 기운으로 삶에 적극 활용하면 좋아요.')
     lines.append(f'- **일간 강약:** {strength}')
 
     return '\n'.join(lines)
@@ -3403,9 +3437,10 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     ilgan_name = CHEONGAN[ilgan]
     ilgan_oh   = OHAENG_NAMES[OHAENG_IDX[ilgan]]
     strength   = judge_strength(pillars)
-    _, ya_name, _, _, _ = get_yongshin(pillars)
+    ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
     ki_names = [OHAENG_NAMES[k] for k in ki_list]
+    tg_oh, tg_name = get_tonggwan(pillars, ya_oh, ki_list)
     oa = analyze_ohaeng(pillars)
 
     sewoon = get_sewoon(birth_year,
@@ -3423,6 +3458,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     yj_oh       = OHAENG_NAMES[OHAENG_IDX_J[yj]]
     is_yong     = (yg_oh == ya_name or yj_oh == ya_name)
     is_ki       = (yg_oh in ki_names or yj_oh in ki_names)
+    is_tg       = bool(tg_name and (yg_oh == tg_name or yj_oh == tg_name))
 
     # 신강/신약 키
     if '신강' in strength: sk = '신강'
@@ -3462,6 +3498,10 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         lines.append(f'')
         lines.append(f'> 올해 용신({ya_name})과 기신({", ".join(ki_names)}) 기운이 함께 들어와요. 기회와 변수가 공존하는 해예요.')
 
+
+    if is_tg and not is_yong and not is_ki:
+        lines.append(f'')
+        lines.append(f'> 🔗 올해 통관(通關) 오행({tg_name})이 들어와 사주 내 상극 에너지가 자연스럽게 해소되는 해예요. 막혔던 흐름이 풀리면서 의외의 기회가 찾아올 수 있어요.')
 
     # 월별 흐름 요약 배너 (용신/기신/십성 기반 점수화)
     _yg_b, _ = _year_pillar(target_year)
