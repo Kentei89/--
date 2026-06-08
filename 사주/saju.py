@@ -6254,6 +6254,7 @@ def get_gyeokguk(pillars):
     ilgan_oh = OHAENG_IDX[ilgan]
     mj       = pillars[1][1]
     strength = judge_strength(pillars)
+    strength8, ratio = get_strength_detail(pillars)
     oa       = analyze_ohaeng(pillars)
 
     bi_oh   = ilgan_oh
@@ -6303,41 +6304,67 @@ def get_gyeokguk(pillars):
 
     if ss in ('비견', '겁재'):
         gyeok = '건록격' if ss == '비견' else '월겁격'
-        opts  = [(sik_oh, sik_cnt), (jae_oh, jae_cnt), (gwan_oh, gwan_cnt)]
+        if ratio >= 0.70:  # 태강: 재성→관성→식상 순 우선(설기 강도 높음)
+            opts = [(jae_oh, jae_cnt), (gwan_oh, gwan_cnt), (sik_oh, sik_cnt)]
+        else:
+            opts = [(sik_oh, sik_cnt), (jae_oh, jae_cnt), (gwan_oh, gwan_cnt)]
         yong_oh = min(opts, key=lambda x: x[1])[0]
-        return gyeok, yong_oh, _ki(yong_oh, [bi_oh, in_oh])
+        ki_base = [bi_oh, in_oh] if ratio >= 0.58 else [gwan_oh, jae_oh]
+        return gyeok, yong_oh, _ki(yong_oh, ki_base)
 
     elif ss == '식신':
-        if '신강' in strength:
+        if ratio >= 0.70:  # 태강: 재성 강력 우선, 기신=인성+비겁
+            return '식신격', jae_oh, _ki(jae_oh, [in_oh, bi_oh])
+        elif '신강' in strength:
             return '식신격', jae_oh, _ki(jae_oh, [in_oh])
+        elif ratio <= 0.30:  # 태약: 인성 강력 우선, 기신=관성+재성
+            return '식신격', in_oh,  _ki(in_oh,  [gwan_oh, jae_oh])
         else:
             return '식신격', in_oh,  _ki(in_oh,  [gwan_oh])
 
     elif ss == '상관':
-        if '신강' in strength:
+        if ratio >= 0.70:  # 태강: 재성 강력 우선
+            return '상관격', jae_oh, _ki(jae_oh, [in_oh, bi_oh])
+        elif '신강' in strength:
             return '상관격', jae_oh, _ki(jae_oh, [in_oh])
+        elif ratio <= 0.30:  # 태약: 인성 강력 우선
+            return '상관격', in_oh,  _ki(in_oh,  [gwan_oh, jae_oh])
         else:
             return '상관격', in_oh,  _ki(in_oh,  [gwan_oh])
 
     elif ss in ('편재', '정재'):
         gyeok = f'{ss}격'
-        if '신강' in strength:
+        if ratio >= 0.70:  # 태강: 재성용신, 기신=비겁+인성(설기 막는 것들)
+            return gyeok, jae_oh, _ki(jae_oh, [bi_oh, in_oh])
+        elif '신강' in strength:
             return gyeok, jae_oh, _ki(jae_oh, [bi_oh])
+        elif ratio <= 0.30:  # 태약: 인성 우선(비겁보다 안정적 생조)
+            return gyeok, in_oh,  _ki(in_oh,  [gwan_oh])
         else:
             yong = in_oh if in_cnt >= bi_cnt else bi_oh
             return gyeok, yong,   _ki(yong,   [gwan_oh])
 
     elif ss in ('편관', '정관'):
         gyeok = f'{ss}격'
-        if '신강' in strength:
+        if ratio >= 0.70:  # 태강: 관성 강력 제어, 기신=비겁+인성+재성
+            return gyeok, gwan_oh, _ki(gwan_oh, [bi_oh, in_oh])
+        elif '신강' in strength:
             return gyeok, gwan_oh, _ki(gwan_oh, [bi_oh, jae_oh])
+        elif ratio <= 0.30:  # 태약: 인성 강력 우선, 기신=재성+관성
+            yong = in_oh  # 태약에서 관성 극은 위험, 인성 생조 최우선
+            return gyeok, yong, _ki(yong, [jae_oh, gwan_oh])
         else:
-            return gyeok, in_oh,   _ki(in_oh,   [jae_oh])
+            return gyeok, in_oh, _ki(in_oh, [jae_oh])
 
     elif ss in ('편인', '정인'):
         gyeok = f'{ss}격'
-        if '신강' in strength:
+        if ratio >= 0.70:  # 태강: 재성 강력 설기, 기신=인성+비겁
+            return gyeok, jae_oh, _ki(jae_oh, [in_oh, bi_oh])
+        elif '신강' in strength:
             return gyeok, jae_oh, _ki(jae_oh, [in_oh])
+        elif ratio <= 0.30:  # 태약: 비겁도 함께 용신 후보
+            yong = in_oh if in_cnt >= bi_cnt else bi_oh
+            return gyeok, yong,   _ki(yong,   [gwan_oh, jae_oh])
         else:
             return gyeok, in_oh,  _ki(in_oh,  [gwan_oh])
 
