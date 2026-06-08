@@ -6271,16 +6271,31 @@ def get_gyeokguk(pillars):
     opp_cnt  = sik_cnt + jae_cnt + gwan_cnt
     total    = sup_cnt + opp_cnt
 
+    def _ki(yong, candidates):
+        """格局 기신 후보 → 실제 오행 분포 기반으로 정제.
+        1. 후보 중 사주에 실제 있는 것(cnt>=1) 우선
+        2. 모두 없으면 원본 candidates 그대로 (fallback)
+        3. 후보 외에 cnt>=3 과다 오행도 기신 추가 (용신 제외)
+        """
+        filtered = [k for k in candidates if oa.get(OHAENG_NAMES[k], 0) >= 1]
+        if not filtered:
+            filtered = list(candidates)
+        for oh in range(5):
+            if oh not in filtered and oh != yong:
+                if oa.get(OHAENG_NAMES[oh], 0) >= 3:
+                    filtered.append(oh)
+        return filtered
+
     # ── 외격 판별 ──────────────────────────────────────
     if total > 0 and '신약' in strength and opp_cnt >= total * 0.80:
         m = max(sik_cnt, jae_cnt, gwan_cnt)
         if m >= 4:
-            if sik_cnt  == m: return '종아격', sik_oh,  [in_oh, bi_oh]
-            if jae_cnt  == m: return '종재격', jae_oh,  [bi_oh]
-            if gwan_cnt == m: return '종살격', gwan_oh, [bi_oh]
+            if sik_cnt  == m: return '종아격', sik_oh,  _ki(sik_oh,  [in_oh, bi_oh])
+            if jae_cnt  == m: return '종재격', jae_oh,  _ki(jae_oh,  [bi_oh])
+            if gwan_cnt == m: return '종살격', gwan_oh, _ki(gwan_oh, [bi_oh])
 
     if total > 0 and '신강' in strength and sup_cnt >= total * 0.85:
-        return '종강격', bi_oh, [jae_oh, gwan_oh]
+        return '종강격', bi_oh, _ki(bi_oh, [jae_oh, gwan_oh])
 
     # ── 정격 판별 (월지 정기 기반) ─────────────────────
     mj_jeongi = JIJANGAN_IDX[mj][-1]
@@ -6290,44 +6305,44 @@ def get_gyeokguk(pillars):
         gyeok = '건록격' if ss == '비견' else '월겁격'
         opts  = [(sik_oh, sik_cnt), (jae_oh, jae_cnt), (gwan_oh, gwan_cnt)]
         yong_oh = min(opts, key=lambda x: x[1])[0]
-        return gyeok, yong_oh, [bi_oh, in_oh]
+        return gyeok, yong_oh, _ki(yong_oh, [bi_oh, in_oh])
 
     elif ss == '식신':
         if '신강' in strength:
-            return '식신격', jae_oh, [in_oh]
+            return '식신격', jae_oh, _ki(jae_oh, [in_oh])
         else:
-            return '식신격', in_oh,  [gwan_oh]
+            return '식신격', in_oh,  _ki(in_oh,  [gwan_oh])
 
     elif ss == '상관':
         if '신강' in strength:
-            return '상관격', jae_oh, [in_oh]
+            return '상관격', jae_oh, _ki(jae_oh, [in_oh])
         else:
-            return '상관격', in_oh,  [gwan_oh]
+            return '상관격', in_oh,  _ki(in_oh,  [gwan_oh])
 
     elif ss in ('편재', '정재'):
         gyeok = f'{ss}격'
         if '신강' in strength:
-            return gyeok, jae_oh, [bi_oh]
+            return gyeok, jae_oh, _ki(jae_oh, [bi_oh])
         else:
             yong = in_oh if in_cnt >= bi_cnt else bi_oh
-            return gyeok, yong,   [gwan_oh]
+            return gyeok, yong,   _ki(yong,   [gwan_oh])
 
     elif ss in ('편관', '정관'):
         gyeok = f'{ss}격'
         if '신강' in strength:
-            return gyeok, gwan_oh, [bi_oh, jae_oh]
+            return gyeok, gwan_oh, _ki(gwan_oh, [bi_oh, jae_oh])
         else:
-            return gyeok, in_oh,   [jae_oh]
+            return gyeok, in_oh,   _ki(in_oh,   [jae_oh])
 
     elif ss in ('편인', '정인'):
         gyeok = f'{ss}격'
         if '신강' in strength:
-            return gyeok, jae_oh, [in_oh]
+            return gyeok, jae_oh, _ki(jae_oh, [in_oh])
         else:
-            return gyeok, in_oh,  [gwan_oh]
+            return gyeok, in_oh,  _ki(in_oh,  [gwan_oh])
 
     else:
-        return f'{ss}격', jae_oh, [bi_oh]
+        return f'{ss}격', jae_oh, _ki(jae_oh, [bi_oh])
 
 # 조후+궁성 보정 ON/OFF 플래그 (기본 OFF = 格局 기반)
 _APPLY_JOHU = True
