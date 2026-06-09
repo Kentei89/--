@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.08.17")
+        st.caption("v2026.06.08.18")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -1008,7 +1008,10 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
             "- 사주 정보(일간, 格局, 용신/기신, 올해 세운)를 구체적으로 언급\n"
             "- 올해 운세 흐름과 연결해서 답변\n"
             "- 실용적이고 구체적인 행동 조언 포함\n"
-            "- 한국어로 자연스럽게, 350자 내외"
+            "- '언제 만나나요', '몇 월에', '몇 년도에' 등 시기를 묻는 질문에는 반드시 구체적인 시기를 답할 것. "
+            "  용신 오행이 강한 월지(예: 금 용신이면 申월·酉월, 수 용신이면 亥월·子월)나 "
+            "  세운·월운 흐름을 근거로 '○월 무렵', '하반기 ○~○월' 처럼 명확하게 제시. 모호하게 회피 금지.\n"
+            "- 한국어로 자연스럽게, 400자 내외"
         )
         import time as _time
         _models = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
@@ -1641,7 +1644,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.08.17")
+st.caption("v2026.06.08.18")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
