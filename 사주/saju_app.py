@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.08.19")
+        st.caption("v2026.06.08.20")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -924,6 +924,9 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     with st.expander("🌟 일주론(日柱論) — 타고난 특성 상세", expanded=False):
         _render_ilju_card(name, pillars)
 
+    with st.expander("💍 배우자 자리(日支宮) — 배우자 성향·합충 인연", expanded=False):
+        _render_baewuja_section(pillars, gender)
+
     with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
         _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
@@ -1118,6 +1121,74 @@ def _daeun_sewoon_combo(pillars, daeun, target_year):
     lines.append('')
     return '\n'.join(lines)
 
+
+# 일지(日支)별 배우자 자리 데이터
+_ILJI_SPOUSE = {
+    0:  {'name':'子(자)', 'desc':'총명하고 사교적이에요. 감수성이 풍부하고 섬세한 감각을 가진 타입으로, 겉은 활발해 보여도 내면에 깊은 감정이 흐르는 복합적인 매력이 있어요.', 'style':'지적 대화와 감정 공감을 중시해요. 함께 새로운 것을 탐구하는 관계에서 활력이 생겨요.', 'hap_ji':1,  'chung_ji':6},
+    1:  {'name':'丑(축)', 'desc':'성실하고 꼼꼼하며 안정을 추구해요. 겉은 무뚝뚝해 보여도 속은 따뜻하고 책임감이 강한 타입이에요. 묵묵히 헌신하는 스타일이에요.', 'style':'티는 잘 안 내지만 조용히 노력하고 헌신해요. 신뢰를 쌓는 데 시간이 걸리지만 오래 가는 관계예요.', 'hap_ji':0,  'chung_ji':7},
+    2:  {'name':'寅(인)', 'desc':'활동적이고 리더십이 강해요. 솔직하고 직선적이며 독립심이 강한 타입이에요. 함께 있으면 에너지가 넘치고 진취적인 분위기가 만들어져요.', 'style':'서로 각자의 영역을 존중하며 함께 성장하는 관계가 맞아요. 고집이 있는 편이라 솔직한 소통이 중요해요.', 'hap_ji':11, 'chung_ji':8},
+    3:  {'name':'卯(묘)', 'desc':'섬세하고 예술적 감각이 있어요. 감성이 풍부하고 순수하며 상대의 마음을 잘 읽고 배려하는 따뜻한 타입이에요.', 'style':'감정 교류가 깊은 관계예요. 일상 속 작은 것에도 의미를 부여하며 공감하는 시간이 관계를 키워줘요.', 'hap_ji':10, 'chung_ji':9},
+    4:  {'name':'辰(진)', 'desc':'포용력이 넓고 현실적이에요. 든든한 버팀목이 되어주는 깊은 내면의 힘을 가진 타입이에요. 묵직하고 신중하며 한번 결정하면 흔들리지 않아요.', 'style':'신뢰를 쌓는 데 시간이 걸리지만 쌓이면 매우 탄탄한 관계가 돼요. 실용적인 대화와 공동 목표가 관계를 강하게 해요.', 'hap_ji':9,  'chung_ji':10},
+    5:  {'name':'巳(사)', 'desc':'지적이고 계획적이에요. 우아하고 세련되며 내면에 강한 의지와 고집이 있는 타입이에요. 생각이 깊고 신중하게 행동해요.', 'style':'서로의 지적 성취를 응원하는 관계가 잘 맞아요. 지적 공감대가 있어야 관계가 깊어질 수 있어요.', 'hap_ji':8,  'chung_ji':11},
+    6:  {'name':'午(오)', 'desc':'열정적이고 활발해요. 솔직하고 카리스마 있으며 감정 표현이 직접적인 타입이에요. 강한 에너지로 주변에 활기를 불어넣어요.', 'style':'서로의 열정이 시너지를 내는 관계예요. 감정 기복이 클 수 있어 서로를 진정시켜주는 여유가 필요해요.', 'hap_ji':7,  'chung_ji':0},
+    7:  {'name':'未(미)', 'desc':'온화하고 배려심이 깊어요. 예술적 감각과 따뜻한 마음을 가진 타입으로, 주변 사람에게 편안함과 포근함을 주는 분위기가 있어요.', 'style':'서로를 따뜻하게 감싸주는 안정적인 관계예요. 감정을 솔직하게 나누는 대화가 관계를 더욱 깊게 만들어줘요.', 'hap_ji':6,  'chung_ji':1},
+    8:  {'name':'申(신)', 'desc':'영리하고 분석적이에요. 유연하고 재치 있으며 상황 판단력이 빠른 타입이에요. 적응력이 뛰어나고 다양한 분야에 재능을 보여요.', 'style':'지적 자극과 유머가 있는 관계가 잘 맞아요. 변화에 유연하게 대처하며 함께 새로운 도전을 즐기는 관계예요.', 'hap_ji':5,  'chung_ji':2},
+    9:  {'name':'酉(유)', 'desc':'세련되고 완벽주의 성향이 있어요. 섬세하고 미적 감각이 뛰어나며 자신만의 기준이 뚜렷한 타입이에요. 꼼꼼하게 처리하는 스타일이에요.', 'style':'서로의 기준을 존중하는 관계예요. 세심하게 챙겨주는 배려가 관계를 단단하게 만들어줘요.', 'hap_ji':4,  'chung_ji':3},
+    10: {'name':'戌(술)', 'desc':'의리 있고 충직해요. 진지하고 헌신적이며 한번 마음을 준 사람에게 깊이 헌신하는 타입이에요. 신뢰를 매우 중요하게 생각해요.', 'style':'신의와 믿음을 바탕으로 한 깊은 관계예요. 장기적인 동반자로 함께하는 것을 진지하게 소중히 여기는 관계예요.', 'hap_ji':3,  'chung_ji':4},
+    11: {'name':'亥(해)', 'desc':'자유롭고 지혜로워요. 포용력과 공감 능력이 뛰어나며 넓은 시야를 가진 타입이에요. 깊은 사유와 따뜻한 감성이 공존하는 매력이 있어요.', 'style':'서로의 자유를 존중하면서도 깊은 유대감을 나누는 관계예요. 감정보다 이해와 공감이 관계의 뿌리가 돼요.', 'hap_ji':2,  'chung_ji':5},
+}
+
+_UNSUNG_SPOUSE_DESC = {
+    '장생': ('🌱', '배우자 자리가 성장하는 에너지예요. 배우자가 함께 발전하는 긍정적 시너지를 가져다줘요.'),
+    '목욕': ('✨', '배우자 자리에 감각적 매력이 있어요. 배우자가 매력적이지만 감정 기복이 있을 수 있어, 서로의 감성을 이해하는 게 중요해요.'),
+    '관대': ('🎓', '배우자 자리가 활발한 에너지예요. 배우자가 사회적으로 적극적이고 의욕이 넘치는 타입이에요.'),
+    '건록': ('💼', '배우자 자리가 자립적 에너지예요. 배우자가 독립심이 강하고 스스로 길을 개척하는 타입이에요. 서로의 영역을 존중하는 것이 핵심이에요.'),
+    '제왕': ('👑', '배우자 자리가 강력한 에너지예요. 배우자가 강한 카리스마와 에너지를 가진 타입이에요. 강한 개성이 부딪히지 않도록 상호 존중이 중요해요.'),
+    '쇠':   ('🍃', '배우자 자리가 안정적 에너지예요. 배우자가 노련하고 차분한 분위기를 가졌어요. 신중하고 안정적인 관계가 이어져요.'),
+    '병':   ('🌙', '배우자 자리에 섬세한 에너지가 있어요. 배우자가 감수성이 풍부하고 내면이 깊은 타입이에요. 서로 섬세하게 배려하는 관계가 중요해요.'),
+    '사':   ('🕊️', '배우자 자리에 변화의 에너지가 있어요. 배우자와의 인연이 특별하고 깊지만, 관계에서 변화를 함께 넘기는 인내가 필요해요.'),
+    '묘':   ('🌿', '배우자 자리에 숙명적 에너지가 있어요. 배우자와의 인연이 깊은 인연으로 이어지는 구조예요. 서로를 깊이 이해하는 관계예요.'),
+    '절':   ('🌊', '배우자 자리에 변화의 에너지가 있어요. 배우자와의 인연에 변화가 생길 수 있어요. 인연을 소중히 지키는 노력이 필요해요.'),
+    '태':   ('🌸', '배우자 자리에 시작의 에너지가 있어요. 배우자와 함께 새로운 시작을 만들어가는 관계예요.'),
+    '양':   ('🌼', '배우자 자리에 따뜻한 에너지가 있어요. 배우자가 포용력 있고 따뜻한 타입이에요. 서로를 성장시켜주는 관계가 펼쳐져요.'),
+}
+
+def _render_baewuja_section(pillars, gender):
+    from saju import get_unsung, JIJI
+    ilgan = pillars[2][0]
+    ilji  = pillars[2][1]
+    sp    = _ILJI_SPOUSE[ilji]
+    unsung = get_unsung(ilgan, ilji)
+    us_icon, us_desc = _UNSUNG_SPOUSE_DESC.get(unsung, ('', ''))
+    hap_name   = _ILJI_SPOUSE[sp['hap_ji']]['name']
+    chung_name = _ILJI_SPOUSE[sp['chung_ji']]['name']
+    gender_str = '남편' if gender == '여' else '아내'
+
+    st.markdown(
+        f'<div style="background:linear-gradient(135deg,#fdf4ff,#ede9fe);border:1px solid #c4b5fd;'
+        f'border-radius:12px;padding:14px 18px;margin-bottom:12px;">'
+        f'<div style="font-size:0.75rem;font-weight:700;color:#7c3aed;margin-bottom:4px;">💍 배우자 자리(日支宮)</div>'
+        f'<div style="font-size:1.1rem;font-weight:800;color:#374151;">{JIJI[ilji]} — {sp["name"]}</div>'
+        f'<div style="font-size:0.8rem;color:#6b7280;margin-top:2px;">십이운성: <b>{unsung}</b> {us_icon}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(f'**{gender_str} 성향**\n\n{sp["desc"]}')
+    st.markdown(f'**관계 스타일**\n\n{sp["style"]}')
+    if us_desc:
+        st.markdown(f'**배우자 자리 에너지**\n\n{us_desc}')
+    st.markdown('')
+    col_a, col_b = st.columns(2)
+    col_a.markdown(
+        f'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;">'
+        f'<div style="font-size:0.72rem;font-weight:700;color:#1d4ed8;margin-bottom:4px;">🤝 합이 되는 인연</div>'
+        f'<div style="font-size:0.85rem;color:#374151;">일지가 <b>{hap_name}</b>인 이성과<br>자연스럽게 끌리고 합이 이루어져요.</div>'
+        f'</div>', unsafe_allow_html=True)
+    col_b.markdown(
+        f'<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;">'
+        f'<div style="font-size:0.72rem;font-weight:700;color:#c2410c;margin-bottom:4px;">⚡ 충이 되는 인연</div>'
+        f'<div style="font-size:0.85rem;color:#374151;">일지가 <b>{chung_name}</b>인 이성과는<br>에너지 충돌이 생기기 쉬워요.</div>'
+        f'</div>', unsafe_allow_html=True)
 
 # ilju extra data
 _ILJU_EXTRA = {
@@ -1652,7 +1723,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.08.19")
+st.caption("v2026.06.08.20")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
