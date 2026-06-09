@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.09.01")
+        st.caption("v2026.06.09.02")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -922,7 +922,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_saju(name, pillars, gil, hyung, gender))
 
     with st.expander("🌟 일주론(日柱論) — 타고난 특성 상세", expanded=False):
-        _render_ilju_card(name, pillars)
+        _render_ilju_card(name, pillars, no_time=no_time)
 
     with st.expander("💍 배우자 자리(日支宮) — 배우자 성향·합충 인연", expanded=False):
         _render_baewuja_section(pillars, gender)
@@ -1255,8 +1255,18 @@ _ILJU_EXTRA = {
 }
 
 
-def _render_ilju_card(name, pillars):
-    from saju import _ilju_text
+_UNS_ICON = {
+    '장생':'🌱','목욕':'✨','관대':'🎓','건록':'💼','제왕':'👑',
+    '쇠':'🍃','병':'🌙','사':'🕊','묘':'🌿','절':'🌊','태':'🌸','양':'🌼',
+}
+_UNS_SHORT = {
+    '장생':'성장·시작','목욕':'감성·매력','관대':'패기·도전','건록':'자립·전문',
+    '제왕':'절정·카리스마','쇠':'성숙·안정','병':'감수성·깊이','사':'변화·전환',
+    '묘':'숙성·집중','절':'비움·재시작','태':'잉태·가능성','양':'양육·준비',
+}
+
+def _render_ilju_card(name, pillars, no_time=False):
+    from saju import _ilju_text, UNSUNG_DESC, get_12unsung
     ilgan = pillars[2][0]
     ilji  = pillars[2][1]
     ilju_name = CHEONGAN[ilgan] + JIJI[ilji]
@@ -1297,6 +1307,37 @@ def _render_ilju_card(name, pillars):
                 f'</div>',
                 unsafe_allow_html=True,
             )
+    # ── 십이운성(十二運星) ──────────────────────────────────────────
+    st.markdown('---')
+    st.markdown('**🌙 십이운성(十二運星) — 각 주의 에너지 단계**')
+    _order  = [0, 1, 2] if no_time else [0, 1, 2, 3]
+    _labels = ['년주', '월주', '일주'] if no_time else ['년주', '월주', '일주', '시주']
+    _cols   = st.columns(len(_order))
+    for col, idx, lbl in zip(_cols, _order, _labels):
+        _g, _j = pillars[idx]
+        _uns = get_12unsung(ilgan, _j)
+        _icon  = _UNS_ICON.get(_uns, '')
+        _short = _UNS_SHORT.get(_uns, _uns)
+        _is_il = (idx == 2)
+        _bg    = 'linear-gradient(135deg,#fdf4ff,#ede9fe)' if _is_il else '#f8fafc'
+        _bdr   = '2px solid #c4b5fd' if _is_il else '1px solid #e2e8f0'
+        col.markdown(
+            f'<div style="background:{_bg};border:{_bdr};border-radius:10px;'
+            f'padding:10px 6px;text-align:center;">'
+            f'<div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-bottom:2px;">{lbl}</div>'
+            f'<div style="font-size:1.3rem;line-height:1.2;">{_icon}</div>'
+            f'<div style="font-size:0.9rem;font-weight:800;color:#374151;">{_uns}</div>'
+            f'<div style="font-size:0.6rem;color:#6b7280;margin-top:1px;">{_short}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown('')
+    il_uns = get_12unsung(ilgan, ilji)
+    il_desc = UNSUNG_DESC.get(il_uns, '')
+    if il_desc:
+        st.markdown(f'**일주 {_UNS_ICON.get(il_uns,"")} {il_uns} — 상세**')
+        st.markdown(il_desc)
+    # ────────────────────────────────────────────────────────────
     st.markdown('')
     if base_text:
         st.markdown(base_text)
@@ -1723,7 +1764,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.09.01")
+st.caption("v2026.06.09.02")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
