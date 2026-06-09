@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.09.02")
+        st.caption("v2026.06.09.03")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -1764,7 +1764,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.09.02")
+st.caption("v2026.06.09.03")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
@@ -1802,6 +1802,70 @@ with tab1:
         render_saju_card(r['name'], r['pillars'], r['corr_dt'], r['corrections'],
                          r['gender'], r['year'], no_time=r['no_time'], cal_label=r.get('cal_label','양력'),
                          rel_status=r.get('rel_status','솔로'))
+
+def _render_gunghap_visual(r):
+    """궁합 결과 시각 요약 카드 (점수 카드 아래, 해설 위)"""
+    rel    = r['rel']
+    score  = r['score']
+    na, nb = r['na'], r['nb']
+    reasons = r.get('reasons', [])
+
+    hap_list  = rel.get('합',[]) + rel.get('삼합',[]) + rel.get('방합',[]) + rel.get('천간합',[])
+    neg_list  = rel.get('충',[]) + rel.get('원진',[]) + rel.get('형',[]) + rel.get('파',[]) + rel.get('해',[]) + rel.get('천간충',[])
+    ilji_hap  = any('일지합' in rs for rs in reasons)
+    bae_both  = any('쌍방 배우자성' in rs or ('배우자성 +10' in rs and nb in rs) for rs in reasons)
+    bae_a     = any(f'[배우자성' in rs and nb in rs for rs in reasons)
+    bae_b     = any(f'[배우자성' in rs and na in rs for rs in reasons)
+    yong_comp = any('용신보완' in rs for rs in reasons)
+    oh_comp   = any('오행보완' in rs for rs in reasons)
+
+    # ── 합·충 2열 카드 ──
+    ca, cb = st.columns(2)
+    ca.markdown(
+        f'<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 14px;">'
+        f'<div style="font-size:0.72rem;font-weight:700;color:#16a34a;margin-bottom:6px;">🤝 연결되는 에너지</div>'
+        + (''.join(f'<div style="font-size:0.8rem;color:#374151;margin-bottom:2px;">✅ {h}</div>' for h in hap_list[:5])
+           if hap_list else '<div style="font-size:0.8rem;color:#6b7280;">없음</div>')
+        + f'</div>', unsafe_allow_html=True)
+    cb.markdown(
+        f'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;">'
+        f'<div style="font-size:0.72rem;font-weight:700;color:#dc2626;margin-bottom:6px;">⚡ 긴장되는 에너지</div>'
+        + (''.join(f'<div style="font-size:0.8rem;color:#374151;margin-bottom:2px;">⚠ {n}</div>' for n in neg_list[:5])
+           if neg_list else '<div style="font-size:0.8rem;color:#6b7280;">없음</div>')
+        + f'</div>', unsafe_allow_html=True)
+
+    st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
+
+    # ── 영역별 상성 4칸 ──
+    def _badge(ok, label):
+        if ok is True:
+            return f'<span style="background:#dcfce7;color:#16a34a;font-size:0.72rem;font-weight:700;border-radius:6px;padding:2px 8px;">✅ {label}</span>'
+        elif ok == 'warn':
+            return f'<span style="background:#fef3c7;color:#d97706;font-size:0.72rem;font-weight:700;border-radius:6px;padding:2px 8px;">⚠ {label}</span>'
+        else:
+            return f'<span style="background:#f1f5f9;color:#64748b;font-size:0.72rem;font-weight:700;border-radius:6px;padding:2px 8px;">➖ {label}</span>'
+
+    comm_ok   = True if rel.get('천간합') else ('warn' if rel.get('천간충') else None)
+    pull_ok   = True if (ilji_hap or bae_both) else (True if (bae_a or bae_b) else None)
+    long_ok   = True if (rel.get('삼합') or rel.get('방합') or yong_comp) else (True if oh_comp else None)
+    risk_cnt  = len(neg_list)
+    risk_ok   = None if risk_cnt == 0 else ('warn' if risk_cnt <= 2 else False)
+
+    c1, c2, c3, c4 = st.columns(4)
+    for col, icon, title, badge_val, desc in [
+        (c1, '💬', '소통 상성',  comm_ok,  '천간 합·충 기준'),
+        (c2, '💕', '끌림·인연', pull_ok,  '일지합·배우자성 기준'),
+        (c3, '🔗', '장기 상성', long_ok,  '삼합·용신 보완 기준'),
+        (c4, '⚡', '갈등 리스크', risk_ok, f'부정 요소 {risk_cnt}개'),
+    ]:
+        col.markdown(
+            f'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;'
+            f'padding:10px 8px;text-align:center;">'
+            f'<div style="font-size:1.1rem;">{icon}</div>'
+            f'<div style="font-size:0.72rem;font-weight:700;color:#374151;margin:2px 0;">{title}</div>'
+            f'<div style="margin:4px 0;">{_badge(badge_val, "좋음" if badge_val is True else ("주의" if badge_val=="warn" else "보통"))}</div>'
+            f'<div style="font-size:0.6rem;color:#9ca3af;">{desc}</div>'
+            f'</div>', unsafe_allow_html=True)
 
 # ── 탭 2: 궁합 ────────────────────────────────────────────────
 with tab2:
@@ -1863,6 +1927,7 @@ with tab2:
             f'<div class="score-label">{r["na"]} × {r["nb"]}  |  {r["chosen_label"]}  |  {grades[gi]}</div>'
             f'</div>', unsafe_allow_html=True,
         )
+        _render_gunghap_visual(r)
         if r['reasons']:
             with st.expander("점수 근거", expanded=False):
                 for reason in r['reasons']:
