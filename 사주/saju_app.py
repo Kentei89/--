@@ -460,7 +460,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.08.18")
+        st.caption("v2026.06.08.19")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -972,8 +972,8 @@ def _build_saju_ctx(r: dict, sel_year: int) -> str:
     )
 
 
-def _ask_gemini(question: str, saju_ctx: str) -> str:
-    """Gemini 2.0 Flash에 사주 기반 고민 답변 요청 (google-genai SDK)"""
+def _ask_gemini(question: str, saju_ctx: str, history=None) -> str:
+    """Gemini 사주 기반 고민 답변 요청 — history 있으면 멀티턴 대화 유지"""
     try:
         from google import genai as _genai
     except ImportError:
@@ -999,11 +999,11 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
         return "⚠️ Gemini API 키를 사이드바에 입력해주세요."
     try:
         client = _genai.Client(api_key=api_key)
-        prompt = (
+        _sys = (
             "당신은 사주팔자 전문 상담사입니다. "
-            "아래 사주 정보를 바탕으로 사용자의 고민에 실용적인 조언을 해주세요.\n\n"
+            "아래 사주 정보를 바탕으로 사용자의 고민에 실용적인 조언을 해주세요. "
+            "이전 대화가 있으면 맥락을 이어서 답변하세요.\n\n"
             f"[사주 정보]\n{saju_ctx}\n\n"
-            f"[고민]\n{question}\n\n"
             "답변 조건:\n"
             "- 사주 정보(일간, 格局, 용신/기신, 올해 세운)를 구체적으로 언급\n"
             "- 올해 운세 흐름과 연결해서 답변\n"
@@ -1013,13 +1013,21 @@ def _ask_gemini(question: str, saju_ctx: str) -> str:
             "  세운·월운 흐름을 근거로 '○월 무렵', '하반기 ○~○월' 처럼 명확하게 제시. 모호하게 회피 금지.\n"
             "- 한국어로 자연스럽게, 400자 내외"
         )
+        # 멀티턴: history[0]에 시스템 컨텍스트를 붙여 첫 메시지로, 이후 교대 구조 유지
+        if history and len(history) > 1:
+            _contents = [{"role": "user", "parts": [{"text": _sys + "\n\n" + history[0]["content"]}]}]
+            for _m in history[1:]:
+                _role = "user" if _m["role"] == "user" else "model"
+                _contents.append({"role": _role, "parts": [{"text": _m["content"]}]})
+        else:
+            _contents = _sys + f"\n\n[고민]\n{question}"
         import time as _time
         _models = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
         _last_err = None
         for _mdl in _models:
             for _try in range(3):
                 try:
-                    resp = client.models.generate_content(model=_mdl, contents=prompt)
+                    resp = client.models.generate_content(model=_mdl, contents=_contents)
                     return resp.text
                 except Exception as _e:
                     _last_err = _e
@@ -1644,7 +1652,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.08.18")
+st.caption("v2026.06.08.19")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
@@ -1990,7 +1998,7 @@ with tab5:
                 st.markdown(_concern5)
             with st.chat_message('assistant'):
                 with st.spinner('사주를 풀어드리는 중...'):
-                    _ans5 = _ask_gemini(_concern5, _ctx5)
+                    _ans5 = _ask_gemini(_concern5, _ctx5, history=st.session_state[_hist_key])
                 st.markdown(_ans5)
             st.session_state[_hist_key].append({'role': 'assistant', 'content': _ans5})
 
