@@ -8008,6 +8008,13 @@ def analyze_saju(name, pillars, gil, hyung, gender='남'):
     for fs3, name3 in HYEONG_3:
         if fs3.issubset(jset):
             found_hyung.append(name3)
+    # 자묘형(子卯刑) — 무례지형
+    if frozenset([0, 3]).issubset(jset):
+        found_hyung.append('자묘형(무례지형)')
+    # 자형(自刑) — 午·辰·酉·亥가 사주에 2개 이상
+    for jj, jj_name in [(6,'오'), (4,'진'), (9,'유'), (11,'해')]:
+        if jijis.count(jj) >= 2:
+            found_hyung.append(f'{jj_name}자형(自刑)')
 
     # 천간 합충
     from saju import _CHUNGAN_HAP, _CHUNGAN_CHUNG
@@ -8017,6 +8024,18 @@ def analyze_saju(name, pillars, gil, hyung, gender='남'):
             found_gan_hap.append(f'{CHEONGAN[a]}{CHEONGAN[b]}합')
         if frozenset([a,b]) in _CHUNGAN_CHUNG:
             found_gan_chung.append(f'{CHEONGAN[a]}{CHEONGAN[b]}충')
+
+    _hyung_parts = []
+    if any('삼형' in h for h in found_hyung):
+        _hyung_parts.append('삼형은 세 기운이 충돌하는 강한 긴장의 구조예요. 수술·관재·사고에 주의하고 법적 문서를 꼼꼼히 확인하세요.')
+    if any('자묘형' in h for h in found_hyung):
+        _hyung_parts.append('자묘형(무례지형)은 말이나 행동이 상대 감정을 건드리기 쉬운 구조예요. 표현 전에 한 번 더 생각하는 습관이 관계를 부드럽게 만들어줘요.')
+    if any('자형' in h for h in found_hyung):
+        _hyung_parts.append('자형(自刑)은 같은 기운이 과해져 같은 실수를 반복하거나 고집이 증폭되는 패턴이에요. 알아차리는 것만으로도 반복의 고리를 끊을 수 있어요.')
+    if not _hyung_parts:
+        _hyung_parts.append('인간관계 마찰이나 법적 문제가 생기기 쉬운 구조예요. 안전에 주의하고 법적 문서를 꼼꼼히 확인하세요.')
+    _hyung_parts.append('반면 강인한 의지와 책임감을 키워주는 에너지이기도 해요.')
+    _hyung_desc = '  \n'.join(_hyung_parts)
 
     _REL_DESC = {
         '충': ('⚡ 충(沖) — 변화의 에너지', found_chung,
@@ -8035,10 +8054,7 @@ def analyze_saju(name, pillars, gil, hyung, gender='남'):
                '가까운 사람에게 오해를 받거나 뜻밖의 방해가 생기기 쉬운 구조예요.  \n'
                '진심이 왜곡되거나 억울한 상황이 만들어지는 경우가 있어요.  \n'
                '소통을 명확히 하고, 오해가 쌓이지 않도록 자주 확인하는 습관이 필요해요.'),
-        '형': ('⚠ 형(刑) — 긴장의 에너지', found_hyung,
-               '법적·규율과 관련된 문제가 생기거나 인간관계에서 마찰이 잦아지는 구조예요.  \n'
-               '수술·사고·관재구설과 인연이 생기기 쉬우니 안전에 주의하고 법적 문서를 꼼꼼히 확인하세요.  \n'
-               '반면 강인한 의지와 책임감을 키워주는 에너지이기도 해요.'),
+        '형': ('⚠ 형(刑) — 긴장의 에너지', found_hyung, _hyung_desc),
         '천간합': ('✨ 천간합 — 마음이 통하는 에너지', found_gan_hap,
                   '사주의 천간(마음·의지의 영역) 사이에 합이 이루어지는 구조예요.  \n'
                   '사람과의 인연이 강하게 작용하고, 대화만 해도 자연스럽게 통하는 사람을 만나는 복이 있어요.'),
