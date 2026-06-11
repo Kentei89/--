@@ -1816,13 +1816,13 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _render_ilju_card(name, pillars, no_time=no_time)
 
     with st.expander("💍 배우자 자리(日支宮) — 배우자 성향·합충 인연", expanded=False):
-        _render_baewuja_section(pillars, gender)
+        _render_baewuja_section(pillars, gender, rel_status=rel_status)
 
     with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
         _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
     with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
-        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender)
+        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender, no_time=no_time)
 
     # ── 심화 분석 ────────────────────────────────────────────
     st.markdown(
@@ -1835,7 +1835,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_daewoon_narrative(name, pillars, daeun, start_age, forward))
 
     with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
-        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender)
+        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender, no_time=no_time)
 
     with st.expander("🔖 신살(神殺) — 귀인·흉살 상세 해설", expanded=False):
         _render_sal_detail(pillars)
@@ -2230,7 +2230,7 @@ _ILJI_SIPSEONG_DESC = {
     '정인': ('🌸', '배우자가 포용력 있고 따뜻해요. 안정적인 타입으로 배려심이 깊어요. 정서적 안정감을 주는 동반자예요.'),
 }
 
-def _render_baewuja_section(pillars, gender):
+def _render_baewuja_section(pillars, gender, rel_status='솔로'):
     ilgan = pillars[2][0]
     ilji  = pillars[2][1]
     sp    = _ILJI_SPOUSE[ilji]
@@ -2238,7 +2238,13 @@ def _render_baewuja_section(pillars, gender):
     us_icon, us_desc = _UNSUNG_SPOUSE_DESC.get(unsung, ('', ''))
     hap_name   = _ILJI_SPOUSE[sp['hap_ji']]['name']
     chung_name = _ILJI_SPOUSE[sp['chung_ji']]['name']
-    gender_str = '남편' if gender == '여' else '아내'
+    _bae_labels = {
+        '기혼':  ('남편', '아내'),
+        '동거':  ('파트너', '파트너'),
+        '연애중': ('남자친구', '여자친구'),
+    }
+    _lbl = _bae_labels.get(rel_status, ('미래 인연', '미래 인연'))
+    gender_str = _lbl[0] if gender == '여' else _lbl[1]
 
     # 일지 정기 십성 계산
     jjgan_idx = JIJANGAN_IDX[ilji][-1]
@@ -2902,7 +2908,9 @@ def _sewoon_hyeong_wonjin(pil_jijis, sw_ji):
                 wonjin.append(f'원진({JIJI[sw_ji]}{JIJI[_other]})')
     return hyeong, wonjin
 
-def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gender="남"):
+def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gender="남", no_time=False):
+    if no_time:
+        st.caption("⚠ 시주(時柱) 없이 계산된 결과예요. 태어난 시간을 알면 더 정확해져요.")
     cur = datetime.now(_KST).year
     ilgan = pillars[2][0]
     sewoon = get_sewoon(birth_year, past=5, future=10)
@@ -3018,11 +3026,13 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gen
     _render_wolun_section(
         pillars, birth_year, name=name,
         card_id=f'sw_{_safe_n}_{card_id}', fixed_year=_sw_sel_yr,
-        gender=gender,
+        gender=gender, no_time=no_time,
     )
 
 
-def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='솔로', fixed_year=None, gender="남"):
+def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='솔로', fixed_year=None, gender="남", no_time=False):
+    if no_time:
+        st.caption("⚠ 시주(時柱) 없이 계산된 결과예요. 태어난 시간을 알면 더 정확해져요.")
     cur = datetime.now(_KST).year
     cur_date = datetime.now(_KST).date()
     ilgan = pillars[2][0]
