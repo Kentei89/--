@@ -1822,7 +1822,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
     with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
-        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status)
+        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender)
 
     # ── 심화 분석 ────────────────────────────────────────────
     st.markdown(
@@ -1835,7 +1835,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_daewoon_narrative(name, pillars, daeun, start_age, forward))
 
     with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
-        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id)
+        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender)
 
     with st.expander("🔖 신살(神殺) — 귀인·흉살 상세 해설", expanded=False):
         _render_sal_detail(pillars)
@@ -2902,7 +2902,7 @@ def _sewoon_hyeong_wonjin(pil_jijis, sw_ji):
                 wonjin.append(f'원진({JIJI[sw_ji]}{JIJI[_other]})')
     return hyeong, wonjin
 
-def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main"):
+def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gender="남"):
     cur = datetime.now(_KST).year
     ilgan = pillars[2][0]
     sewoon = get_sewoon(birth_year, past=5, future=10)
@@ -2998,7 +2998,7 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main"):
     tl_html += '</div>'
     st.markdown(tl_html, unsafe_allow_html=True)
     st.divider()
-    _narr(analyze_sewoon_narrative(name, pillars, birth_year))
+    _narr(analyze_sewoon_narrative(name, pillars, birth_year, gender=gender))
 
     # 세운 월운 연동
     st.markdown(
@@ -3018,10 +3018,11 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main"):
     _render_wolun_section(
         pillars, birth_year, name=name,
         card_id=f'sw_{_safe_n}_{card_id}', fixed_year=_sw_sel_yr,
+        gender=gender,
     )
 
 
-def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='솔로', fixed_year=None):
+def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='솔로', fixed_year=None, gender="남"):
     cur = datetime.now(_KST).year
     cur_date = datetime.now(_KST).date()
     ilgan = pillars[2][0]
@@ -3145,7 +3146,7 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
 
     st.divider()
     with st.expander("📖 월별 상세 해설 펼치기", expanded=False):
-        st.markdown(analyze_wolun_detail(name, pillars, sel_year, rel_status=rel_status))
+        st.markdown(analyze_wolun_detail(name, pillars, sel_year, rel_status=rel_status, gender=gender))
 
 
 def _render_sal_detail(pillars):
