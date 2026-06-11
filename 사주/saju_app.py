@@ -1599,6 +1599,8 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _OHAENG_OH_LABEL = {0:'목',1:'화',2:'토',3:'금',4:'수'}
         _supp_targets  = list(dict.fromkeys([_supp_yong_nm, _supp_hee_nm, _supp_low_nm]))
         _ilg_yong_cmt  = _ILGAN_YONGSHIN_COMMENT.get((_supp_ilgan, _supp_yong_nm), '')
+        _is_gang       = _str8 in {'극왕(極旺)', '태강(太强)', '신강(身强)', '중화신강'}
+        _str_yong_cmt  = _STRENGTH_YONG_COMMENT.get((_is_gang, _supp_yong_nm), '')
         st.markdown(
             f'<div style="font-size:0.78rem;color:#6b7280;margin-bottom:10px;">'
             f'용신 <b style="color:#7c3aed;">{_supp_yong_nm}({_supp_yong_idx+1})</b>·'
@@ -1606,13 +1608,25 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             f'최약 <b style="color:#dc2626;">{_supp_low_nm}</b> 기운을 보충하세요.</div>',
             unsafe_allow_html=True,
         )
-        if _ilg_yong_cmt:
+        if _ilg_yong_cmt or _str_yong_cmt:
+            _inner = ''
+            if _ilg_yong_cmt:
+                _inner += (
+                    f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 코멘트</div>'
+                    f'<div style="font-size:0.82rem;color:#4c1d95;line-height:1.65;">{_ilg_yong_cmt}</div>'
+                )
+            if _str_yong_cmt:
+                _sep = '<div style="border-top:1px solid #e9d5ff;margin:8px 0;"></div>' if _ilg_yong_cmt else ''
+                _str_label = '신강' if _is_gang else '신약'
+                _inner += (
+                    f'{_sep}'
+                    f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">⚖️ {_str_label} 활동 조언</div>'
+                    f'<div style="font-size:0.82rem;color:#4c1d95;line-height:1.65;">{_str_yong_cmt}</div>'
+                )
             st.markdown(
                 f'<div style="background:linear-gradient(135deg,#fdf4ff,#f5f3ff);'
                 f'border:1px solid #e9d5ff;border-radius:10px;padding:11px 14px;margin-bottom:12px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 코멘트</div>'
-                f'<div style="font-size:0.82rem;color:#4c1d95;line-height:1.65;">{_ilg_yong_cmt}</div>'
-                f'</div>',
+                f'{_inner}</div>',
                 unsafe_allow_html=True,
             )
         for _s_nm in _supp_targets:
@@ -2559,6 +2573,20 @@ def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_stat
         st.text_area("아래 전체 선택 후 복사하세요", value=result_text,
                      height=200, key=f"{share_key}_area", label_visibility="collapsed")
 
+
+# 신강/신약(True/False) × 용신오행 활동 조언 (2×5=10)
+_STRENGTH_YONG_COMMENT = {
+    (True, '목'): '일간의 힘이 왕성한 당신에게 木 기운은 그 에너지를 창의와 성장으로 흘려보내는 통로예요. 규칙적인 운동·산책·목공예처럼 몸을 쓰는 활동으로 기운을 건강하게 발산하세요.',
+    (True, '화'): '일간이 강한 당신에게 火 기운은 풍부한 에너지를 열정으로 표현하는 출구예요. 사람을 만나고 발표하고 가르치는 활동으로 적극적으로 기운을 쏟아내세요.',
+    (True, '토'): '강한 일간 에너지를 土 기운으로 흘려보내면 현실적인 성과로 연결돼요. 계획을 실행에 옮기고 경제활동을 통해 활력을 재물로 전환하세요.',
+    (True, '금'): '일간의 힘이 강할 때 金 기운은 그 에너지를 다듬고 방향을 잡아주는 역할을 해요. 원칙 있는 루틴과 규율 있는 생활로 에너지를 체계적으로 관리하세요.',
+    (True, '수'): '일간이 강한 당신이 水 기운을 용신으로 삼으면 학습과 사색으로 에너지를 정화해요. 독서·명상·수영처럼 내면을 채우는 활동이 오히려 균형을 잡아줘요.',
+    (False,'목'): '일간의 힘이 약할 때 木 기운은 뿌리를 내리게 해주는 토대예요. 숲 산책·요가·가벼운 스트레칭으로 천천히 에너지를 채우는 활동이 효과적이에요.',
+    (False,'화'): '일간이 약한 당신에게 火 기운은 활력을 불어넣는 따뜻한 에너지예요. 햇빛 아래 활동하기·캠핑·긍정적인 사람들과의 만남이 일간을 강화해줘요.',
+    (False,'토'): '신약한 당신에게 土 기운은 불안정한 에너지를 잡아주는 단단한 기반이에요. 규칙적인 식사와 생활 리듬, 황토·도예·텃밭 활동이 안정감을 높여줘요.',
+    (False,'금'): '일간이 약할 때 金 기운은 예리함과 자신감을 채워주는 원천이에요. 악기 연주·정밀 작업·격식 있는 자기관리 루틴이 내면의 힘을 키워줘요.',
+    (False,'수'): '신약한 당신에게 水 기운은 조용히 힘을 보충해주는 깊은 샘이에요. 충분한 수면·수분 섭취·명상·바다나 강 여행으로 고요히 에너지를 회복하세요.',
+}
 
 # 格局 카테고리 매핑
 _GYEOK_CAT_MAP = {
