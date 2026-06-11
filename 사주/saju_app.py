@@ -649,7 +649,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.10.19")
+        st.caption("v2026.06.11.01")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -1099,7 +1099,7 @@ def _make_saju_summary(name, pillars, corr_dt, gender, no_time=False, cal_label=
         lines.append('')
 
     today = datetime.now(_KST).strftime('%Y-%m-%d')
-    lines += [sep, f'  생성: {today}  |  사주팔자 앱 v2026.06.10.19', sep]
+    lines += [sep, f'  생성: {today}  |  사주팔자 앱 v2026.06.11.01', sep]
     return '\n'.join(lines)
 
 
@@ -3486,7 +3486,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.10.19")
+st.caption("v2026.06.11.01")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
