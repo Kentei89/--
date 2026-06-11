@@ -1477,6 +1477,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         st.markdown(explain_yongshin(pillars))
 
     with st.expander("⚡ 상신(相神) — 용신을 보좌하는 오행", expanded=False):
+        st.caption("상신은 용신을 도와 格局을 안정시키는 보조 오행이에요. 용신이 제 역할을 하도록 옆에서 받쳐주는 존재예요.")
         _sang_list, _sang_gyeok = get_sangshin(pillars)
         _yong_nm = OHAENG_NAMES[get_gyeokguk(pillars)[1]]
         st.caption(f"格局: {_sang_gyeok}  |  용신: {_yong_nm}")
@@ -1509,6 +1510,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             )
 
     with st.expander("🌡️ 조후(調候) — 계절의 균형", expanded=False):
+        st.caption("조후는 출생 계절의 기운 균형이에요. 계절마다 부족한 오행이 다르고, 그 기운을 보충하면 삶이 더 편안해져요.")
         _jh_season, _jh_em, _jh_ohs, _jh_desc = get_johu_desc(pillars)
         _jh_oa = analyze_ohaeng(pillars, apply_gan_hwa=True)
         st.markdown(
@@ -1692,6 +1694,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             3: ('자녀·말년이 고독할 수 있어요', '자녀 인연이 적거나 말년에 혼자인 시간이 많아요. 스스로 내면을 채우는 취미나 신앙이 중요해요.'),
         }
         with st.expander("🕳 공망(空亡) — 기둥별 상세 해설", expanded=False):
+            st.caption("공망은 해당 기둥의 기운이 허한 상태예요. 조상·부모·나·자녀 중 어느 자리에 공망이 있는지에 따라 그 분야가 약해질 수 있어요.")
             for _gi, _gj in _gm_hits:
                 _gm_short, _gm_long = _GM_DESC.get(_gi, ('해당 기둥 공망', ''))
                 st.markdown(
@@ -1705,6 +1708,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     _hy_list = get_jiji_hyeong(pillars)
     if _hy_list:
         with st.expander("⚡ 지지형(地支刑) 상세 해설", expanded=False):
+            st.caption("지지형은 지지끼리 서로 충돌하는 관계예요. 형이 생기면 해당 분야에서 긴장·마찰·사건이 발생할 수 있어요.")
             for _hy_nm, _hy_kind, _hy_desc in _hy_list:
                 st.markdown(
                     f'<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;'
@@ -1781,6 +1785,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_saju(name, pillars, gil, hyung, gender))
 
     with st.expander("🌿 지장간(支藏干) — 지지 속 숨은 천간", expanded=False):
+        st.caption("지장간은 12지지 안에 숨어있는 천간이에요. 표면에 드러나지 않는 숨은 에너지로, 운이 발동할 때 튀어나와 영향을 줘요.")
         ilgan_in = pillars[2][0]
         _HDR_NAMES = ['년주','월주','일주','시주']
         _PILLAR_ROLES = ['조상·뿌리','부모·형제·직업','나·배우자','자녀·말년']
@@ -1822,6 +1827,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
     with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
+        st.caption("월운은 매월 바뀌는 이달의 운이에요. 세운 안에서 이달·다음달 좋은 시기와 주의할 시기를 월별로 확인할 수 있어요.")
         _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender, no_time=no_time)
 
     # ── 심화 분석 ────────────────────────────────────────────
@@ -1831,13 +1837,16 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         unsafe_allow_html=True,
     )
     with st.expander("🌊 대운(大運) — 10년 주기 큰 흐름", expanded=False):
+        st.caption("대운은 약 10년 단위로 바뀌는 큰 운의 흐름이에요. 지금 어떤 대운에 있느냐에 따라 삶의 방향과 기회가 달라져요.")
         _render_daewoon_table(start_age, forward, daeun)
         _narr(analyze_daewoon_narrative(name, pillars, daeun, start_age, forward))
 
     with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
+        st.caption("세운은 매년 바뀌는 그해의 운이에요. 대운의 큰 흐름 안에서 해마다 어떤 변화와 기회가 오는지 구체적으로 보여줘요.")
         _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender, no_time=no_time)
 
     with st.expander("🔖 신살(神殺) — 귀인·흉살 상세 해설", expanded=False):
+        st.caption("신살은 사주에 나타나는 특별한 별이에요. 귀인성은 도움을 주는 별, 흉살은 주의가 필요한 별이에요. 타고난 인연과 조심할 시기를 알려줘요.")
         _render_sal_detail(pillars)
 
     # ── 분석 결과 다운로드 ──
