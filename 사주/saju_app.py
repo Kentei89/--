@@ -596,14 +596,14 @@ def _profile_bar(key: str):
                     st.rerun()
         with chip_cols[min(len(names), 4)]:
             st.button("💾 저장", key=f"{key}_prof_save", on_click=_save,
-                      use_container_width=True)
+                      use_container_width=True, help="입력한 정보를 저장해두고 나중에 불러올 수 있어요")
     else:
         st.markdown(
             '<div style="font-size:0.78rem;color:#9d7cc8;margin-bottom:6px;">'
             '💡 분석 후 이름 옆 저장 버튼으로 프로필을 저장할 수 있어요.</div>',
             unsafe_allow_html=True,
         )
-        st.button("💾 저장", key=f"{key}_prof_save", on_click=_save)
+        st.button("💾 저장", key=f"{key}_prof_save", on_click=_save, help="입력한 정보를 저장해두고 나중에 불러올 수 있어요")
 
     active = st.session_state.get(f"{key}_active_profile", "")
     if active and active in profiles:
@@ -1473,7 +1473,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         st.markdown(_bar_html, unsafe_allow_html=True)
         st.caption('계절·지장간 가중치가 반영된 오행 강도 비율입니다.')
 
-    with st.expander("🔮 용신·기신 — 좋은·나쁜 기운 판단 근거", expanded=False):
+    with st.expander("🔮 용신·기신 — 좋은·나쁜 기운 판단 근거", expanded=True):
         st.markdown(explain_yongshin(pillars))
 
     with st.expander("⚡ 상신(相神) — 용신을 보좌하는 오행", expanded=False):
@@ -3676,7 +3676,7 @@ with tab2:
         )
         _render_gunghap_visual(r)
         if r['reasons']:
-            with st.expander("점수 근거", expanded=False):
+            with st.expander("점수 근거", expanded=True):
                 for reason in r['reasons']:
                     st.write(f"• {reason}")
         with st.expander("📖 궁합 상세 해설", expanded=True):
@@ -3763,7 +3763,7 @@ with tab3:
             f'</div>', unsafe_allow_html=True,
         )
         if r['reasons_j']:
-            with st.expander("점수 근거", expanded=False):
+            with st.expander("점수 근거", expanded=True):
                 for reason in r['reasons_j']:
                     st.write(f"• {reason}")
         with st.expander("📖 재회 상세 해설", expanded=True):
