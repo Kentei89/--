@@ -1231,9 +1231,13 @@ def check_sal(pillars):
     _MC = [5,6,8,9,8,9,11,0,2,3]
     if _MC[ilgan] in jijis: _g(f'문창귀인({JIJI[_MC[ilgan]]})')
 
-    # 문곡귀인 (일간 장생지)
+    # 문곡귀인 (4기둥 천간별 장생지가 지지에 있으면 성립)
     _MG = {0:11, 1:6, 2:2, 3:9, 4:2, 5:9, 6:5, 7:0, 8:8, 9:3}
-    if _MG[ilgan] in jijis: _g(f'문곡귀인({JIJI[_MG[ilgan]]})')
+    _mg_jset = set(jijis)
+    for _mg_g in gans:
+        if _MG[_mg_g] in _mg_jset:
+            _g(f'문곡귀인({JIJI[_MG[_mg_g]]})')
+            break
 
     _TG = {0:{0,6},1:{0,6},4:{0,6},5:{0,6},
            2:{3,9},3:{3,9},6:{4,10},7:{4,10},8:{1,7},9:{1,7}}
@@ -1384,11 +1388,10 @@ def check_sal(pillars):
     for bj in _BOKSONG[ilgan] & set(jijis):
         _g(f'복성귀인({JIJI[bj]})')
 
-    # 천복귀인 (연간 기반 - 4기둥 지지 체크)
-    _CB = {0:{2,6},1:{0,8},2:{11,9},3:{11,9},4:{2,6},5:{0,8},6:{5,3},7:{5,3},8:{6,10},9:{6,10}}
-    _cb_hit = _CB[pillars[0][0]] & set(jijis)
-    if _cb_hit:
-        _g(f'천복귀인({",".join(JIJI[j] for j in sorted(_cb_hit))})')
+    # 천복귀인 (일간 기반)
+    _CB = {0:7, 1:8, 2:9, 3:11, 4:0, 5:1, 6:2, 7:3, 8:4, 9:5}
+    if _CB[ilgan] in set(jijis):
+        _g(f'천복귀인({JIJI[_CB[ilgan]]})')
 
     # 삼기귀인 (천간 세 가지 조합)
     gan_set = set(gans)
