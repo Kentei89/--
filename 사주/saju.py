@@ -4191,8 +4191,8 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
             if _cross_text:
                 _icon = '🌸' if _sal_prefix == '도화살' else '🌏'
                 _sinsal_cross.append(f'{_icon} **{_sal_prefix} × {ss_g}운** — {_cross_text}')
-    # 배치2: 천을귀인·국인귀인 (gil_sal 기반)
-    for _sal_prefix, _sal_icon in [('천을귀인', '⭐'), ('국인귀인', '🏛')]:
+    # 배치2: 귀인성 × 세운 (gil_sal 기반)
+    for _sal_prefix, _sal_icon in [('천을귀인', '⭐'), ('국인귀인', '🏛'), ('문곡귀인', '📚'), ('천복귀인', '🍀')]:
         _has_sal_g = any(_sal_prefix in s for s in gil_sal)
         if _has_sal_g:
             _cross_text = _SINSAL_SEWOON_B2.get((_sal_prefix, ss_g), '')
