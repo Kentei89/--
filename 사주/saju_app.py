@@ -27,6 +27,8 @@ from saju import (
     analyze_romantic_type, judge_strength, get_strength_detail,
     get_gyeokguk, get_yongshin, _year_pillar, get_gyeok_clarity, get_cheongan_hwa, get_sangshin, get_johu_desc, get_job_aptitude, get_jiji_hyeong,
     YUKAHP, CHUNG as JIJI_CHUNG, _CHUNGAN_HAP, SAMHAP, _BANGHAP, HYEONG_3,
+    get_palace_analysis, get_mingung, get_deukryeong, get_tonggwan,
+    analyze_month_fortune, analyze_sewoon_detail,
 )
 
 _JIJI_EMOJI = ['🐀','🐄','🐅','🐇','🐉','🐍','🐎','🐑','🐒','🐓','🐕','🐗']
@@ -649,7 +651,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.06.11.01")
+        st.caption("v2026.07.15.01")
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -1099,7 +1101,59 @@ def _make_saju_summary(name, pillars, corr_dt, gender, no_time=False, cal_label=
         lines.append('')
 
     today = datetime.now(_KST).strftime('%Y-%m-%d')
-    lines += [sep, f'  생성: {today}  |  사주팔자 앱 v2026.06.11.01', sep]
+    lines += [sep, f'  생성: {today}  |  사주팔자 앱 v2026.07.15.01', sep]
+    return '\n'.join(lines)
+
+
+def _make_saju_basic(name, pillars, corr_dt, gender, no_time=False, cal_label="양력") -> str:
+    """AI에게 넘길 '객관적 기본 정보'만 — 격국·용신·신강약 등 앱의 해석은 전부 제외.
+    외부 AI가 자기 방식대로 해석할 수 있도록, 사주팔자만 못박아 전달한다."""
+    ilgan = pillars[2][0]
+    il_oh = OHAENG_NAMES[OHAENG_IDX[ilgan]]
+    dt_str = corr_dt.strftime('%Y년 %m월 %d일')
+    if not no_time:
+        dt_str += corr_dt.strftime(' %H시 %M분')
+
+    # 사주팔자 (년주→시주 순, 시주 없으면 제외)
+    order = [0, 1, 2] if no_time else [0, 1, 2, 3]
+    hdrs  = ['년주', '월주', '일주'] if no_time else ['년주', '월주', '일주', '시주']
+    pil_str = ' · '.join(f'{h} {CHEONGAN[pillars[i][0]]}{JIJI[pillars[i][1]]}' for i, h in zip(order, hdrs))
+
+    # 십성·십이운성 (년주→시주)
+    ss_parts = []
+    for i, h in zip(order, hdrs):
+        g, j = pillars[i]
+        ss_g = '일간' if i == 2 else get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
+        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+        ss_parts.append(f'{h}(천간 {ss_g}/지지 {ss_j}/{get_12unsung(ilgan, j)})')
+
+    # 오행 분포 (여덟 글자 단순 집계 — 가중치 없는 객관 카운트)
+    oh_cnt = {k: 0 for k in OHAENG_NAMES}
+    for i in order:
+        g, j = pillars[i]
+        oh_cnt[OHAENG_G[g]] += 1
+        oh_cnt[OHAENG_J[j]] += 1
+    oh_str = ' '.join(f'{k}{oh_cnt[k]}개' for k in OHAENG_NAMES if oh_cnt[k])
+
+    gm = get_gongmang(*pillars[2])
+    gil, hyung = check_sal(pillars)
+
+    lines = [
+        f'- 성별: {gender}',
+        f'- 생년월일시: {dt_str} ({cal_label}, 지방시·절입 보정 적용된 기준시각)',
+        f'- 사주팔자: {pil_str}',
+        f'- 일간(나 자신): {CHEONGAN[ilgan]}({il_oh})',
+        f'- 십성·십이운성: {", ".join(ss_parts)}',
+        f'- 오행 분포: {oh_str}',
+    ]
+    if gm:
+        lines.append(f'- 공망: {"·".join(JIJI[x] for x in sorted(gm))}')
+    if gil:
+        lines.append(f'- 길신(신살): {", ".join(gil)}')
+    if hyung:
+        lines.append(f'- 흉신(신살): {", ".join(hyung)}')
+    if no_time:
+        lines.append('- ※ 태어난 시간을 몰라 시주(時柱)는 제외했어요.')
     return '\n'.join(lines)
 
 
@@ -1509,6 +1563,24 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                 unsafe_allow_html=True
             )
 
+    with st.expander("💪 득령(得令) · 통관(通關)", expanded=False):
+        st.info("득령은 일간이 태어난 계절의 기운을 얻었는지, 통관은 상극하는 두 오행을 매개하는 오행이에요.")
+        try:
+            _dr_got, _dr_score, _dr_season = get_deukryeong(pillars)
+            _dr_label = "✅ 득령 (계절 기운을 얻음)" if _dr_got else "⚠️ 실령 (계절 기운을 얻지 못함)"
+            _dr_color = "#f0fdf4" if _dr_got else "#fff7ed"
+            _dr_border = "#86efac" if _dr_got else "#fed7aa"
+            _dr_tc = "#166534" if _dr_got else "#92400e"
+            st.markdown(f'<div style="background:{_dr_color};border:1px solid {_dr_border};border-radius:10px;padding:10px 14px;margin-bottom:10px;"><span style="font-size:0.88rem;font-weight:700;color:{_dr_tc};">{_dr_label} — {_dr_season} 출생 (강도: {_dr_score})</span></div>', unsafe_allow_html=True)
+            _gyeok3 = get_gyeokguk(pillars)
+            _tg_oh, _tg_nm = get_tonggwan(pillars, _gyeok3[1], _gyeok3[2])
+            if _tg_nm:
+                st.markdown(f'<div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px 14px;"><div style="font-size:0.88rem;font-weight:700;color:#1e40af;">🔗 통관 오행: {_tg_nm}</div><div style="font-size:0.8rem;color:#374151;margin-top:4px;">상극하는 두 오행 사이를 매개하는 오행이에요. 이 기운을 보충하면 사주의 균형이 잡혀요.</div></div>', unsafe_allow_html=True)
+            else:
+                st.info("통관 오행이 필요한 구조가 아니에요.")
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
     with st.expander("🌡️ 조후(調候) — 계절의 균형", expanded=False):
         st.info("조후는 출생 계절의 기운 균형이에요. 계절마다 부족한 오행이 다르고, 그 기운을 보충하면 삶이 더 편안해져요.")
         _jh_season, _jh_em, _jh_ohs, _jh_desc = get_johu_desc(pillars)
@@ -1826,6 +1898,30 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
         _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
 
+    with st.expander("🏛️ 궁성(宮星) — 가족·직장·배우자·자녀 자리 분석", expanded=False):
+        st.info("년주·월주·일주·시주에 자리한 십성으로 조상, 직장, 배우자, 자녀와의 인연을 살펴봐요.")
+        try:
+            _pal_result = get_palace_analysis(name, pillars)
+            if isinstance(_pal_result, list):
+                for _sec in _pal_result:
+                    st.markdown(f'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;"><div style="font-size:0.88rem;font-weight:700;color:#374151;margin-bottom:6px;">{_sec.get("title", "")}</div><div style="font-size:0.82rem;color:#4b5563;line-height:1.7;">{_sec.get("desc", "")}</div></div>', unsafe_allow_html=True)
+            elif isinstance(_pal_result, str):
+                st.markdown(_pal_result)
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
+    with st.expander("🌟 명궁(命宮) — 타고난 운명의 별자리", expanded=False):
+        st.info("명궁은 월지와 시지를 합산해 구하는 인생의 방향성이에요. 타고난 기질과 삶의 패턴을 보여줘요.")
+        try:
+            _mg_result = get_mingung(pillars)
+            if isinstance(_mg_result, tuple) and len(_mg_result) >= 2:
+                _mg_title, _mg_desc = _mg_result[0], _mg_result[1]
+            else:
+                _mg_title, _mg_desc = str(_mg_result), ""
+            st.markdown(f'<div style="background:#faf5ff;border:1px solid #ddd4f8;border-radius:10px;padding:12px 14px;"><div style="font-size:0.95rem;font-weight:700;color:#6d28d9;margin-bottom:8px;">{_mg_title}</div><div style="font-size:0.85rem;color:#374151;line-height:1.8;">{_mg_desc}</div></div>', unsafe_allow_html=True)
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
     with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
         st.info("월운은 매월 바뀌는 이달의 운이에요. 세운 안에서 이달·다음달 좋은 시기와 주의할 시기를 월별로 확인할 수 있어요.")
         _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender, no_time=no_time)
@@ -1844,6 +1940,24 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
     with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
         st.info("세운은 매년 바뀌는 그해의 운이에요. 대운의 큰 흐름 안에서 해마다 어떤 변화와 기회가 오는지 구체적으로 보여줘요.")
         _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender, no_time=no_time)
+        try:
+            _cur_yr = datetime.now(_KST).year
+            _sw_detail = analyze_sewoon_detail(name, pillars, _cur_yr, daeun, year)
+            if _sw_detail:
+                with st.expander(f"🔍 {_cur_yr}년 세운 상세 분석", expanded=False):
+                    _narr(_sw_detail)
+        except Exception:
+            pass
+
+    with st.expander("📆 월별 운세 상세", expanded=False):
+        st.info("올해 1월부터 12월까지 매달의 운세 흐름을 천간·지지 십성 기반으로 분석해요.")
+        try:
+            _cur_yr2 = datetime.now(_KST).year
+            _mf_text = analyze_month_fortune(name, pillars, _cur_yr2)
+            if _mf_text:
+                _narr(_mf_text)
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
 
     with st.expander("🔖 신살(神殺) — 귀인·흉살 상세 해설", expanded=False):
         st.info("신살은 사주에 나타나는 특별한 별이에요. 귀인성은 도움을 주는 별, 흉살은 주의가 필요한 별이에요. 타고난 인연과 조심할 시기를 알려줘요.")
@@ -1869,6 +1983,30 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         key=f"dl_html_{card_id}",
         use_container_width=True,
     )
+
+    # ── AI에게 붙여넣기용 복사 (클로드·제미나이 등) ──
+    # 일회성 해석이 아니라, AI가 내 사주를 기억한 채로 이어서 질문을 받게 하는 '상담 시작' 프롬프트.
+    # 앱의 판단(격국·용신·신강약)은 빼고, 만세력·십성·오행·신살 등 객관 명식만 전달해 AI가 자기 방식대로 해석하게 함.
+    _basic = _make_saju_basic(name, pillars, corr_dt, gender, no_time, cal_label)
+    _ai_text = (
+        "너는 내 사주를 객관적으로 분석하는 사주 명리 전문가야.\n"
+        "아래 [내 사주 기본 정보]를 기준으로, 앞으로 내가 묻는 질문에 사주에 근거해 "
+        "솔직하고 객관적으로 답해줘. 듣기 좋게 포장하지 말고, 유리한 점과 불리한 점(주의할 점)을 "
+        "있는 그대로 알려줘.\n"
+        "【중요】 사주를 전혀 모르는 사람도 이해하게, 전문용어(정재·편관·신약·오행 상생상극 같은 말)를 "
+        "그대로 나열하지 말고 반드시 쉬운 일상 언어로 풀어서 설명해줘. 결론과 실생활 조언 위주로, 예를 들어가며.\n"
+        "내 질문에 답할 때는 짧게 끝내지 말고, 근거와 예시를 충분히 들어 자세하고 길게 설명해줘. "
+        "단, 어디까지나 쉬운 일상 언어로.\n"
+        "사주팔자는 만세력마다 조금씩 다를 수 있으니, 아래 적힌 팔자를 그대로 기준으로 삼아 해석하면 돼.\n"
+        "맨 처음엔 장문으로 풀지 말고 정보를 잘 받았다는 인사만 짧게 한 뒤, "
+        "내가 궁금한 걸 물어볼 때까지 기다려줘.\n\n"
+        "[내 사주 기본 정보]\n"
+        + _basic
+    )
+    with st.expander("🤖 AI 상담 시작용 복사 (클로드·제미나이 등)", expanded=False):
+        st.caption("복사 → 클로드/제미나이에 붙여넣으면, AI가 내 사주를 기억한 채 인사해요. "
+                   "그다음부터 궁금한 걸 대화하듯 자유롭게 물어보면 됩니다.")
+        st.code(_ai_text, language=None)
 
 
 # ── Gemini 고민상담 헬퍼 ──────────────────────────────────────────────────
@@ -1945,17 +2083,21 @@ def _ask_gemini(question: str, saju_ctx: str, history=None) -> str:
         else:
             _contents = _sys + f"\n\n[고민]\n{question}"
         import time as _time
-        _models = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
+        # 2.0 계열은 종료됨(404) — 앞 모델이 503/429/404면 다음 모델로 넘어감
+        _models = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-3.5-flash-lite"]
         _last_err = None
         for _mdl in _models:
-            for _try in range(3):
+            for _try in range(2):
                 try:
                     resp = client.models.generate_content(model=_mdl, contents=_contents)
-                    return resp.text
+                    if resp.text:
+                        return resp.text
+                    _last_err = "빈 응답"
+                    break
                 except Exception as _e:
                     _last_err = _e
-                    if "503" in str(_e) or "UNAVAILABLE" in str(_e):
-                        _time.sleep(3 + _try * 2)
+                    if ("503" in str(_e) or "UNAVAILABLE" in str(_e)) and _try == 0:
+                        _time.sleep(2)
                         continue
                     break
         return f"⚠️ 잠시 후 다시 시도해주세요. ({_last_err})"
@@ -3495,7 +3637,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.06.11.01")
+st.caption("v2026.07.15.01")
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
@@ -3943,7 +4085,11 @@ with tab5:
                 with st.spinner('사주를 풀어드리는 중...'):
                     _ans5 = _ask_gemini(_concern5, _ctx5, history=st.session_state[_hist_key])
                 st.markdown(_ans5)
-            st.session_state[_hist_key].append({'role': 'assistant', 'content': _ans5})
+            if _ans5.startswith("⚠️"):
+                # 실패한 질문·에러는 기록에서 빼서 다음 대화 맥락이 오염되지 않게
+                st.session_state[_hist_key].pop()
+            else:
+                st.session_state[_hist_key].append({'role': 'assistant', 'content': _ans5})
 
         if st.session_state.get(_hist_key):
             if st.button("🗑️ 대화 초기화", key="clear_concern_hist"):
