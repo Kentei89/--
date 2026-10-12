@@ -1,1 +1,5 @@
 쿠팡리뷰.html
+# 비밀정보·캐시
+**/.streamlit/secrets.toml
+__pycache__/
+*.pyc
