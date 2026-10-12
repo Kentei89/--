@@ -7,7 +7,11 @@
 ENGINE_VERSION = '2026.07.15.01'
 
 import sys, math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def _now_kst():
+    """서버 시간대와 무관하게 한국시간(KST) 현재 시각 (naive)."""
+    return datetime.now(timezone(timedelta(hours=9))).replace(tzinfo=None)
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -1008,7 +1012,7 @@ UNSUNG_DESC = {
 # ── 한국 시간 보정 ───────────────────────────────────
 
 _DST = [
-    (datetime(1948,5,1),  datetime(1948,9,13)),
+    (datetime(1948,6,1),  datetime(1948,9,13)),
     (datetime(1949,4,3),  datetime(1949,9,11)),
     (datetime(1950,4,1),  datetime(1950,9,10)),
     (datetime(1951,5,6),  datetime(1951,9,9)),
@@ -1018,26 +1022,40 @@ _DST = [
     (datetime(1958,5,4),  datetime(1958,9,21)),
     (datetime(1959,5,3),  datetime(1959,9,20)),
     (datetime(1960,5,1),  datetime(1960,9,18)),
-    (datetime(1987,5,10), datetime(1987,10,11)),
-    (datetime(1988,5,8),  datetime(1988,10,9)),
+    (datetime(1987,5,10,2), datetime(1987,10,11,3)),   # 02:00 시작 · 03:00 종료
+    (datetime(1988,5,8,2),  datetime(1988,10,9,3)),
 ]
 
 # 1954-03-21 ~ 1961-08-09: 한국 표준시가 UTC+8:30이었던 기간
 _KST830_START = datetime(1954, 3, 21)
 _KST830_END   = datetime(1961, 8, 10)
+# 1908-04-01 이전: 서울 지방평균시(UTC+8:27:52) / 1908-04-01 ~ 1911-12-31: UTC+8:30
+_LMT_END        = datetime(1908, 4, 1)
+_KST830_OLD_END = datetime(1912, 1, 1)
 
-def apply_correction(dt, local_offset_min=0):
-    """DST 보정 + 지방시 보정. local_offset_min: 표준시 대비 태양시 오프셋(분), 음수=서쪽."""
+def to_standard_time(dt):
+    """입력된 시계 시각 → 현재 한국표준시(UTC+9) 기준 시각. 절입(節入) 비교는 이 시각으로 해야 함."""
     corrections = []
-    # KST+8:30 시기 보정: 입력된 시간이 UTC+8:30 기준이므로 UTC+9:00으로 환산
-    if _KST830_START <= dt < _KST830_END:
-        dt += timedelta(minutes=30)
-        corrections.append('표준시 보정 +30분 (1954~1961 KST+8:30)')
+    # 서머타임 구간은 당시 시계 시각 기준으로 판정
     for s, e in _DST:
         if s <= dt < e:
             dt -= timedelta(hours=1)
             corrections.append('서머타임 -1시간')
             break
+    if dt < _LMT_END:
+        dt += timedelta(minutes=32, seconds=8)
+        corrections.append('표준시 보정 +32분 (1908년 이전 서울 지방평균시)')
+    elif dt < _KST830_OLD_END:
+        dt += timedelta(minutes=30)
+        corrections.append('표준시 보정 +30분 (1908~1911 UTC+8:30)')
+    elif _KST830_START <= dt < _KST830_END:
+        dt += timedelta(minutes=30)
+        corrections.append('표준시 보정 +30분 (1954~1961 KST+8:30)')
+    return dt, corrections
+
+def apply_correction(dt, local_offset_min=0):
+    """표준시·DST 보정 + 지방시 보정. local_offset_min: 표준시 대비 태양시 오프셋(분), 음수=서쪽."""
+    dt, corrections = to_standard_time(dt)
     if local_offset_min != 0:
         dt += timedelta(minutes=local_offset_min)
         sign = '+' if local_offset_min > 0 else ''
@@ -1282,18 +1300,33 @@ def _hour_pillar(dg, hour, minute=0):
     start = [0,2,4,6,8][dg % 5]
     return (start + hj) % 10, hj
 
-def get_saju(year, month, day, hour, minute=0, local_offset_min=-32):
+def get_saju(year, month, day, hour, minute=0, local_offset_min=-32, yajasi=False):
+    """yajasi=False(정자시): 23시대 자시는 다음 날 일주로 넘김.
+    yajasi=True(야자시): 23시대 자시는 당일 일주를 유지하고 시간 천간만 다음 날 기준."""
     raw_dt   = datetime(year, month, day, hour, minute)
+    std_dt, _ = to_standard_time(raw_dt)
     corr_dt, corrections = apply_correction(raw_dt, local_offset_min)
 
-    ipchun = solar_term(year, 315)
-    ey     = year-1 if corr_dt < ipchun else year
+    # 년주·월주: 절입 시각(KST)과 비교하므로 지방시가 아닌 표준시로 판정
+    ipchun = solar_term(std_dt.year, 315)
+    ey     = std_dt.year-1 if std_dt < ipchun else std_dt.year
 
     yg, yj  = _year_pillar(ey)
-    mj       = _month_jiji(corr_dt)
+    mj       = _month_jiji(std_dt)
     mg, mj2  = _month_pillar(yg, mj)
-    dg, dj   = _day_pillar(corr_dt.year, corr_dt.month, corr_dt.day)
-    hg, hj   = _hour_pillar(dg, corr_dt.hour, corr_dt.minute)
+
+    # 일주·시주: 실제 태양시(지방시 보정 시각) 기준
+    is_late_ja = corr_dt.hour == 23
+    next_d = corr_dt + timedelta(days=1)
+    if is_late_ja and not yajasi:
+        dg, dj = _day_pillar(next_d.year, next_d.month, next_d.day)
+    else:
+        dg, dj = _day_pillar(corr_dt.year, corr_dt.month, corr_dt.day)
+    if is_late_ja:
+        _ndg, _ = _day_pillar(next_d.year, next_d.month, next_d.day)
+        hg, hj = _hour_pillar(_ndg, 0, 0)   # 23시대 자시의 천간은 다음 날 일간 기준
+    else:
+        hg, hj = _hour_pillar(dg, corr_dt.hour, corr_dt.minute)
 
     return [(yg,yj),(mg,mj2),(dg,dj),(hg,hj)], corr_dt, corrections
 
@@ -1380,7 +1413,7 @@ def get_jiji_hyeong(pillars):
 def check_sal(pillars):
     jijis = [p[1] for p in pillars]
     gans  = [p[0] for p in pillars]
-    yj, _, dj, _ = jijis
+    yj, dj = jijis[0], jijis[2]   # 시간 모름이면 3주
     ilgan = gans[2]
     gil, hyung = [], []
     sg, sh = set(), set()
@@ -1519,7 +1552,7 @@ def check_sal(pillars):
         _h('효신살')
 
     # 삼재 (현재 년도 기준)
-    cur_yj = _year_pillar(datetime.now().year)[1]
+    cur_yj = _year_pillar(_now_kst().year)[1]
     _SAMJAE = {
         frozenset([2,6,10]): frozenset([8,9,10]),
         frozenset([11,3,7]): frozenset([5,6,7]),
@@ -1743,7 +1776,7 @@ _BANGHAP = [
 def check_relations(ja, jb=None, ga=None, gb=None):
     both = list(ja) + (list(jb) if jb else [])
     if jb is None:
-        pairs = [(ja[i],ja[k]) for i in range(4) for k in range(i+1,4)]
+        pairs = [(ja[i],ja[k]) for i in range(len(ja)) for k in range(i+1,len(ja))]
     else:
         pairs = [(a,b) for a in ja for b in jb]
     r = {'합':[],'삼합':[],'방합':[],'충':[],'형':[],'파':[],'해':[],'원진':[],'천간합':[],'천간충':[]}
@@ -1867,16 +1900,18 @@ def get_daewoon(pillars, birth_dt, is_male, n=8):
         jeol = solar_term(y, next_lon)
         if jeol <= birth_dt:
             jeol = solar_term(y + 1, next_lon)
-        days = (jeol - birth_dt).days
+        days = (jeol - birth_dt).total_seconds() / 86400
     else:
         cur_lon = _JJ_LON[mj]
         y = birth_dt.year
         jeol = solar_term(y, cur_lon)
-        if jeol > birth_dt:
+        # birth_dt는 지방시 보정 시각(표준시보다 최대 ~40분 이름) — 절입 직후 출생이 전년 절기로 튀지 않게 여유를 둠
+        if jeol > birth_dt + timedelta(hours=2):
             jeol = solar_term(y - 1, cur_lon)
-        days = (birth_dt - jeol).days
+        days = max((birth_dt - jeol).total_seconds() / 86400, 0)
 
-    start_age = round(days / 3)
+    # 3일 = 1년, 반올림. 대운수는 최소 1
+    start_age = max(1, int(days / 3 + 0.5))
     daeun = []
     for i in range(1, n + 1):
         age = start_age + (i - 1) * 10
@@ -2343,7 +2378,7 @@ _DAEUN_SS_NARRATIVE = {
 }
 
 def get_sewoon(birth_year, past=10, future=20):
-    cur = datetime.now().year
+    cur = _now_kst().year
     result = []
     for y in range(cur - past, cur + future + 1):
         yg, yj = _year_pillar(y)
@@ -3945,7 +3980,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     """target_year 에 해당하는 연운 개인화 상세 해설 반환
     rel_status: '솔로' | '연애중' | '기혼'
     """
-    cur   = datetime.now().year
+    cur   = _now_kst().year
     ilgan = pillars[2][0]
     ilji  = pillars[2][1]
     ilgan_name = CHEONGAN[ilgan]
@@ -6606,7 +6641,7 @@ def analyze_ilchin_day(pillars, year, month, day):
     return '\n'.join(lines)
 
 def print_daewoon(start_age, forward, daeun, sewoon, ilgan=None):
-    cur = datetime.now().year
+    cur = _now_kst().year
     print(f'\n{"─"*62}')
     print(f'  ◈ 대운  ({"순행" if forward else "역행"}, {start_age}세 시작)')
     print(f'{"─"*62}')
@@ -6703,7 +6738,7 @@ _GYEOK_DAEUN_CONTEXT = {
 }
 
 def analyze_daewoon_narrative(name, pillars, daeun, start_age, forward):
-    cur = datetime.now().year
+    cur = _now_kst().year
     ilgan = pillars[2][0]
     ya_oh, ya_name, ya_basis, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
@@ -7288,7 +7323,7 @@ _GENDER_SS_SEWOON = {
 
 def analyze_sewoon_narrative(name, pillars, birth_year, gender='남'):
     """세운 흐름 상세 해설 텍스트 반환 (현재 기준 과거 3년 · 미래 5년)"""
-    cur = datetime.now().year
+    cur = _now_kst().year
     ilgan = pillars[2][0]
     ya_oh, ya_name, _, _, _ = get_yongshin(pillars)
     gyeok_name, _, ki_list = get_gyeokguk(pillars)
@@ -7440,7 +7475,7 @@ def get_deuk_detail(pillars):
         for s in dj_stems
     )
     # 득시: 시지 지장간이 일간을 도움
-    hj_stems = JIJANGAN_IDX[pillars[3][1]]
+    hj_stems = JIJANGAN_IDX[pillars[3][1]] if len(pillars) > 3 else []
     deuksi = any(
         get_sipseong(ilgan, OHAENG_IDX[s], s % 2) in ('비견','겁재','편인','정인')
         for s in hj_stems
@@ -9661,8 +9696,9 @@ def analyze_saju(name, pillars, gil, hyung, gender='남'):
     # ①-D 사주 내 형충파해합 분석
     jijis = [p[1] for p in pillars]
     gans  = [p[0] for p in pillars]
-    _pairs = [(jijis[i], jijis[j]) for i in range(4) for j in range(i+1, 4)]
-    _gan_pairs = [(gans[i], gans[j]) for i in range(4) for j in range(i+1, 4) if i != 2 and j != 2]
+    _np = len(pillars)
+    _pairs = [(jijis[i], jijis[j]) for i in range(_np) for j in range(i+1, _np)]
+    _gan_pairs = [(gans[i], gans[j]) for i in range(_np) for j in range(i+1, _np) if i != 2 and j != 2]
 
     found_chung, found_hap, found_pa, found_hae, found_hyung = [], [], [], [], []
     _seen_hap, _seen_chung, _seen_pa, _seen_hae = set(), set(), set(), set()
@@ -12383,7 +12419,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         )
 
     # ── 공통: 천을귀인 교차 + 세운 영향 ──────────────────────
-    cur_year = datetime.now().year
+    cur_year = _now_kst().year
     out.append(f'\n### 천을귀인  |  서로가 서로의 귀인인가요')
     out.append(_gwiin_cross(pa, pb, na, nb))
     out.append(f'\n### {cur_year}년 세운  |  올해 이 관계에 작용하는 에너지')
@@ -12437,7 +12473,7 @@ def _gwiin_cross(pa, pb, na, nb):
 
 def _sewoon_rel(pa, pb, na, nb, rel_type):
     """올해 세운이 두 사람 관계에 미치는 영향."""
-    cur_year = datetime.now().year
+    cur_year = _now_kst().year
     yg_cur, yj_cur = _year_pillar(cur_year)
     ia, ib = pa[2][0], pb[2][0]
     da = pa[2][1]; db = pb[2][1]
@@ -12583,7 +12619,7 @@ def print_gunghap_typed(pa, pb, na, nb, rel_type,
     print(f'\n{"─"*62}')
     print(f'  ▶ 귀인(貴人) 교차 분석')
     print(_gwiin_cross(pa, pb, na, nb))
-    print(f'\n### {datetime.now().year}년 세운 기준 관계 에너지')
+    print(f'\n### {_now_kst().year}년 세운 기준 관계 에너지')
     print(_sewoon_rel(pa, pb, na, nb, rel_type))
 
 
@@ -12881,7 +12917,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     return opinions
 
 def 재회운_분석(pa, pb, na, nb):
-    cur_year = datetime.now().year
+    cur_year = _now_kst().year
     ia, ib   = pa[2][0], pb[2][0]
     ja = [p[1] for p in pa]
     jb = [p[1] for p in pb]
@@ -12970,8 +13006,8 @@ def 재회운_분석(pa, pb, na, nb):
 def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
                    dw_a=None, is_male_a=True, dw_b=None, is_male_b=False,
                    is_blocked=False):
-    cur_year = datetime.now().year
-    cur_month = datetime.now().month
+    cur_year = _now_kst().year
+    cur_month = _now_kst().month
     ia, ib   = pa[2][0], pb[2][0]
     ja = [p[1] for p in pa]
     jb = [p[1] for p in pb]
@@ -13820,7 +13856,7 @@ def print_jaehoe(pa, pb, na, nb,
                  corr_a=None, dw_a=None, is_male_a=True,
                  corr_b=None, dw_b=None, is_male_b=False):
     score, reasons, rel = 재회운_분석(pa, pb, na, nb)
-    cur_year = datetime.now().year
+    cur_year = _now_kst().year
     grades = ['▽ 매우 어려움', '△ 낮음', '○ 보통', '◎ 가능성 있음', '★ 매우 높음']
     gi = min(4, score // 20)
 
@@ -14656,7 +14692,7 @@ def analyze_month_fortune(name, pillars, target_year):
                   7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
     PILLAR_LBL = ['년주','월주','일주','시주']
 
-    cur_month = datetime.now().month if target_year == datetime.now().year else 0
+    cur_month = _now_kst().month if target_year == _now_kst().year else 0
 
     out = [f'**◈ {name}님  {target_year}년 월별 운세**']
 

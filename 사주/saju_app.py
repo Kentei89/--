@@ -4,6 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
+APP_VERSION = "v2026.10.12.01"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -294,7 +295,7 @@ st.markdown("""
     /* ── 탭 ─────────────────────────────────────────────────── */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
-        justify-content: center;
+        justify-content: safe center;
         border-bottom: 2px solid #e8e0f8;
         padding-bottom: 0;
         background: transparent;
@@ -315,6 +316,13 @@ st.markdown("""
         box-shadow: 0 -2px 12px rgba(109,40,217,0.2);
     }
     .stTabs [data-baseweb="tab-panel"] { background: transparent; }
+
+    /* ── 결과 그룹 제목 ─────────────────────────────────────── */
+    .grp-header {
+        font-size: 1.02rem; font-weight: 800; color: #4c1d95;
+        margin: 22px 0 6px; padding: 8px 2px 6px;
+        border-bottom: 2px solid #ede9fe;
+    }
 
     /* ── 버튼 ───────────────────────────────────────────────── */
     .stButton > button[kind="primary"] {
@@ -397,8 +405,9 @@ st.markdown("""
     @media (max-width: 640px) {
         .main .block-container { padding-left: 0.5rem !important; padding-right: 0.5rem !important; max-width: 100% !important; }
         h1 { font-size: 1.4rem !important; }
-        .stTabs [data-baseweb="tab"] { font-size: 0.72rem !important; padding: 7px 9px !important; }
-        .stTabs [data-baseweb="tab-list"] { gap: 3px !important; }
+        .stTabs [data-baseweb="tab"] { font-size: 0.8rem !important; padding: 7px 10px !important; }
+        .stTabs [data-baseweb="tab-list"] { gap: 3px !important; justify-content: flex-start !important; }
+        [data-testid="stExpander"] summary p { font-size: 0.95rem !important; }
         .score-card { padding: 12px 14px !important; }
         .score-card .score-num { font-size: 2rem !important; }
         .sec-header { font-size: 0.92rem !important; }
@@ -592,13 +601,13 @@ def _profile_bar(key: str):
         for idx, pname in enumerate(names[:4]):
             with chip_cols[idx]:
                 if st.button(f"👤 {pname}", key=f"{key}_chip_{pname}",
-                             use_container_width=True):
+                             width="stretch"):
                     _load_profile(pname)
                     st.session_state[f"{key}_active_profile"] = pname
                     st.rerun()
         with chip_cols[min(len(names), 4)]:
             st.button("💾 저장", key=f"{key}_prof_save", on_click=_save,
-                      use_container_width=True, help="입력한 정보를 저장해두고 나중에 불러올 수 있어요")
+                      width="stretch", help="입력한 정보를 저장해두고 나중에 불러올 수 있어요")
     else:
         st.markdown(
             '<div style="font-size:0.78rem;color:#9d7cc8;margin-bottom:6px;">'
@@ -635,7 +644,7 @@ def _profile_transfer_panel():
         import_str = st.text_area("📥 가져오기 (붙여넣기 후 버튼 클릭)",
                                    placeholder='{"홍길동": {...}, ...}',
                                    height=120, key="prof_import_area")
-        if st.button("✅ 가져오기 적용", use_container_width=True):
+        if st.button("✅ 가져오기 적용", width="stretch"):
             try:
                 imported = json.loads(import_str)
                 if isinstance(imported, dict) and imported:
@@ -651,7 +660,7 @@ def _profile_transfer_panel():
                 st.error("JSON 형식이 잘못됐어요. 다시 확인해주세요.")
 
         st.divider()
-        st.caption("v2026.07.15.01")
+        st.caption(APP_VERSION)
 
 
 # 지방시(地方時) 보정 – offset_minutes = round((경도 - 135) × 4)
@@ -832,16 +841,20 @@ _CITY_OFFSETS: dict[str, int] = {
 }
 
 
+class InputError(Exception):
+    """사용자 입력 오류 — 화면에 친절한 문구로만 보여줌"""
+
+
 def _lunar_to_solar(year: int, month: int, day: int, is_leap: bool):
-    """음력 → 양력 변환. 실패 시 None 반환."""
-    try:
-        cal = KoreanLunarCalendar()
-        cal.setLunarDate(year, month, day, is_leap)
-        s = cal.SolarIsoFormat()          # 'YYYY-MM-DD'
-        y, m, d = map(int, s.split('-'))
-        return y, m, d
-    except Exception:
-        return None
+    """음력 → 양력 변환. 없는 날짜·윤달이면 InputError."""
+    cal = KoreanLunarCalendar()
+    ok = cal.setLunarDate(year, month, day, is_leap)
+    if not ok:
+        raise InputError(f"음력 {year}년 {month}월{'(윤달)' if is_leap else ''}에는 {day}일이 없어요. 날짜를 확인해주세요.")
+    if is_leap and 'Intercalation' not in cal.LunarIsoFormat():
+        raise InputError(f"음력 {year}년에는 윤{month}월이 없어요. '윤달' 체크를 해제해주세요.")
+    y, m, d = map(int, cal.SolarIsoFormat().split('-'))
+    return y, m, d
 
 
 def person_form(key: str, title: str = ""):
@@ -854,52 +867,60 @@ def person_form(key: str, title: str = ""):
         gender   = st.radio("성별", ["남", "여"], horizontal=True, key=f"{key}_gender")
         st.radio("연애 상태", ["솔로", "연애중", "기혼·동거"], horizontal=True, key=f"{key}_relstatus")
         cal_type = st.radio("달력", ["양력", "음력"], horizontal=True, key=f"{key}_caltype")
-        is_leap  = st.checkbox("윤달", key=f"{key}_isleap",
-                               disabled=(cal_type == "양력"),
-                               help="음력 윤달 출생자만 체크")
+        is_leap  = st.checkbox("윤달", key=f"{key}_isleap", help="음력 윤달 출생자만 체크 (음력 선택 시에만 적용)")
     with c2:
-        year     = st.number_input("태어난 년도", 1900, 2025, 1990, key=f"{key}_year")
+        year     = st.number_input("태어난 년도", 1900, datetime.now(_KST).year, 1990, key=f"{key}_year")
         month    = st.number_input("월", 1, 12, 1, key=f"{key}_month")
         day      = st.number_input("일", 1, 31, 1, key=f"{key}_day")
-        no_time  = st.checkbox("시간 모름", key=f"{key}_notime")
         time_raw = st.text_input(
-            "태어난 시간 (예: 1745)", disabled=no_time,
+            "태어난 시간 (예: 1745)",
             placeholder="1745 또는 17:45", key=f"{key}_time_raw",
-            help="입력 시간은 서울 기준 태양시(평균태양시)로 자동 보정됩니다 (표준시 대비 약 ±32분 오차 발생 가능)"
+            help="모르면 비워두고 아래 '시간 모름'을 체크하세요. 지역에 따라 실제 태양시로 자동 보정돼요.",
+        )
+        no_time  = st.checkbox("시간 모름", key=f"{key}_notime")
+
+    with st.expander("⚙️ 세부 설정 (태어난 지역 · 자시 기준)", expanded=False):
+        _city_keys = list(_CITY_OFFSETS.keys())
+        st.selectbox(
+            "태어난 지역 (지방시 보정)",
+            _city_keys,
+            index=_city_keys.index("서울특별시"),
+            key=f"{key}_city",
+            help="경도 차이로 생기는 표준시와 실제 태양시의 오차를 보정합니다 (최대 ±36분)",
+        )
+        st.checkbox(
+            "밤 11시~자정 출생: 야자시(夜子時)로 보기", key=f"{key}_yajasi",
+            help="기본(정자시)은 밤 11시부터 다음 날 일주로 봐요. 야자시를 쓰면 당일 일주를 유지하고 시간 천간만 다음 날 기준으로 봐요.",
         )
 
-    _city_keys = list(_CITY_OFFSETS.keys())
-    st.selectbox(
-        "태어난 지역 (지방시 보정)",
-        _city_keys,
-        index=_city_keys.index("서울특별시"),
-        key=f"{key}_city",
-        help="경도 차이로 생기는 표준시와 실제 태양시의 오차를 보정합니다 (최대 ±36분)",
-    )
-
-    if no_time:
-        hour, minute = 12, 0
-    else:
+    hour, minute = 12, 0
+    if not no_time:
         parsed = _parse_time(time_raw) if time_raw.strip() else None
-        if time_raw.strip() and parsed is None:
-            st.warning(f"시간 형식이 올바르지 않아요. 예: 1745  →  17시 45분")
-        hour, minute = parsed if parsed else (12, 0)
+        if parsed:
+            hour, minute = parsed
 
     return name, gender, int(year), int(month), int(day), hour, minute
 
 
 def _resolve_date(key: str):
-    """session_state에서 날짜·시간 읽고, 음력이면 양력 변환.
+    """session_state에서 날짜·시간 읽고, 음력이면 양력 변환. 잘못된 입력이면 InputError.
     반환: (solar_y, solar_m, solar_d, h, mn, no_time, cal_label, city_offset_min)
     city_offset_min은 get_saju()에 직접 전달해 apply_correction()이 정확히 한 번만 보정하게 함."""
     y = int(st.session_state.get(f"{key}_year", 1990))
     m = int(st.session_state.get(f"{key}_month", 1))
     d = int(st.session_state.get(f"{key}_day", 1))
     cal_type = st.session_state.get(f"{key}_caltype", "양력")
-    is_leap  = st.session_state.get(f"{key}_isleap", False)
+    is_leap  = st.session_state.get(f"{key}_isleap", False) and cal_type == "음력"
     no_time  = st.session_state.get(f"{key}_notime", False)
-    _pt      = _parse_time(st.session_state.get(f"{key}_time_raw", "")) if not no_time else None
-    h, mn    = _pt if _pt else (12, 0)
+    _raw_t   = st.session_state.get(f"{key}_time_raw", "") or ""
+    h, mn    = 12, 0
+    if not no_time:
+        if not _raw_t.strip():
+            raise InputError("태어난 시간을 입력하거나 '시간 모름'을 체크해주세요.")
+        _pt = _parse_time(_raw_t)
+        if _pt is None:
+            raise InputError(f"시간 '{_raw_t}'을(를) 읽을 수 없어요. 예: 1745 → 17시 45분, 0930 → 9시 30분")
+        h, mn = _pt
 
     # 도시 선택 → get_saju()에 넘길 local_offset_min 결정
     city     = st.session_state.get(f"{key}_city", "서울특별시")
@@ -907,19 +928,42 @@ def _resolve_date(key: str):
 
     cal_label = "양력"
     if cal_type == "음력":
-        converted = _lunar_to_solar(y, m, d, is_leap)
-        if converted is None:
-            st.error(f"음력 {y}년 {m}월 {d}일{'(윤달)' if is_leap else ''}을 양력으로 변환할 수 없어요. 날짜를 확인해주세요.")
-            st.stop()
-        sy, sm, sd = converted
+        sy, sm, sd = _lunar_to_solar(y, m, d, is_leap)
         cal_label = f"음력 {y}/{m}/{d}{'(윤)' if is_leap else ''} → 양력 {sy}/{sm}/{sd}"
         y, m, d = sy, sm, sd
+    else:
+        try:
+            datetime(y, m, d)
+        except ValueError:
+            raise InputError(f"{y}년 {m}월에는 {d}일이 없어요. 날짜를 확인해주세요.")
 
     if not no_time and city != "선택 안함 (보정 없음)":
         sign = "+" if city_off > 0 else ""
         cal_label += f"  |  🌐 지방시 {city}({sign}{city_off}분)"
+    if not no_time and st.session_state.get(f"{key}_yajasi", False):
+        cal_label += "  |  야자시 적용"
 
     return y, m, d, h, mn, no_time, cal_label, city_off
+
+
+def _calc_saju(key: str, y, m, d, h, mn, no_time, off):
+    """get_saju + 시간 모름이면 시주 제외(3주 분석) — 가짜 12시 시주가 분석에 섞이지 않게"""
+    pillars, corr_dt, corrections = get_saju(
+        y, m, d, h, mn, local_offset_min=off,
+        yajasi=bool(st.session_state.get(f"{key}_yajasi", False)),
+    )
+    if no_time:
+        pillars = pillars[:3]
+        corrections = []
+    return pillars, corr_dt, corrections
+
+
+def _show_calc_error(e: Exception):
+    if isinstance(e, InputError):
+        st.error(str(e))
+    else:
+        st.error("계산 중 문제가 생겼어요. 입력값을 확인하고 다시 시도해주세요.")
+        print(f"[saju] calc error: {e!r}", file=sys.stderr)
 
 
 def render_pillars_table(pillars, no_time=False):
@@ -961,7 +1005,7 @@ def render_pillars_table(pillars, no_time=False):
         jijg    = ' '.join(JIJANGAN[j])
         _nm     = _get_naeum(g, j)
         _nm_clr = _NAEUM_CLR.get(_nm[2], '#374151')
-        gm_tag  = '<span style="font-size:0.6rem;background:rgba(255,100,100,0.25);color:#dc2626;border-radius:4px;padding:1px 5px;margin-left:3px;">공망</span>' if j in gm else ''
+        gm_tag  = '<span style="font-size:0.75rem;background:rgba(255,100,100,0.25);color:#dc2626;border-radius:4px;padding:1px 5px;margin-left:3px;">공망</span>' if j in gm else ''
         _UNS_IC = {'장생':'🌱','목욕':'✨','관대':'🎓','건록':'💼','제왕':'👑',
                    '쇠':'🍃','병':'🌙','사':'🕊','묘':'🌿','절':'🌊','태':'🌸','양':'🌼'}
         _UNS_CL = {'장생':'#16a34a','목욕':'#7c3aed','관대':'#1d4ed8','건록':'#0369a1','제왕':'#dc2626',
@@ -974,23 +1018,23 @@ def render_pillars_table(pillars, no_time=False):
           <div style="border:{border};border-radius:12px;overflow:hidden;
                       text-align:center;box-shadow:{shadow};height:100%;">
             <div style="background:{bg};padding:10px 8px 8px;">
-              <div style="font-size:0.68rem;color:{_TXT_SUB};margin-bottom:6px;letter-spacing:0.05em;font-weight:700;">
-                {hdr}<span style="opacity:0.6;font-size:0.6rem;">({sub})</span>
+              <div style="font-size:0.75rem;color:{_TXT_SUB};margin-bottom:6px;letter-spacing:0.05em;font-weight:700;">
+                {hdr}<span style="opacity:0.6;font-size:0.75rem;">({sub})</span>
               </div>
               <div style="font-size:2rem;font-weight:800;color:{_TXT_MAIN};line-height:1;">
                 {CHEONGAN[g]}
               </div>
-              {'<div style="font-size:0.58rem;color:#86198f;font-weight:700;margin-top:1px;">⚗️합화→' + oh_g_disp + '</div>' if _is_hwa else ''}
-              <div style="font-size:0.65rem;color:{_TXT_SUB};margin:2px 0 0;">{_tip(oh_g_disp)} · {_tip(ss_g)}</div>
+              {'<div style="font-size:0.75rem;color:#86198f;font-weight:700;margin-top:1px;">⚗️합화→' + oh_g_disp + '</div>' if _is_hwa else ''}
+              <div style="font-size:0.72rem;color:{_TXT_SUB};margin:2px 0 0;">{_tip(oh_g_disp)} · {_tip(ss_g)}</div>
             </div>
             <div style="background:{bg_j};padding:8px 8px 10px;border-top:1px solid {bdc_j};">
               <div style="font-size:1.6rem;line-height:1;">{_JIJI_EMOJI[j]}</div>
               <div style="font-size:1.4rem;font-weight:700;color:{_TXT_MAIN};line-height:1.1;">{JIJI[j]}{gm_tag}</div>
-              <div style="font-size:0.65rem;color:{_TXT_SUB};margin-top:3px;">{_tip(oh_j)} · {_tip(ss_j)}</div>
+              <div style="font-size:0.72rem;color:{_TXT_SUB};margin-top:3px;">{_tip(oh_j)} · {_tip(ss_j)}</div>
               <div style="margin-top:6px;border-top:1px solid {bdc_j};padding-top:5px;">
-                <div style="font-size:0.64rem;color:{uns_clr};font-weight:700;margin-bottom:2px;">{uns_icon} {_tip(unsung)}</div>
-                <div style="font-size:0.6rem;color:{_TXT_SUB};opacity:0.8;letter-spacing:0.03em;">{jijg}</div>
-                <div style="font-size:0.6rem;color:{_nm_clr};font-weight:600;margin-top:3px;">{_nm[1]}</div>
+                <div style="font-size:0.72rem;color:{uns_clr};font-weight:700;margin-bottom:2px;">{uns_icon} {_tip(unsung)}</div>
+                <div style="font-size:0.75rem;color:{_TXT_SUB};opacity:0.8;letter-spacing:0.03em;">{jijg}</div>
+                <div style="font-size:0.75rem;color:{_nm_clr};font-weight:600;margin-top:3px;">{_nm[1]}</div>
               </div>
             </div>
           </div>
@@ -1101,7 +1145,7 @@ def _make_saju_summary(name, pillars, corr_dt, gender, no_time=False, cal_label=
         lines.append('')
 
     today = datetime.now(_KST).strftime('%Y-%m-%d')
-    lines += [sep, f'  생성: {today}  |  사주팔자 앱 v2026.07.15.01', sep]
+    lines += [sep, f'  생성: {today}  |  사주팔자 앱 {APP_VERSION}', sep]
     return '\n'.join(lines)
 
 
@@ -1204,10 +1248,10 @@ def _make_saju_html(name, pillars, corr_dt, gender, no_time=False, cal_label="�
             '<span style="color:' + j_clr + ';">' + JIJI[j] + gm_mark + '</span></div>'
             '<div style="font-size:0.7rem;color:#6b7280;margin:4px 0 2px;">'
             + OHAENG_G[g] + '(' + ss_g + ') / ' + OHAENG_J[j] + '(' + ss_j + ')</div>'
-            '<div style="font-size:0.65rem;color:#9ca3af;">' + unsung + '</div>'
-            '<div style="font-size:0.65rem;color:#9ca3af;margin-top:2px;">' + jijg + '</div>'
-            '<div style="font-size:0.65rem;color:' + nm_clr + ';font-weight:600;margin-top:3px;">' + nm[1] + '</div>'
-            + ('<div style="font-size:0.6rem;color:#6b7280;margin-top:4px;line-height:1.5;text-align:left;padding:4px 6px;background:#f8fafc;border-radius:6px;">' + nm[4] + '</div>' if len(nm) > 4 and nm[4] else '')
+            '<div style="font-size:0.72rem;color:#9ca3af;">' + unsung + '</div>'
+            '<div style="font-size:0.72rem;color:#9ca3af;margin-top:2px;">' + jijg + '</div>'
+            '<div style="font-size:0.72rem;color:' + nm_clr + ';font-weight:600;margin-top:3px;">' + nm[1] + '</div>'
+            + ('<div style="font-size:0.75rem;color:#6b7280;margin-top:4px;line-height:1.5;text-align:left;padding:4px 6px;background:#f8fafc;border-radius:6px;">' + nm[4] + '</div>' if len(nm) > 4 and nm[4] else '')
             + '</div>'
         )
     pillars_html = '<div style="display:flex;gap:8px;margin:12px 0;">' + col_cards + '</div>'
@@ -1351,11 +1395,12 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         unsafe_allow_html=True,
     )
     hm_str = corr_dt.strftime('%Y-%m-%d %H:%M')
-    cap = f"절입 보정: {hm_str}  ({', '.join(corrections)})"
-    if cal_label != "양력":
-        cap += f"  |  📅 {cal_label}"
     if no_time:
-        cap += "  |  ⚠ 시주(時柱) 미포함"
+        cap = f"📅 {cal_label}  |  ⚠ 태어난 시간을 몰라 시주(時柱) 없이 년·월·일 세 기둥으로 분석했어요"
+    else:
+        cap = f"실제 태양시 기준: {hm_str}  ({', '.join(corrections)})" if corrections else f"기준 시각: {hm_str}"
+        if cal_label != "양력":
+            cap += f"  |  📅 {cal_label}"
     st.caption(cap)
 
     render_pillars_table(pillars, no_time=no_time)
@@ -1391,7 +1436,11 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             f'padding:4px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;">'
             f'⚡ {_hy_nm}</span>'
         )
+    _keuk_seen = set()
     for keuk_nm, oh_rel, keuk_desc in _find_cheongan_keuk(pillars):
+        if keuk_nm in _keuk_seen:
+            continue
+        _keuk_seen.add(keuk_nm)
         info_chips += (
             f'<span title="{oh_rel} | {keuk_desc}" '
             f'style="background:#eef2ff;border:1px solid #a5b4fc;color:#4338ca;'
@@ -1457,7 +1506,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         f'transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>'
         f'</div>'
         f'<div style="display:flex;justify-content:space-between;'
-        f'font-size:0.62rem;color:#9ca3af;margin-top:3px;padding:0 1px;">'
+        f'font-size:0.72rem;color:#9ca3af;margin-top:3px;padding:0 1px;">'
         f'<span>극약</span><span>태약</span><span>신약</span>'
         f'<span style="color:#16a34a;font-weight:600;">중화</span>'
         f'<span>신강</span><span>태강</span><span>극왕</span>'
@@ -1479,17 +1528,17 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         f'padding:12px 16px;margin:8px 0 4px;">'
         f'<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">'
         f'<div style="flex:1;min-width:160px;">'
-        f'<div style="font-size:0.68rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">📐 格局 (사주 구조 유형)</div>'
+        f'<div style="font-size:0.75rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">📐 格局 (사주 구조 유형)</div>'
         f'<div style="font-size:0.92rem;font-weight:800;color:#374151;">{_gk_name}</div>'
         f'<div style="font-size:0.73rem;color:#6b7280;margin-top:2px;">{_gk_desc}</div>'
         f'</div>'
         f'<div style="flex:1;min-width:120px;">'
-        f'<div style="font-size:0.68rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">🟢 용신 — 내게 좋은 기운</div>'
+        f'<div style="font-size:0.75rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">🟢 용신 — 내게 좋은 기운</div>'
         f'<div style="font-size:0.92rem;font-weight:800;color:#16a34a;">{_ys_emo} {_ys_oh}</div>'
         f'<div style="font-size:0.73rem;color:#6b7280;margin-top:2px;">{_ys_name} — 이 기운이 강할 때 길운</div>'
         f'</div>'
         f'<div style="flex:1;min-width:120px;">'
-        f'<div style="font-size:0.68rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">🔴 기신 — 피해야 할 기운</div>'
+        f'<div style="font-size:0.75rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;margin-bottom:3px;">🔴 기신 — 피해야 할 기운</div>'
         f'<div style="font-size:0.92rem;font-weight:800;color:#dc2626;">{_ki_str}</div>'
         f'<div style="font-size:0.73rem;color:#6b7280;margin-top:2px;">이 기운이 강할 때 주의</div>'
         f'</div>'
@@ -1497,6 +1546,193 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         unsafe_allow_html=True,
     )
 
+    # 공망 상세 해설
+    _gm = get_gongmang(*pillars[2])
+    _gm_hits = [(i, p[1]) for i, p in enumerate(pillars) if p[1] in _gm]
+    _hy_list = get_jiji_hyeong(pillars)
+    start_age, forward, daeun = get_daewoon(pillars, corr_dt, is_male)
+
+    # ── 오늘의 일진 미니 카드 ─────────────────────────────────
+    _today = datetime.now(_KST)
+    try:
+        _dg, _dj = get_ilchin(_today.year, _today.month, _today.day)
+        _ya, _ki = get_yongki(pillars)
+        _dg_oh = OHAENG_NAMES[OHAENG_IDX[_dg]]
+        _dj_oh = OHAENG_NAMES[OHAENG_IDX_J[_dj]]
+        _is_yong = _dg_oh == _ya or _dj_oh == _ya
+        _is_ki   = _dg_oh in _ki or _dj_oh in _ki
+        _pair    = frozenset([pillars[2][1], _dj])
+        _is_hap  = _pair in YUKAHP
+        _is_chung = any(_pair == c for c in JIJI_CHUNG)
+        if _is_yong and not _is_ki:
+            _grade, _gc = '★ 길일', '#166534'; _gbg = '#d1fae5'; _gbd = '#6ee7b7'
+            _gmsg = f'용신({_ya}) 활성 — 오늘 적극 움직이세요'
+        elif _is_ki and _is_chung:
+            _grade, _gc = '△ 반길', '#92400e'; _gbg = '#fef3c7'; _gbd = '#fcd34d'
+            _gmsg = f'충이 기신({", ".join(_ki)})을 깨뜨려요 — 막힌 일이 풀릴 수 있어요'
+        elif _is_ki:
+            _grade, _gc = '⚠ 흉일', '#991b1b'; _gbg = '#fee2e2'; _gbd = '#fca5a5'
+            _gmsg = f'기신({", ".join(_ki)}) 주의 — 중요 결정은 미루세요'
+        elif _is_hap:
+            _grade, _gc = '● 합일', '#1e40af'; _gbg = '#dbeafe'; _gbd = '#93c5fd'
+            _gmsg = '인연·만남에 좋은 날'
+        elif _is_chung:
+            _grade, _gc = '◎ 충일', '#6d28d9'; _gbg = '#ede9fe'; _gbd = '#a78bfa'
+            _gmsg = '변화·이동이 생기기 쉬운 날'
+        else:
+            _grade, _gc = '○ 평일', '#374151'; _gbg = '#f3f4f6'; _gbd = '#d1d5db'
+            _gmsg = '평온하게 흘러가는 날'
+
+        st.markdown(
+            f'<div style="background:{_gbg};border:1px solid {_gbd};border-radius:12px;'
+            f'padding:12px 16px;margin:10px 0;display:flex;align-items:center;gap:14px;">'
+            f'<div style="text-align:center;min-width:52px;">'
+            f'  <div style="font-size:1.3rem;font-weight:800;color:{_gc};">'
+            f'    {CHEONGAN[_dg]}{JIJI[_dj]}</div>'
+            f'  <div style="font-size:0.72rem;color:{_gc};opacity:0.7;">오늘 일진</div>'
+            f'</div>'
+            f'<div style="flex:1;">'
+            f'  <span style="background:{_gc};color:#fff;font-size:0.72rem;font-weight:700;'
+            f'    border-radius:6px;padding:2px 8px;margin-right:6px;">{_grade}</span>'
+            f'  <span style="font-size:0.88rem;color:{_gc};font-weight:600;">{_gmsg}</span>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass
+
+    st.markdown(
+        '<div class="grp-header">🧭 나는 어떤 사람일까</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("📖 사주 해설 — 성격·재물·연애·직업·건강", expanded=False):
+        _narr(analyze_saju(name, pillars, gil, hyung, gender))
+
+    with st.expander("🌟 일주론(日柱論) — 타고난 특성 상세", expanded=False):
+        _render_ilju_card(name, pillars, no_time=no_time)
+
+    with st.expander("💼 직업 적성", expanded=False):
+        _jb_gyeok, _jb_yong, _jb_desc, _jb_jobs, _jb_yjobs = get_job_aptitude(pillars)
+        st.markdown(
+            f'<div style="background:#f5f3ff;border:1px solid #ddd4f8;border-radius:10px;'
+            f'padding:10px 14px;margin-bottom:10px;">'
+            f'<span style="font-size:0.85rem;font-weight:700;color:#6d28d9;">'
+            f'{_jb_gyeok} — {_jb_desc}</span></div>',
+            unsafe_allow_html=True
+        )
+        st.markdown('**格局 기반 직업군**')
+        _jb_chips = '<div style="display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 12px;">'
+        for _jj in _jb_jobs:
+            _jb_chips += (
+                f'<span style="background:#ede9fe;border:1px solid #c4b5fd;color:#4c1d95;'
+                f'padding:5px 13px;border-radius:20px;font-size:0.82rem;font-weight:600;">'
+                f'{_jj}</span>'
+            )
+        _jb_chips += '</div>'
+        st.markdown(_jb_chips, unsafe_allow_html=True)
+        if _jb_yjobs:
+            st.markdown(f'**용신({_jb_yong}) 오행 보조 분야**')
+            _yb_chips = '<div style="display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 10px;">'
+            for _yj in _jb_yjobs:
+                _yb_chips += (
+                    f'<span style="background:#f0fdf4;border:1px solid #86efac;color:#166534;'
+                    f'padding:5px 13px;border-radius:20px;font-size:0.82rem;font-weight:600;">'
+                    f'{_yj}</span>'
+                )
+            _yb_chips += '</div>'
+            st.markdown(_yb_chips, unsafe_allow_html=True)
+        _jb_gyeok_cat = _GYEOK_CAT_MAP.get(_jb_gyeok)
+        _jb_gyeok_cmt = _GYEOK_YONG_JOB_COMMENT.get((_jb_gyeok_cat, _jb_yong), '') if _jb_gyeok_cat else ''
+        if _jb_gyeok_cmt:
+            st.markdown(
+                f'<div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);'
+                f'border:1px solid #86efac;border-radius:10px;padding:11px 14px;margin-bottom:8px;">'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 직업 코멘트</div>'
+                f'<div style="font-size:0.82rem;color:#14532d;line-height:1.65;">{_jb_gyeok_cmt}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        st.caption('格局·용신 기반 통계적 경향으로, 실제 적성은 개인 경험·환경과 함께 판단하세요.')
+
+    with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
+        _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
+
+    with st.expander("💍 배우자 자리(日支宮) — 배우자 성향·합충 인연", expanded=False):
+        _render_baewuja_section(pillars, gender, rel_status=rel_status)
+
+    with st.expander("🏛️ 궁성(宮星) — 가족·직장·배우자·자녀 자리 분석", expanded=False):
+        st.info("년주·월주·일주·시주에 자리한 십성으로 조상, 직장, 배우자, 자녀와의 인연을 살펴봐요.")
+        try:
+            _pal_result = get_palace_analysis(name, pillars)
+            if isinstance(_pal_result, list):
+                # get_palace_analysis는 ['- **년주** (…) [십성]', '  설명', …] 형태의 줄 목록을 반환
+                for _ti, _ds in zip(_pal_result[0::2], _pal_result[1::2]):
+                    _ti = _ti.lstrip('- ').replace('**', '')
+                    st.markdown(f'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;"><div style="font-size:0.95rem;font-weight:700;color:#374151;margin-bottom:6px;">{_ti}</div><div style="font-size:0.92rem;color:#4b5563;line-height:1.7;">{_ds.strip()}</div></div>', unsafe_allow_html=True)
+            elif isinstance(_pal_result, str):
+                st.markdown(_pal_result)
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
+    with st.expander("🌟 명궁(命宮) — 타고난 운명의 별자리", expanded=False):
+        st.info("명궁은 월지와 시지를 합산해 구하는 인생의 방향성이에요. 타고난 기질과 삶의 패턴을 보여줘요.")
+        try:
+            if len(pillars) < 4:
+                raise InputError("명궁은 태어난 시간을 알아야 볼 수 있어요.")
+            _mg_result = get_mingung(pillars)
+            if isinstance(_mg_result, tuple) and len(_mg_result) >= 2:
+                _mg_title, _mg_desc = _mg_result[0], _mg_result[1]
+            else:
+                _mg_title, _mg_desc = str(_mg_result), ""
+            st.markdown(f'<div style="background:#faf5ff;border:1px solid #ddd4f8;border-radius:10px;padding:12px 14px;"><div style="font-size:0.95rem;font-weight:700;color:#6d28d9;margin-bottom:8px;">{_mg_title}</div><div style="font-size:0.85rem;color:#374151;line-height:1.8;">{_mg_desc}</div></div>', unsafe_allow_html=True)
+        except InputError as _e:
+            st.caption(str(_e))
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
+    st.markdown(
+        '<div class="grp-header">📈 운의 흐름</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("🎯 올해 운세 — 총평·재물·직업·연애·건강", expanded=False):
+        _render_thisyear_section(name, pillars, year, card_id=card_id, rel_status=rel_status, daeun=daeun)
+
+    with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
+        st.info("월운은 매월 바뀌는 이달의 운이에요. 세운 안에서 이달·다음달 좋은 시기와 주의할 시기를 월별로 확인할 수 있어요.")
+        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender, no_time=no_time)
+
+    with st.expander("📆 월별 운세 상세", expanded=False):
+        st.info("올해 1월부터 12월까지 매달의 운세 흐름을 천간·지지 십성 기반으로 분석해요.")
+        try:
+            _cur_yr2 = datetime.now(_KST).year
+            _mf_text = analyze_month_fortune(name, pillars, _cur_yr2)
+            if _mf_text:
+                _narr(_mf_text)
+        except Exception as _e:
+            st.warning(f"분석 중 오류: {_e}")
+
+    with st.expander("🌊 대운(大運) — 10년 주기 큰 흐름", expanded=False):
+        st.info("대운은 약 10년 단위로 바뀌는 큰 운의 흐름이에요. 지금 어떤 대운에 있느냐에 따라 삶의 방향과 기회가 달라져요.")
+        _render_daewoon_table(start_age, forward, daeun)
+        _narr(analyze_daewoon_narrative(name, pillars, daeun, start_age, forward))
+
+    with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
+        st.info("세운은 매년 바뀌는 그해의 운이에요. 대운의 큰 흐름 안에서 해마다 어떤 변화와 기회가 오는지 구체적으로 보여줘요.")
+        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender, no_time=no_time)
+        try:
+            _cur_yr = datetime.now(_KST).year
+            _sw_detail = analyze_sewoon_detail(name, pillars, _cur_yr, daeun, year)
+            if _sw_detail:
+                with st.expander(f"🔍 {_cur_yr}년 세운 상세 분석", expanded=False):
+                    _narr(_sw_detail)
+        except Exception:
+            pass
+
+    st.markdown(
+        '<div class="grp-header">🔬 전문 분석 · 판단 근거</div>',
+        unsafe_allow_html=True,
+    )
     with st.expander("📊 오행 분포 차트", expanded=False):
         _str_data  = analyze_ohaeng_strength(pillars)
         _cnt_data  = analyze_ohaeng(pillars, apply_gan_hwa=True)
@@ -1512,7 +1748,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             _is_yong = (_oh_nm == _yong_nm_chart)
             _bg   = 'rgba(255,255,255,0.6)' if not _is_yong else 'rgba(255,250,235,0.9)'
             _bd   = '1px solid #e5e7eb' if not _is_yong else '1px solid #fbbf24'
-            _yong_tag = ' <span style="font-size:0.6rem;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 4px;">용신</span>' if _is_yong else ''
+            _yong_tag = ' <span style="font-size:0.75rem;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 4px;">용신</span>' if _is_yong else ''
             _bar_html += (
                 f'<div style="display:flex;align-items:center;margin-bottom:7px;'
                 f'background:{_bg};border:{_bd};border-radius:8px;padding:5px 10px;">'
@@ -1527,7 +1763,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         st.markdown(_bar_html, unsafe_allow_html=True)
         st.caption('계절·지장간 가중치가 반영된 오행 강도 비율입니다.')
 
-    with st.expander("🔮 용신·기신 — 좋은·나쁜 기운 판단 근거", expanded=True):
+    with st.expander("🔮 용신·기신 — 좋은·나쁜 기운 판단 근거", expanded=False):
         st.markdown(explain_yongshin(pillars))
 
     with st.expander("⚡ 상신(相神) — 용신을 보좌하는 오행", expanded=False):
@@ -1619,49 +1855,6 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             _johu_chips += '</div>'
             st.markdown(_johu_chips, unsafe_allow_html=True)
 
-    with st.expander("💼 직업 적성", expanded=False):
-        _jb_gyeok, _jb_yong, _jb_desc, _jb_jobs, _jb_yjobs = get_job_aptitude(pillars)
-        st.markdown(
-            f'<div style="background:#f5f3ff;border:1px solid #ddd4f8;border-radius:10px;'
-            f'padding:10px 14px;margin-bottom:10px;">'
-            f'<span style="font-size:0.85rem;font-weight:700;color:#6d28d9;">'
-            f'{_jb_gyeok} — {_jb_desc}</span></div>',
-            unsafe_allow_html=True
-        )
-        st.markdown('**格局 기반 직업군**')
-        _jb_chips = '<div style="display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 12px;">'
-        for _jj in _jb_jobs:
-            _jb_chips += (
-                f'<span style="background:#ede9fe;border:1px solid #c4b5fd;color:#4c1d95;'
-                f'padding:5px 13px;border-radius:20px;font-size:0.82rem;font-weight:600;">'
-                f'{_jj}</span>'
-            )
-        _jb_chips += '</div>'
-        st.markdown(_jb_chips, unsafe_allow_html=True)
-        if _jb_yjobs:
-            st.markdown(f'**용신({_jb_yong}) 오행 보조 분야**')
-            _yb_chips = '<div style="display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 10px;">'
-            for _yj in _jb_yjobs:
-                _yb_chips += (
-                    f'<span style="background:#f0fdf4;border:1px solid #86efac;color:#166534;'
-                    f'padding:5px 13px;border-radius:20px;font-size:0.82rem;font-weight:600;">'
-                    f'{_yj}</span>'
-                )
-            _yb_chips += '</div>'
-            st.markdown(_yb_chips, unsafe_allow_html=True)
-        _jb_gyeok_cat = _GYEOK_CAT_MAP.get(_jb_gyeok)
-        _jb_gyeok_cmt = _GYEOK_YONG_JOB_COMMENT.get((_jb_gyeok_cat, _jb_yong), '') if _jb_gyeok_cat else ''
-        if _jb_gyeok_cmt:
-            st.markdown(
-                f'<div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);'
-                f'border:1px solid #86efac;border-radius:10px;padding:11px 14px;margin-bottom:8px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 직업 코멘트</div>'
-                f'<div style="font-size:0.82rem;color:#14532d;line-height:1.65;">{_jb_gyeok_cmt}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-        st.caption('格局·용신 기반 통계적 경향으로, 실제 적성은 개인 경험·환경과 함께 판단하세요.')
-
     with st.expander("🌿 오행 보충 조언 — 부족한 기운 채우기", expanded=False):
         _supp_ilgan    = pillars[2][0]
         _supp_yong_idx = get_gyeokguk(pillars)[1]
@@ -1686,7 +1879,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             _inner = ''
             if _ilg_yong_cmt:
                 _inner += (
-                    f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 코멘트</div>'
+                    f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">✨ {name}님 맞춤 코멘트</div>'
                     f'<div style="font-size:0.82rem;color:#4c1d95;line-height:1.65;">{_ilg_yong_cmt}</div>'
                 )
             if _str_yong_cmt:
@@ -1694,7 +1887,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                 _str_label = '신강' if _is_gang else '신약'
                 _inner += (
                     f'{_sep}'
-                    f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">⚖️ {_str_label} 활동 조언</div>'
+                    f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">⚖️ {_str_label} 활동 조언</div>'
                     f'<div style="font-size:0.82rem;color:#4c1d95;line-height:1.65;">{_str_yong_cmt}</div>'
                 )
             st.markdown(
@@ -1710,7 +1903,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
             _s_bg  = 'linear-gradient(135deg,#f5f3ff,#ede9fe)' if _is_yong else '#f9fafb'
             _s_bd  = '#c4b5fd' if _is_yong else '#e5e7eb'
             _s_tc  = '#6d28d9' if _is_yong else '#374151'
-            _s_tag = '<span style="font-size:0.65rem;background:#ede9fe;color:#7c3aed;border-radius:3px;padding:1px 6px;margin-left:5px;font-weight:700;">용신</span>' if _is_yong else ''
+            _s_tag = '<span style="font-size:0.72rem;background:#ede9fe;color:#7c3aed;border-radius:3px;padding:1px 6px;margin-left:5px;font-weight:700;">용신</span>' if _is_yong else ''
             _col_chips = ''.join(
                 f'<span style="display:inline-flex;align-items:center;gap:3px;background:#f9fafb;border:1px solid #e5e7eb;'
                 f'padding:3px 9px;border-radius:12px;font-size:0.75rem;margin-right:4px;">'
@@ -1725,27 +1918,27 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                 f'{_s["icon"]} {_s_nm}({["木","火","土","金","水"][["목","화","토","금","수"].index(_s_nm)]}) 기운 보충{_s_tag}</div>'
                 f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">'
                 f'<div style="background:rgba(255,255,255,0.7);border-radius:8px;padding:7px 10px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🧭 방향</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🧭 방향</div>'
                 f'<div style="font-size:0.8rem;font-weight:700;color:#374151;">{_s["direction"]}</div>'
                 f'</div>'
                 f'<div style="background:rgba(255,255,255,0.7);border-radius:8px;padding:7px 10px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🔢 행운 숫자</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🔢 행운 숫자</div>'
                 f'<div style="font-size:0.8rem;font-weight:700;color:#374151;">{_s["number"]}</div>'
                 f'</div>'
                 f'<div style="background:rgba(255,255,255,0.7);border-radius:8px;padding:7px 10px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🍽️ 음미</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🍽️ 음미</div>'
                 f'<div style="font-size:0.8rem;font-weight:700;color:#374151;">{_s["taste"]}</div>'
                 f'</div>'
                 f'</div>'
                 f'<div style="margin-bottom:6px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">🎨 추천 색상</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">🎨 추천 색상</div>'
                 f'{_col_chips}</div>'
                 f'<div style="margin-bottom:6px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🥗 도움되는 음식</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🥗 도움되는 음식</div>'
                 f'<div style="font-size:0.78rem;color:#374151;">{", ".join(_s["foods"])}</div>'
                 f'</div>'
                 f'<div style="margin-bottom:6px;">'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🎯 추천 활동</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:3px;">🎯 추천 활동</div>'
                 f'<div style="font-size:0.78rem;color:#374151;">{", ".join(_s["activities"])}</div>'
                 f'</div>'
                 f'<div style="background:rgba(255,255,255,0.5);border-radius:6px;padding:6px 10px;'
@@ -1754,9 +1947,6 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                 unsafe_allow_html=True,
             )
 
-    # 공망 상세 해설
-    _gm = get_gongmang(*pillars[2])
-    _gm_hits = [(i, p[1]) for i, p in enumerate(pillars) if p[1] in _gm]
     if _gm_hits:
         _GM_PILLAR = {0:'년주', 1:'월주', 2:'일주', 3:'시주'}
         _GM_DESC = {
@@ -1777,7 +1967,6 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                     unsafe_allow_html=True
                 )
 
-    _hy_list = get_jiji_hyeong(pillars)
     if _hy_list:
         with st.expander("⚡ 지지형(地支刑) 상세 해설", expanded=False):
             st.info("지지형은 지지끼리 서로 충돌하는 관계예요. 형이 생기면 해당 분야에서 긴장·마찰·사건이 발생할 수 있어요.")
@@ -1791,70 +1980,6 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                     f'</div>',
                     unsafe_allow_html=True
                 )
-
-    start_age, forward, daeun = get_daewoon(pillars, corr_dt, is_male)
-
-    # ── 오늘의 일진 미니 카드 ─────────────────────────────────
-    _today = datetime.now(_KST)
-    try:
-        _dg, _dj = get_ilchin(_today.year, _today.month, _today.day)
-        _ya, _ki = get_yongki(pillars)
-        _dg_oh = OHAENG_NAMES[OHAENG_IDX[_dg]]
-        _dj_oh = OHAENG_NAMES[OHAENG_IDX_J[_dj]]
-        _is_yong = _dg_oh == _ya or _dj_oh == _ya
-        _is_ki   = _dg_oh in _ki or _dj_oh in _ki
-        _pair    = frozenset([pillars[2][1], _dj])
-        _is_hap  = _pair in YUKAHP
-        _is_chung = any(_pair == c for c in JIJI_CHUNG)
-        if _is_yong and not _is_ki:
-            _grade, _gc = '★ 길일', '#166534'; _gbg = '#d1fae5'; _gbd = '#6ee7b7'
-            _gmsg = f'용신({_ya}) 활성 — 오늘 적극 움직이세요'
-        elif _is_ki and _is_chung:
-            _grade, _gc = '△ 반길', '#92400e'; _gbg = '#fef3c7'; _gbd = '#fcd34d'
-            _gmsg = f'충이 기신({", ".join(_ki)})을 깨뜨려요 — 막힌 일이 풀릴 수 있어요'
-        elif _is_ki:
-            _grade, _gc = '⚠ 흉일', '#991b1b'; _gbg = '#fee2e2'; _gbd = '#fca5a5'
-            _gmsg = f'기신({", ".join(_ki)}) 주의 — 중요 결정은 미루세요'
-        elif _is_hap:
-            _grade, _gc = '● 합일', '#1e40af'; _gbg = '#dbeafe'; _gbd = '#93c5fd'
-            _gmsg = '인연·만남에 좋은 날'
-        elif _is_chung:
-            _grade, _gc = '◎ 충일', '#6d28d9'; _gbg = '#ede9fe'; _gbd = '#a78bfa'
-            _gmsg = '변화·이동이 생기기 쉬운 날'
-        else:
-            _grade, _gc = '○ 평일', '#374151'; _gbg = '#f3f4f6'; _gbd = '#d1d5db'
-            _gmsg = '평온하게 흘러가는 날'
-
-        st.markdown(
-            f'<div style="background:{_gbg};border:1px solid {_gbd};border-radius:12px;'
-            f'padding:12px 16px;margin:10px 0;display:flex;align-items:center;gap:14px;">'
-            f'<div style="text-align:center;min-width:52px;">'
-            f'  <div style="font-size:1.3rem;font-weight:800;color:{_gc};">'
-            f'    {CHEONGAN[_dg]}{JIJI[_dj]}</div>'
-            f'  <div style="font-size:0.65rem;color:{_gc};opacity:0.7;">오늘 일진</div>'
-            f'</div>'
-            f'<div style="flex:1;">'
-            f'  <span style="background:{_gc};color:#fff;font-size:0.72rem;font-weight:700;'
-            f'    border-radius:6px;padding:2px 8px;margin-right:6px;">{_grade}</span>'
-            f'  <span style="font-size:0.88rem;color:{_gc};font-weight:600;">{_gmsg}</span>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    except Exception:
-        pass
-
-    # ── 기본 분석 ────────────────────────────────────────────
-    st.markdown(
-        '<div style="font-size:0.78rem;font-weight:700;color:#6d28d9;'
-        'letter-spacing:0.05em;margin:14px 0 4px;">📋 기본 분석</div>',
-        unsafe_allow_html=True,
-    )
-    with st.expander("🎯 올해 운세 — 총평·재물·직업·연애·건강", expanded=True):
-        _render_thisyear_section(name, pillars, year, card_id=card_id, rel_status=rel_status, daeun=daeun)
-
-    with st.expander("📖 사주 해설 — 성격·재물·연애·직업·건강", expanded=False):
-        _narr(analyze_saju(name, pillars, gil, hyung, gender))
 
     with st.expander("🌿 지장간(支藏干) — 지지 속 숨은 천간", expanded=False):
         st.info("지장간은 12지지 안에 숨어있는 천간이에요. 표면에 드러나지 않는 숨은 에너지로, 운이 발동할 때 튀어나와 영향을 줘요.")
@@ -1889,76 +2014,6 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
                 st.caption('💡 월지 정기가 格局의 핵심이에요.')
             st.markdown('---')
 
-    with st.expander("🌟 일주론(日柱論) — 타고난 특성 상세", expanded=False):
-        _render_ilju_card(name, pillars, no_time=no_time)
-
-    with st.expander("💍 배우자 자리(日支宮) — 배우자 성향·합충 인연", expanded=False):
-        _render_baewuja_section(pillars, gender, rel_status=rel_status)
-
-    with st.expander("💕 이성 적성 — 잘 맞는 이성 타입", expanded=False):
-        _narr(analyze_romantic_type(name, pillars, judge_strength(pillars), gender))
-
-    with st.expander("🏛️ 궁성(宮星) — 가족·직장·배우자·자녀 자리 분석", expanded=False):
-        st.info("년주·월주·일주·시주에 자리한 십성으로 조상, 직장, 배우자, 자녀와의 인연을 살펴봐요.")
-        try:
-            _pal_result = get_palace_analysis(name, pillars)
-            if isinstance(_pal_result, list):
-                for _sec in _pal_result:
-                    st.markdown(f'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:8px;"><div style="font-size:0.88rem;font-weight:700;color:#374151;margin-bottom:6px;">{_sec.get("title", "")}</div><div style="font-size:0.82rem;color:#4b5563;line-height:1.7;">{_sec.get("desc", "")}</div></div>', unsafe_allow_html=True)
-            elif isinstance(_pal_result, str):
-                st.markdown(_pal_result)
-        except Exception as _e:
-            st.warning(f"분석 중 오류: {_e}")
-
-    with st.expander("🌟 명궁(命宮) — 타고난 운명의 별자리", expanded=False):
-        st.info("명궁은 월지와 시지를 합산해 구하는 인생의 방향성이에요. 타고난 기질과 삶의 패턴을 보여줘요.")
-        try:
-            _mg_result = get_mingung(pillars)
-            if isinstance(_mg_result, tuple) and len(_mg_result) >= 2:
-                _mg_title, _mg_desc = _mg_result[0], _mg_result[1]
-            else:
-                _mg_title, _mg_desc = str(_mg_result), ""
-            st.markdown(f'<div style="background:#faf5ff;border:1px solid #ddd4f8;border-radius:10px;padding:12px 14px;"><div style="font-size:0.95rem;font-weight:700;color:#6d28d9;margin-bottom:8px;">{_mg_title}</div><div style="font-size:0.85rem;color:#374151;line-height:1.8;">{_mg_desc}</div></div>', unsafe_allow_html=True)
-        except Exception as _e:
-            st.warning(f"분석 중 오류: {_e}")
-
-    with st.expander("🌙 월운(月運) — 이달·다음달 운세", expanded=False):
-        st.info("월운은 매월 바뀌는 이달의 운이에요. 세운 안에서 이달·다음달 좋은 시기와 주의할 시기를 월별로 확인할 수 있어요.")
-        _render_wolun_section(pillars, year, name=name, card_id=card_id, rel_status=rel_status, gender=gender, no_time=no_time)
-
-    # ── 심화 분석 ────────────────────────────────────────────
-    st.markdown(
-        '<div style="font-size:0.78rem;font-weight:700;color:#9d7cc8;'
-        'letter-spacing:0.05em;margin:14px 0 4px;">🔬 심화 분석</div>',
-        unsafe_allow_html=True,
-    )
-    with st.expander("🌊 대운(大運) — 10년 주기 큰 흐름", expanded=False):
-        st.info("대운은 약 10년 단위로 바뀌는 큰 운의 흐름이에요. 지금 어떤 대운에 있느냐에 따라 삶의 방향과 기회가 달라져요.")
-        _render_daewoon_table(start_age, forward, daeun)
-        _narr(analyze_daewoon_narrative(name, pillars, daeun, start_age, forward))
-
-    with st.expander("📅 세운(歲運) — 연도별 운세 표", expanded=False):
-        st.info("세운은 매년 바뀌는 그해의 운이에요. 대운의 큰 흐름 안에서 해마다 어떤 변화와 기회가 오는지 구체적으로 보여줘요.")
-        _render_sewoon_section(name, pillars, year, daeun, card_id=card_id, gender=gender, no_time=no_time)
-        try:
-            _cur_yr = datetime.now(_KST).year
-            _sw_detail = analyze_sewoon_detail(name, pillars, _cur_yr, daeun, year)
-            if _sw_detail:
-                with st.expander(f"🔍 {_cur_yr}년 세운 상세 분석", expanded=False):
-                    _narr(_sw_detail)
-        except Exception:
-            pass
-
-    with st.expander("📆 월별 운세 상세", expanded=False):
-        st.info("올해 1월부터 12월까지 매달의 운세 흐름을 천간·지지 십성 기반으로 분석해요.")
-        try:
-            _cur_yr2 = datetime.now(_KST).year
-            _mf_text = analyze_month_fortune(name, pillars, _cur_yr2)
-            if _mf_text:
-                _narr(_mf_text)
-        except Exception as _e:
-            st.warning(f"분석 중 오류: {_e}")
-
     with st.expander("🔖 신살(神殺) — 귀인·흉살 상세 해설", expanded=False):
         st.info("신살은 사주에 나타나는 특별한 별이에요. 귀인성은 도움을 주는 별, 흉살은 주의가 필요한 별이에요. 타고난 인연과 조심할 시기를 알려줘요.")
         _render_sal_detail(pillars)
@@ -1973,7 +2028,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         file_name=f"{name}_사주분석_{datetime.now(_KST).strftime('%Y%m%d')}.txt",
         mime="text/plain; charset=utf-8",
         key=f"dl_saju_{card_id}",
-        use_container_width=True,
+        width="stretch",
     )
     _dl_col2.download_button(
         label="🖨️ 명식 저장 (.html)",
@@ -1981,7 +2036,7 @@ def render_saju_card(name, pillars, corr_dt, corrections, gender, year,
         file_name=f"{name}_명식_{datetime.now(_KST).strftime('%Y%m%d')}.html",
         mime="text/html; charset=utf-8",
         key=f"dl_html_{card_id}",
-        use_container_width=True,
+        width="stretch",
     )
 
     # ── AI에게 붙여넣기용 복사 (클로드·제미나이 등) ──
@@ -2415,7 +2470,7 @@ def _render_baewuja_section(pillars, gender, rel_status='솔로'):
 
     # 배우자 궁 충 손상 여부
     chung_ji_idx = (ilji + 6) % 12
-    other_jijis  = [pillars[i][1] for i in range(4) if i != 2]
+    other_jijis  = [pillars[i][1] for i in range(len(pillars)) if i != 2]
     is_chung_dmg = chung_ji_idx in other_jijis
 
     # 배우자성 직접 해당 여부 (남=재성, 여=관성)
@@ -2808,14 +2863,14 @@ def _render_ilju_card(name, pillars, no_time=False):
         _r_inner = ''
         if _rel_txt:
             _r_inner += (
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">💑 연애·관계 패턴</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">💑 연애·관계 패턴</div>'
                 f'<div style="font-size:0.82rem;color:#831843;line-height:1.65;margin-bottom:{"8px" if _hint_txt else "0"};">{_rel_txt}</div>'
             )
         if _hint_txt:
             _sep2 = '<div style="border-top:1px solid #fbcfe8;margin:0 0 8px;"></div>' if _rel_txt else ''
             _r_inner += (
                 f'{_sep2}'
-                f'<div style="font-size:0.65rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">🌟 삶의 방향 조언</div>'
+                f'<div style="font-size:0.72rem;color:#9ca3af;font-weight:600;margin-bottom:4px;">🌟 삶의 방향 조언</div>'
                 f'<div style="font-size:0.82rem;color:#831843;line-height:1.65;">{_hint_txt}</div>'
             )
         st.markdown(
@@ -2841,10 +2896,10 @@ def _render_ilju_card(name, pillars, no_time=False):
         col.markdown(
             f'<div style="background:{_bg};border:{_bdr};border-radius:10px;'
             f'padding:10px 6px;text-align:center;">'
-            f'<div style="font-size:0.65rem;color:#6b7280;font-weight:600;margin-bottom:2px;">{lbl}</div>'
+            f'<div style="font-size:0.72rem;color:#6b7280;font-weight:600;margin-bottom:2px;">{lbl}</div>'
             f'<div style="font-size:1.3rem;line-height:1.2;">{_icon}</div>'
             f'<div style="font-size:0.9rem;font-weight:800;color:#374151;">{_uns}</div>'
-            f'<div style="font-size:0.6rem;color:#6b7280;margin-top:1px;">{_short}</div>'
+            f'<div style="font-size:0.75rem;color:#6b7280;margin-top:1px;">{_short}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -2884,7 +2939,7 @@ def _render_thisyear_section(name, pillars, birth_year, card_id="main", rel_stat
     st.markdown(result_text)
 
     share_key = f"share_{safe_name}_{card_id}_{sel_year}"
-    if st.button("📋 결과 텍스트 복사", key=share_key, use_container_width=False):
+    if st.button("📋 결과 텍스트 복사", key=share_key, width="content"):
         st.session_state[f"{share_key}_show"] = True
     if st.session_state.get(f"{share_key}_show"):
         st.text_area("아래 전체 선택 후 복사하세요", value=result_text,
@@ -3104,7 +3159,7 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gen
         dot_border = '3px solid #f59e0b' if is_cur else f'2px solid {bd}'
         card_bg = '#fffbeb' if is_cur else bg
         card_bd = '#fbbf24' if is_cur else bd
-        cur_tag = '<span style="font-size:0.62rem;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 5px;margin-left:5px;font-weight:700;">올해</span>' if is_cur else ''
+        cur_tag = '<span style="font-size:0.72rem;background:#fef3c7;color:#92400e;border-radius:3px;padding:1px 5px;margin-left:5px;font-weight:700;">올해</span>' if is_cur else ''
         daeun_s = _daeun_str(y)
         grade_chip = (
             f'<span style="background:{bg};border:1px solid {bd};color:{tc};'
@@ -3300,18 +3355,18 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
         elif m['is_next']:
             label_extra = ' ▷'
         if m['is_yong']:
-            _g_yk = '<div style="font-size:0.6rem;font-weight:700;color:#065f46;background:#d1fae5;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🟢 용신달</div>'
+            _g_yk = '<div style="font-size:0.75rem;font-weight:700;color:#065f46;background:#d1fae5;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🟢 용신달</div>'
         elif m['is_ki']:
-            _g_yk = '<div style="font-size:0.6rem;font-weight:700;color:#991b1b;background:#fee2e2;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🔴 기신달</div>'
+            _g_yk = '<div style="font-size:0.75rem;font-weight:700;color:#991b1b;background:#fee2e2;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🔴 기신달</div>'
         else:
             _g_yk = ''
         with grid_cols[i % 4]:
             st.markdown(f"""
 <div style="background:{card_bg}; border:{border_style}; border-radius:10px; padding:10px 8px; text-align:center; margin-bottom:10px;">
-  <div style="font-size:0.68rem; color:#888; margin-bottom:2px;">{m['label']}{label_extra}</div>
+  <div style="font-size:0.75rem; color:#888; margin-bottom:2px;">{m['label']}{label_extra}</div>
   <div style="font-size:1.1rem; font-weight:700; margin-bottom:3px;">{m['gaji']}</div>
-  <div style="font-size:0.65rem; font-weight:600; color:{tc}; background:{ac}22; display:inline-block; padding:2px 7px; border-radius:10px; margin-bottom:2px;">{m['grade']}</div>
-  <div style="font-size:0.63rem; color:#777;">{_tip(m['ss_g'])}</div>
+  <div style="font-size:0.72rem; font-weight:600; color:{tc}; background:{ac}22; display:inline-block; padding:2px 7px; border-radius:10px; margin-bottom:2px;">{m['grade']}</div>
+  <div style="font-size:0.72rem; color:#777;">{_tip(m['ss_g'])}</div>
   {_g_yk}
 </div>""", unsafe_allow_html=True)
 
@@ -3376,7 +3431,7 @@ def _render_daewoon_table(start_age, forward, daeun):
             '오행': f"{OHAENG_G[dg]}{OHAENG_J[dj]}",
             '현재': '★ 현재' if yr <= cur < yr + 10 else '',
         })
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
 
 def _get_holidays(year: int) -> dict:
@@ -3580,36 +3635,36 @@ def _render_ilchin_calendar(year, month, pillars=None):
             if cell['holiday']:
                 hname = cell['holiday']
                 holiday_html = (
-                    f'<div style="font-size:0.5rem;color:#c62828;font-weight:700;'
+                    f'<div style="font-size:0.72rem;color:#c62828;font-weight:700;'
                     f'line-height:1.1;margin-bottom:1px;white-space:nowrap;overflow:hidden;'
                     f'text-overflow:ellipsis;">{hname}</div>'
                 )
 
             tags = ''
             if _yong and _hap:
-                tags += '<span style="font-size:0.5rem;background:#00897b;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+합</span>'
+                tags += '<span style="font-size:0.72rem;background:#00897b;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+합</span>'
             elif _yong and _chung:
-                tags += '<span style="font-size:0.5rem;background:#ff7043;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+충</span>'
+                tags += '<span style="font-size:0.72rem;background:#ff7043;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+충</span>'
             elif _ki and _chung:
-                tags += '<span style="font-size:0.5rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충→기신↓</span>'
+                tags += '<span style="font-size:0.72rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충→기신↓</span>'
             elif _ki and _hap:
-                tags += '<span style="font-size:0.5rem;background:#7b1fa2;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신+합</span>'
+                tags += '<span style="font-size:0.72rem;background:#7b1fa2;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신+합</span>'
             else:
                 if _yong:
-                    tags += '<span style="font-size:0.5rem;background:#43a047;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신</span>'
+                    tags += '<span style="font-size:0.72rem;background:#43a047;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신</span>'
                 if _ki:
-                    tags += '<span style="font-size:0.5rem;background:#fb8c00;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신</span>'
+                    tags += '<span style="font-size:0.72rem;background:#fb8c00;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신</span>'
                 if _hap:
-                    tags += '<span style="font-size:0.5rem;background:#1e88e5;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">합</span>'
+                    tags += '<span style="font-size:0.72rem;background:#1e88e5;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">합</span>'
                 if _chung:
-                    tags += '<span style="font-size:0.5rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충</span>'
+                    tags += '<span style="font-size:0.72rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충</span>'
 
             html.append(
                 f'<td style="border:{bw} solid {bc};background:{bg};padding:4px 3px 3px 4px;'
                 f'vertical-align:top;min-height:72px;{today_ring}">'
                 f'<div style="font-size:0.9rem;font-weight:700;color:{dc};line-height:1.2;">{cell["d"]}</div>'
                 f'{holiday_html}'
-                f'<div style="font-size:0.6rem;color:#aaa;line-height:1.2;">음 {cell["lunar"]}</div>'
+                f'<div style="font-size:0.75rem;color:#aaa;line-height:1.2;">음 {cell["lunar"]}</div>'
                 f'<div style="font-size:0.78rem;color:#333;font-weight:600;line-height:1.3;">{cell["ganji"]}</div>'
                 f'<div style="font-size:0.75rem;line-height:1.2;">{cell["emoji"]}</div>'
                 f'<div style="margin-top:1px;">{tags}</div>'
@@ -3647,7 +3702,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
 _profile_transfer_panel()   # 사이드바: 프로필 내보내기/가져오기
 st.markdown("<h1>🔮 사주 분석</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#8b77b8; margin-top:-10px; letter-spacing:0.08em; font-size:0.95rem;'>사주팔자 · 궁합 · 재회</p>", unsafe_allow_html=True)
-st.caption("v2026.07.15.01")
+st.caption(APP_VERSION)
 st.markdown("<hr style='border:none;border-top:1px solid #e8e0f8;margin:12px 0 18px 0;'>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["  🔮  사주 보기  ", "  💕  궁합 보기  ", "  🌸  재회 보기  ", "  📅  일진 달력  ", "  💭  고민 상담  "])
@@ -3657,7 +3712,7 @@ with tab1:
     _profile_bar("s")
     with st.form("saju_form"):
         person_form("s", "")
-        submitted_s = st.form_submit_button("✨ 사주 분석하기", use_container_width=True, type="primary")
+        submitted_s = st.form_submit_button("✨ 사주 분석하기", width="stretch", type="primary")
 
     if submitted_s:
         s_name = st.session_state.get("s_name", "").strip()
@@ -3668,7 +3723,7 @@ with tab1:
                 try:
                     s_gender = st.session_state.get("s_gender", "남")
                     sy, sm, sd, s_hour, s_minute, _no, cal_lbl, s_off = _resolve_date("s")
-                    pillars, corr_dt, corrections = get_saju(sy, sm, sd, s_hour, s_minute, local_offset_min=s_off)
+                    pillars, corr_dt, corrections = _calc_saju("s", sy, sm, sd, s_hour, s_minute, _no, s_off)
                     _rel_raw = st.session_state.get("s_relstatus", "솔로")
                     _rel = '기혼' if '기혼' in _rel_raw else _rel_raw
                     st.session_state['saju_res'] = dict(
@@ -3678,7 +3733,7 @@ with tab1:
                     )
                 except Exception as e:
                     st.session_state.pop('saju_res', None)
-                    st.error(f"오류: {e}"); st.exception(e)
+                    _show_calc_error(e)
 
     if 'saju_res' in st.session_state:
         r = st.session_state['saju_res']
@@ -3747,7 +3802,7 @@ def _render_gunghap_visual(r):
             f'<div style="font-size:1.1rem;">{icon}</div>'
             f'<div style="font-size:0.72rem;font-weight:700;color:#374151;margin:2px 0;">{title}</div>'
             f'<div style="margin:4px 0;">{_badge(badge_val, "좋음" if badge_val is True else ("주의" if badge_val=="warn" else "보통"))}</div>'
-            f'<div style="font-size:0.6rem;color:#9ca3af;">{desc}</div>'
+            f'<div style="font-size:0.75rem;color:#9ca3af;">{desc}</div>'
             f'</div>', unsafe_allow_html=True)
 
     # ── 레이더 차트 ──
@@ -3783,7 +3838,7 @@ def _render_gunghap_visual(r):
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
     )
-    st.plotly_chart(_fig, use_container_width=True)
+    st.plotly_chart(_fig, width="stretch")
 
 # ── 탭 2: 궁합 ────────────────────────────────────────────────
 with tab2:
@@ -3799,7 +3854,7 @@ with tab2:
             person_form("ga", "💙 첫 번째 분")
         with c2:
             person_form("gb", "💜 두 번째 분")
-        submitted_g = st.form_submit_button("💕 궁합 분석하기", use_container_width=True, type="primary")
+        submitted_g = st.form_submit_button("💕 궁합 분석하기", width="stretch", type="primary")
 
     if submitted_g:
         na = st.session_state.get("ga_name", "").strip()
@@ -3817,8 +3872,8 @@ with tab2:
                     rel_type = REL_OPTIONS.get(chosen_label, "인연")
                     is_male_a = (ga == "남"); is_male_b = (gb == "남")
 
-                    pa, corr_a, corr_list_a = get_saju(ya, ma, da, ha, mna, local_offset_min=off_a)
-                    pb, corr_b, corr_list_b = get_saju(yb, mb, db, hb, mnb, local_offset_min=off_b)
+                    pa, corr_a, corr_list_a = _calc_saju("ga", ya, ma, da, ha, mna, no_a, off_a)
+                    pb, corr_b, corr_list_b = _calc_saju("gb", yb, mb, db, hb, mnb, no_b, off_b)
                     score, reasons, rel = _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a, is_male_b)
                     narr_text = _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type, is_male_a, is_male_b)
 
@@ -3832,7 +3887,7 @@ with tab2:
                     )
                 except Exception as e:
                     st.session_state.pop('gunghap_res', None)
-                    st.error(f"오류: {e}"); st.exception(e)
+                    _show_calc_error(e)
 
     if 'gunghap_res' in st.session_state:
         r = st.session_state['gunghap_res']
@@ -3878,7 +3933,7 @@ with tab3:
         with c2:
             person_form("jb", "🌙 상대방 (두 번째 분)")
         is_blocked = st.checkbox("⛔ 상대방이 나를 차단한 상태예요", key="jaehoe_blocked")
-        submitted_j = st.form_submit_button("🌸 재회 가능성 분석하기", use_container_width=True, type="primary")
+        submitted_j = st.form_submit_button("🌸 재회 가능성 분석하기", width="stretch", type="primary")
 
     if submitted_j:
         ja_name = st.session_state.get("ja_name", "").strip()
@@ -3894,8 +3949,8 @@ with tab3:
                     jya, jma, jda, jha, jmna, jno_a, jcal_a, joff_a = _resolve_date("ja")
                     jyb, jmb, jdb, jhb, jmnb, jno_b, jcal_b, joff_b = _resolve_date("jb")
 
-                    jpa, jcorr_a, jcorr_list_a = get_saju(jya, jma, jda, jha, jmna, local_offset_min=joff_a)
-                    jpb, jcorr_b, jcorr_list_b = get_saju(jyb, jmb, jdb, jhb, jmnb, local_offset_min=joff_b)
+                    jpa, jcorr_a, jcorr_list_a = _calc_saju("ja", jya, jma, jda, jha, jmna, jno_a, joff_a)
+                    jpb, jcorr_b, jcorr_list_b = _calc_saju("jb", jyb, jmb, jdb, jhb, jmnb, jno_b, joff_b)
                     score_j, reasons_j, rel_j = 재회운_분석(jpa, jpb, ja_name, jb_name)
                     jga_male = (jga == '남'); jgb_male = (jgb == '남')
                     jdw_a = get_daewoon(jpa, jcorr_a, jga_male)
@@ -3915,7 +3970,7 @@ with tab3:
                     )
                 except Exception as e:
                     st.session_state.pop('jaehoe_res', None)
-                    st.error(f"오류: {e}"); st.exception(e)
+                    _show_calc_error(e)
 
     if 'jaehoe_res' in st.session_state:
         r = st.session_state['jaehoe_res']
