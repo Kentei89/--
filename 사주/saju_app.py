@@ -2033,17 +2033,27 @@ def _build_saju_ctx(r: dict, sel_year: int) -> str:
     )
 
 
+def _secret_gemini_key() -> str:
+    """st.secrets에서 Gemini 키 — 최상위 또는 [firebase] 섹션 아래에 들어간 경우 모두 허용"""
+    for _path in (("GEMINI_API_KEY",), ("firebase", "GEMINI_API_KEY")):
+        try:
+            _v = st.secrets
+            for _k in _path:
+                _v = _v[_k]
+            if _v:
+                return str(_v)
+        except Exception:
+            pass
+    return ""
+
+
 def _ask_gemini(question: str, saju_ctx: str, history=None) -> str:
     """Gemini 사주 기반 고민 답변 요청 — history 있으면 멀티턴 대화 유지"""
     try:
         from google import genai as _genai
     except ImportError:
         return "⚠️ google-genai 패키지가 설치되지 않았어요. `pip install google-genai` 실행 후 재시작하세요."
-    api_key = ""
-    try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-    except Exception:
-        pass
+    api_key = _secret_gemini_key()
     if not api_key:
         import os, re as _re
         _sp = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.streamlit', 'secrets.toml')
@@ -4050,11 +4060,7 @@ with tab5:
             st.code(_ctx5, language=None)
 
         # API 키 없으면 안내
-        _has_key = st.session_state.get("_gemini_api_key", "")
-        try:
-            _has_key = _has_key or st.secrets["GEMINI_API_KEY"]
-        except Exception:
-            pass
+        _has_key = st.session_state.get("_gemini_api_key", "") or _secret_gemini_key()
         if not _has_key:
             import os, re as _re2
             _sp2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.streamlit', 'secrets.toml')
