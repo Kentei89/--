@@ -1,10 +1,33 @@
 # ── 사주 엔진 변경 이력 ────────────────────────────────
+# v2026.11.11.03 (2026-11-11)
+#   · 용신: 중화 구간(42~58%)을 50%에서 나눔. 50% 이상(중화신강)은 덜어 쓰는 오행을 용신으로.
+#     (전에는 58% 미만이면 모두 돕는 오행이라 '살짝 강한' 사주에도 보태는 용신이 나왔음)
+#   · 재회: 세운 점수에 성별 반영(남 재성·여 관성만 이성 인연) — 해설 문구와 기준 통일,
+#     조사(은/는·이/가)·'~이에요→예요' 교정, 지난 달만 나오던 재회 적기를 '앞으로 1년' 기준으로,
+#     재회 후 전망에 형(刑) 포함·낮은 점수일 때 단서 추가, 재회 구간 이모지 제거.
+# v2026.11.11.02 (2026-11-11)
+#   · 강약 저울 보정: 일간 자신을 내 편 1.0으로 계산(빼면 평균이 40%라 약한 쪽으로 72% 쏠림 → 60%).
+#   · 월운: 기신달인데 좋다고만 쓰던 영역별 문장에 단서 추가, 용신·기신이 섞인 달 안내,
+#     기신 표기를 그 달에 실제 들어온 오행으로 한정.
+#   · 12개월 흐름: 달 이름이 양력과 한 달 어긋나던 것(1월=인월) → 절기 기간 표기, '이번 달' 표시 수정,
+#     용신달·기신달 표시 추가.
+# v2026.11.09.02 (2026-11-09)
+#   · 올해 운세: 중화 사주가 '신강' 문장을 쓰던 버그 수정(실제 비율로 신강/신약 선택),
+#     기대·조심달 점수를 용신 방향 기준으로 변경, '특히 조심할 달'이 12개월 전부 나오던 버그 수정,
+#     달 라벨에 양력 기간 표기(절기월), 원국×세운 합·충(방합 완성·천간합 등) 섹션 추가,
+#     기신운 해의 이직·창업·투자 문장에 일관된 단서 추가, 조사 '이(가)' 노출 4곳 수정
+# v2026.11.09.01 (2026-11-09)
+#   · 용신 판정 일원화: 억부(강약) 기본 → 같은 방향 오행 중 조후 맞는 쪽 선택,
+#     조열·한습이 극단적인 사주(여름 수0·화3+, 겨울 화0·수3+)만 조후 우선.
+#     get_gyeokguk·get_yongshin이 항상 같은 용신을 반환, 용신은 기신 목록에서 제외.
+#   · 신강/신약 판정 일원화(_strength_ratio): judge_strength·get_strength_detail 동일 비율 사용,
+#     십이운성으로 지지 전체를 깎던 가중치 제거(약한 자리의 관살·식재가 무시돼 신강 쪽으로 쏠림).
 # v2026.07.15.01 (2026-07-15)
 #   · 절기 시각 계산 고정밀화: VSOP87 절단급수 + 장동·광행차 + ΔT(TT→UT) 보정
 #     (실제 KASI 절기와 초 단위 일치, 절기 경계 출생자 정확도 개선)
 #   · 해설 다듬기: 신살/표현 중복 제거, 문장 접합 버그·오타 수정,
 #     날것 한자(格局) 한글화, 성격 결핍 나열에 긍정 마무리 추가
-ENGINE_VERSION = '2026.07.15.01'
+ENGINE_VERSION = '2026.11.11.03'
 
 import sys, math
 from datetime import datetime, timedelta, timezone
@@ -58,6 +81,13 @@ def _jp(word, jong, cho):
     code = ord(word[-1])
     if 0xAC00 <= code <= 0xD7A3:
         return jong if (code - 0xAC00) % 28 else cho
+    return jong
+
+def _jp_last(word, jong, cho):
+    """괄호·기호로 끝나는 말은 마지막 한글 글자로 조사를 고른다. 예: '삼합(화)' → 가"""
+    for ch in reversed(word or ''):
+        if '가' <= ch <= '힣':
+            return _jp(ch, jong, cho)
     return jong
 
 def get_sipseong(ilgan, t_ohaeng, t_euyang):
@@ -120,7 +150,7 @@ SINSAL_DESC = {
     '천을귀인': (
         '사주에서 가장 강력한 귀인성으로, 위기와 어려움의 순간마다 반드시 도움의 손길이 나타나는 삶의 수호자예요. '
         '큰 위기가 올 때마다 뜻밖의 조력자가 등장하거나 상황이 기적처럼 반전되는 경험을 하게 돼요. '
-        '대인 관계가 원만하고 상하 관계에서 자연스럽게 신망을 얻어 든든한 백그라운드가 생기는 구조이에요. '
+        '대인 관계가 원만하고 상하 관계에서 자연스럽게 신망을 얻어 든든한 백그라운드가 생기는 구조예요. '
         '평소 베풀고 감사하는 마음을 유지할수록 귀인의 기운이 더 강하게 살아나요.'
     ),
     '문창귀인': (
@@ -211,7 +241,7 @@ SINSAL_DESC = {
     '홍염살': (
         '타고난 외모와 분위기로 이성에게 강렬한 매력을 발산하는 별이에요. '
         '도화살보다 더 강렬하고 운명적인 이성 인연이 찾아오지만, 그만큼 감정 소모와 인연의 복잡함도 따를 수 있어요. '
-        '이 기운을 예술·무대·창작 활동으로 승화하면 강력한 팬덤과 대중적 인기로 연결되는 에너지이에요.'
+        '이 기운을 예술·무대·창작 활동으로 승화하면 강력한 팬덤과 대중적 인기로 연결되는 에너지예요.'
     ),
     '천의성': (
         '의료·치유·상담 분야에 천부적인 재능을 타고난 별이에요. '
@@ -221,7 +251,7 @@ SINSAL_DESC = {
     '공망': (
         '공허한 기운으로 해당 기둥이 나타내는 인연이나 운이 약해지는 별이에요. '
         '노력한 만큼의 결실이 늦게 오거나 기대보다 힘이 덜 미치는 경험을 하지만, 정신·학문·종교·예술 방면에서는 오히려 속세에 얽매이지 않는 깊은 탁월함이 나와요. '
-        '공망된 기둥의 인연(배우자·자녀·재물 등)에 대한 집착을 내려놓을 때 오히려 더 큰 것이 찾아오는 역설적 구조이에요.'
+        '공망된 기둥의 인연(배우자·자녀·재물 등)에 대한 집착을 내려놓을 때 오히려 더 큰 것이 찾아오는 역설적 구조예요.'
     ),
     '괴강살': (
         '타고난 카리스마와 압도적인 결단력으로 주변을 이끄는 강력한 별이에요. '
@@ -2841,7 +2871,7 @@ _YEAR_QA = {
         '이직': '이직보다 현재 환경에서 내가 좋아하는 것에 더 집중할 방법을 찾는 것이 먼저예요. 체력이 충분하지 않은 상태에서 새로운 환경 적응에 에너지를 쏟으면 더 힘들어질 수 있어요. 이직을 원한다면 최소 3개월의 재정 여유를 확보하고 시작하세요.',
         '창업': '창업보다 부업이나 소규모 프리랜서 활동으로 먼저 시장 반응을 확인해보세요. 에너지가 충분하지 않은 상태에서 창업은 번아웃으로 이어질 수 있어요. 내년에 에너지가 회복된 상태에서 도전하는 것이 더 안전해요.',
         '연애시작': '자신을 가꾸고 좋아하는 것을 즐기다 보면 자연스럽게 인연이 들어오는 흐름이에요. 에너지가 충분하지 않으니 연애를 억지로 만들려 하면 부담스러워요. 자연스럽게 흐르는 것을 믿어보세요.',
-        '관계진전': '진지한 이야기를 나누기 좋은 해지만, 내 컨디션이 좋지 않은 날에는 중요한 결정을 미루세요. 상대에게 지금 내 상황을 솔직하게 이야기하고, 충분한 여유를 갖고 결정하는 방식이 이 해에 잘 맞아요. 따뜻하고 편안한 분위기에서 자연스럽게 이야기가 이어지면 좋은 결과가 나와요.줄 가능성이 높아요.',
+        '관계진전': '진지한 이야기를 나누기 좋은 해지만, 내 컨디션이 좋지 않은 날에는 중요한 결정을 미루세요. 상대에게 지금 내 상황을 솔직하게 이야기하고, 충분한 여유를 갖고 결정하는 방식이 이 해에 잘 맞아요. 따뜻하고 편안한 분위기에서 자연스럽게 이야기가 이어지면 좋은 결과가 나와요.',
         '투자': '이 해에는 투자보다 지출 줄이기가 더 효과적이에요. 소득이 안정적이지 않은 상태에서의 투자는 심리적 부담만 키울 수 있어요. 먼저 3개월치 비상금을 만드는 것이 이 해의 재물 목표예요.',
     },
     ('상관', '신강'): {
@@ -2856,19 +2886,19 @@ _YEAR_QA = {
         '창업': '하고 싶은 마음은 굴뚝같지만 지금 당장은 체력과 자금 여유가 부족한 상태예요. 작은 프리랜서나 부업으로 먼저 시장 반응을 확인하고, 본격적인 창업은 에너지가 충분히 올라온 내년 이후로 미루는 것이 안전해요.',
         '연애시작': '에너지가 충분한 상태가 아니라서 적극적으로 관계를 만들어나가기 버거울 수 있어요. 자연스럽게 생기는 인연에 열린 마음을 갖되, 무리하게 밀어붙이지 마세요. 내 컨디션이 좋을 때 만남에 집중하는 것이 좋아요.',
         '관계진전': '감정 기복이 있는 해라, 중요한 결정은 두 사람 모두 안정된 상태에서 하는 것이 중요해요. 상대에게 지금 내가 지쳐있다는 것을 솔직하게 공유하면 오히려 더 깊은 신뢰로 이어질 수 있어요.',
-        '투자': '이 해에는 투자보다 지출 줄이기와 비상금 확보가 훨씬 현명해요. 번뜩이는 투자 아이디어가 있더라도 소액으로만 테스트하고, 큰 금액은 절대 한 번에 넣지 마세요. 감정이 흥분된 상태에서 내린 투자 결정은 대부분 나중에 후회로 이어지는 패턴이에요. 이 해엔 지키는 것이 버는 것이에요.세요.',
+        '투자': '이 해에는 투자보다 지출 줄이기와 비상금 확보가 훨씬 현명해요. 번뜩이는 투자 아이디어가 있더라도 소액으로만 테스트하고, 큰 금액은 절대 한 번에 넣지 마세요. 감정이 흥분된 상태에서 내린 투자 결정은 대부분 나중에 후회로 이어지는 패턴이에요. 이 해엔 지키는 것이 버는 것이에요.',
     },
     ('편재', '신강'): {
         '이직': '더 높은 수익이나 성장 가능성이 있는 곳으로의 이직이 잘 맞는 해예요. 영업, 사업, 투자, 무역, 개발 분야에서 결과로 평가받는 환경이 이상적이에요. 이직 협상에서 연봉·직급·역할을 적극적으로 협상하면 좋은 조건을 얻을 수 있어요.',
         '창업': '창업에 매우 유리한 기운이에요. 특히 사업 확장, 신규 거래처 개척, 영업 기반 사업에서 좋은 성과가 나와요. 다만 지나친 확장이나 리스크 관리 없는 투자는 이 해의 가장 큰 함정이니, 계획을 세울 때 최악의 시나리오도 반드시 포함하세요.',
         '연애시작': '활동적이고 에너지 넘치는 모습이 이성에게 매력적으로 보이는 해예요. 새로운 사람을 많이 만날수록 인연이 생길 가능성도 높아지는 시기예요. 다만 여러 관계를 동시에 유지하려 하면 결국 아무것도 깊어지지 않으니, 진심이 가는 상대 한 명에게 집중하세요.',
-        '관계진전': '관계 진전을 추진하기 좋은 에너지가 있는 해예요. 여행이나 새로운 경험을 함께 만들면서 자연스럽게 이야기를 꺼내보세요. 상대의 속도를 확인하는 것이 중요해요. 두 사람이 같은 방향을 바라보고 있다는 확인이 된 뒤에 공식적인 결정을 진행하면 더 탄탄한 관계가 만들어져요.요.',
+        '관계진전': '관계 진전을 추진하기 좋은 에너지가 있는 해예요. 여행이나 새로운 경험을 함께 만들면서 자연스럽게 이야기를 꺼내보세요. 상대의 속도를 확인하는 것이 중요해요. 두 사람이 같은 방향을 바라보고 있다는 확인이 된 뒤에 공식적인 결정을 진행하면 더 탄탄한 관계가 만들어져요.',
         '투자': '투자 운이 활발한 해예요. 단, 감당할 수 없는 규모의 투자나 레버리지를 과도하게 쓰는 것은 금물이에요. 분산 투자와 명확한 손절 기준을 미리 정해두고 시작하면 큰 손실을 막을 수 있어요.',
     },
     ('편재', '신약'): {
         '이직': '이직을 원하지만 에너지가 부족한 상태에서 환경까지 바꾸면 적응이 더 힘들 수 있어요. 이직을 결심했다면 재정적 여유(최소 3개월치 생활비)를 먼저 확보하고, 새 직장의 업무 강도와 환경을 충분히 조사한 뒤 결정하세요.',
         '창업': '하고 싶은 마음은 있지만 지금은 준비를 다지는 시기예요. 소규모 부업이나 프리랜서로 시장 반응을 먼저 확인하고, 자금과 체력이 충분해진 이후에 본격 창업을 시작하는 것이 훨씬 안전해요.',
-        '연애시작': '이성 인연을 만날 기회는 있지만 에너지 관리가 중요해요. 처음부터 부담 없는 방식으로 시작하는 것이 좋아요. 먼저 내 에너지를 채운 뒤에 연애를 시작하면 훨씬 오래가는 관계가 만들어져요. 나를 이해하고 맞춰주는 사람인지 천천히 확인하면서 자연스럽게 흐름을 따르세요.이 중요해요.',
+        '연애시작': '이성 인연을 만날 기회는 있지만 에너지 관리가 중요해요. 처음부터 부담 없는 방식으로 시작하는 것이 좋아요. 먼저 내 에너지를 채운 뒤에 연애를 시작하면 훨씬 오래가는 관계가 만들어져요. 나를 이해하고 맞춰주는 사람인지 천천히 확인하면서 자연스럽게 흐름을 따르세요.',
         '관계진전': '진지한 이야기를 나누고 싶은 마음이 있다면, 내 현재 상황을 솔직하게 공유하면서 상대와 충분히 대화해보세요. 재정적 준비와 두 사람의 현실적인 조건을 함께 점검한 뒤 결정하는 것이 중요해요. 완벽한 타이밍보다 솔직한 소통이 더 중요한 해예요. 서두르지 말고 충분히 이야기가 쌓인 뒤에 자연스럽게 진전하세요. 중요한 해예요.',
         '투자': '수입이 생겨도 나가는 속도가 빠른 해라, 투자 전에 비상금 확보가 먼저예요. 달콤한 투자 제안이 들어와도 검증 단계를 반드시 거치세요. 이 해에는 지키는 것이 버는 것보다 중요해요.',
     },
@@ -2881,30 +2911,30 @@ _YEAR_QA = {
     },
     ('정재', '신약'): {
         '이직': '현재 안정된 직장을 유지하는 것이 더 유리한 해예요. 신약한 상태에서 새로운 환경 적응은 에너지 소모가 커요. 이직을 원한다면 재정적 안전망을 충분히 확보하고, 새 직장의 업무 강도를 꼼꼼히 파악한 뒤에 결정하세요.',
-        '창업': '지금은 창업보다 안정적인 수입 구조를 유지하는 것이 먼저예요. 아이디어를 다듬고 시장 조사를 철저히 하는 준비 기간으로 활용하세요. 창업 전에 갖춰야 할 세 가지: 최소 6개월치 생활비, 수익 모델 검증, 첫 고객 경험. 이 세 가지가 준비되면 내년 이후 훨씬 안정적으로 시작할 수 있어요.한 기반으로 시작할 수 있어요.',
-        '연애시작': '진지하고 안정적인 관계를 원하는 마음이 크지만, 지금 내 에너지와 상황을 솔직하게 받아들이고 여유 있게 임하세요. 꾸준하고 성실한 모습 그대로가 상대에게 매력으로 보여요. 지인 소개나 공통 관심사 모임처럼 자연스러운 경로가 이 해에 가장 잘 맞아요.지쳐버릴 수 있어요.',
+        '창업': '지금은 창업보다 안정적인 수입 구조를 유지하는 것이 먼저예요. 아이디어를 다듬고 시장 조사를 철저히 하는 준비 기간으로 활용하세요. 창업 전에 갖춰야 할 세 가지: 최소 6개월치 생활비, 수익 모델 검증, 첫 고객 경험. 이 세 가지가 준비되면 내년 이후 훨씬 안정적으로 시작할 수 있어요.',
+        '연애시작': '진지하고 안정적인 관계를 원하는 마음이 크지만, 지금 내 에너지와 상황을 솔직하게 받아들이고 여유 있게 임하세요. 꾸준하고 성실한 모습 그대로가 상대에게 매력으로 보여요. 지인 소개나 공통 관심사 모임처럼 자연스러운 경로가 이 해에 가장 잘 맞아요.',
         '관계진전': '진지한 이야기를 나누기 좋은 마음은 있지만, 내 상황이 불안정한 상태에서는 큰 결정이 오히려 부담이 될 수 있어요. 재정과 체력이 어느 정도 안정된 뒤에 논의하는 것이 더 현명해요.',
-        '투자': '이 해에는 현재 재산을 지키는 것이 최우선이에요. 작은 적금이라도 자동 이체를 설정해서 저축 습관을 만들고, 지출을 꼼꼼히 기록해보세요. 투자는 원금 손실 위험이 없는 안전 자산(정기예금·연금)에만 소규모로 운용하고, 지인의 투자 권유는 이 해에는 정중히 거절하는 것이 현명해요.미루세요.',
+        '투자': '이 해에는 현재 재산을 지키는 것이 최우선이에요. 작은 적금이라도 자동 이체를 설정해서 저축 습관을 만들고, 지출을 꼼꼼히 기록해보세요. 투자는 원금 손실 위험이 없는 안전 자산(정기예금·연금)에만 소규모로 운용하고, 지인의 투자 권유는 이 해에는 정중히 거절하는 것이 현명해요.',
     },
     ('편관', '신강'): {
         '이직': '이직이나 더 큰 도전에 좋은 에너지가 있는 해예요. 특히 군·경·법조·의료·건설·스포츠처럼 책임이 크고 결과가 명확한 분야로의 이동이 잘 맞아요. 이직 협상에서 적극적으로 조건을 제시하면 좋은 결과를 얻을 수 있어요.',
         '창업': '도전적인 창업을 시도하기 좋은 해예요. 경쟁이 치열한 시장에서도 버텨내는 추진력이 생기는 시기예요. 단, 과도한 확장이나 리스크 관리 없는 출발은 초반에 큰 난관을 만들 수 있으니, 단계적으로 확장하는 전략을 세우세요.',
         '연애시작': '강한 존재감과 추진력이 매력적으로 보이는 해예요. 마음이 가는 상대에게 적극적으로 다가가면 좋은 반응을 얻을 수 있어요. 다만 처음부터 너무 강하게 밀어붙이면 상대가 부담을 느낄 수 있으니, 강함 속에 여유를 보여주세요.',
-        '관계진전': '중요한 결정을 추진할 힘이 있는 해예요. 결혼이나 동거 이야기를 꺼낸다면 상대를 이끄는 방식보다 함께 결정하는 방식으로 접근하세요. 두 사람의 현실적인 조건(재정·거주·일정)을 먼저 충분히 이야기하고, 합의 후 실행하면 더 탄탄해요. 빠르게 추진하되 상대의 속도를 존중하는 균형이 핵심이에요.해요.',
+        '관계진전': '중요한 결정을 추진할 힘이 있는 해예요. 결혼이나 동거 이야기를 꺼낸다면 상대를 이끄는 방식보다 함께 결정하는 방식으로 접근하세요. 두 사람의 현실적인 조건(재정·거주·일정)을 먼저 충분히 이야기하고, 합의 후 실행하면 더 탄탄해요. 빠르게 추진하되 상대의 속도를 존중하는 균형이 핵심이에요.',
         '투자': '도전적인 투자에서 성과를 낼 수 있는 에너지가 있어요. 단, 올인하거나 리스크를 과소평가하는 것은 이 해의 가장 큰 함정이에요. 전체 자산의 20~30% 이상은 안전 자산으로 유지하면서 움직이세요.',
     },
     ('편관', '신약'): {
         '이직': '이직을 원하는 마음이 있더라도 지금은 신중해야 해요. 에너지가 부족한 상태에서 새 환경의 압박까지 더해지면 더 힘들어질 수 있어요. 이직 후 최소 6개월은 적응 기간이 필요하다는 것을 감안하고, 그것을 버틸 재정적·체력적 여유가 있는지 냉정하게 따져보세요.',
         '창업': '지금은 창업보다 체력과 에너지를 회복하는 것이 먼저예요. 창업 아이디어를 구체화하고 자금을 모으는 준비 기간으로 활용하면, 에너지가 회복된 내년 이후에 훨씬 단단한 출발선에 설 수 있어요.',
         '연애시작': '연애를 시작하고 싶은 마음은 있지만 에너지가 부족해요. 억지로 만들려 하면 금방 지쳐버릴 수 있어요. 내 컨디션이 좋은 날에 자연스럽게 흐르는 인연에 마음을 여는 정도로 접근하세요.',
-        '관계진전': '중요한 결정을 내리기 전에 내 상황이 어느 정도 안정됐는지 먼저 점검하세요. 지금 당장 큰 결정보다 관계를 더 단단하게 만드는 과정에 집중하는 것이 이 해의 방향이에요. 서로 힘든 시기를 함께 버텨주는 경험 자체가 관계를 가장 깊게 만들어요. 큰 결정은 에너지가 회복된 내년으로 미뤄도 돼요.것이 이 해에 더 맞아요.',
-        '투자': '이 해에는 투자보다 비상금 확보가 훨씬 중요해요. 갑작스러운 지출(의료비·수리비·세금)이 생기기 쉬운 해라, 최소 3~6개월치 생활비를 현금으로 확보해두세요. 투자 여력이 생기더라도 원금 보장형 상품에만 소규모로 운용하고, 에너지가 회복되는 내년에 더 적극적으로 시작하세요.선이에요.',
+        '관계진전': '중요한 결정을 내리기 전에 내 상황이 어느 정도 안정됐는지 먼저 점검하세요. 지금 당장 큰 결정보다 관계를 더 단단하게 만드는 과정에 집중하는 것이 이 해의 방향이에요. 서로 힘든 시기를 함께 버텨주는 경험 자체가 관계를 가장 깊게 만들어요. 큰 결정은 에너지가 회복된 내년으로 미뤄도 돼요.',
+        '투자': '이 해에는 투자보다 비상금 확보가 훨씬 중요해요. 갑작스러운 지출(의료비·수리비·세금)이 생기기 쉬운 해라, 최소 3~6개월치 생활비를 현금으로 확보해두세요. 투자 여력이 생기더라도 원금 보장형 상품에만 소규모로 운용하고, 에너지가 회복되는 내년에 더 적극적으로 시작하세요.',
     },
     ('정관', '신강'): {
         '이직': '원칙을 지키고 실력이 인정받는 환경으로의 이동이 잘 맞아요. 공직, 전문직, 대기업, 안정적인 조직으로의 이직이 이 해에 특히 좋은 흐름이에요. 이직 협상에서 연봉보다 직책과 역할의 명확성을 우선 확인하세요.',
         '창업': '창업보다 현재 조직에서 인정받는 것이 더 자연스러운 흐름이에요. 창업을 원한다면 기존 조직에서 쌓은 신뢰와 전문성을 그대로 활용할 수 있는 분야를 선택하는 것이 리스크를 낮추는 방법이에요.',
         '연애시작': '진지하고 신뢰를 중시하는 관계가 이 해에 가장 잘 맞아요. 성실하고 안정적인 상대에게 끌리는 시기예요. 처음부터 서로의 가치관을 확인하는 대화를 나누는 것이 이 해의 연애 스타일에 잘 맞아요.',
-        '관계진전': '결혼이나 동거 등 공식적인 관계 진전에 좋은 기운이 있는 해예요. 원칙적이고 체계적으로 준비하는 방식이 잘 맞아요. 두 사람의 미래 방향·재정·생활 방식에 대해 충분히 이야기하고 합의한 뒤 공식화하세요. 이 해에 내린 결정은 오래 지속되는 안정적인 관계로 이어질 가능성이 높아요.하고 단계적으로 진행하세요.',
+        '관계진전': '결혼이나 동거 등 공식적인 관계 진전에 좋은 기운이 있는 해예요. 원칙적이고 체계적으로 준비하는 방식이 잘 맞아요. 두 사람의 미래 방향·재정·생활 방식에 대해 충분히 이야기하고 합의한 뒤 공식화하세요. 이 해에 내린 결정은 오래 지속되는 안정적인 관계로 이어질 가능성이 높아요.',
         '투자': '안정적이고 검증된 자산에 투자하는 것이 가장 좋아요. 부동산, 장기 ETF, 연금 등 장기 안정 수익이 목적인 투자가 이 해에 잘 맞아요. 단기 고수익 투자는 이 해의 기운과 맞지 않아요.',
     },
     ('정관', '신약'): {
@@ -2926,14 +2956,14 @@ _YEAR_QA = {
         '창업': '공부, 연구, 창작 활동을 기반으로 한 소규모 창업을 시작하기 좋은 해예요. 당장 큰 수익보다 자신의 전문성을 알리는 것을 목표로 시작하면 점차 기반이 쌓여요. 창업 전에 최소 6개월치 생활비와 명확한 타깃 고객을 확보해두세요. 준비가 충분히 됐다는 확신이 들 때 시작하는 것이 이 격국의 창업 방식이에요. 기반이 만들어져요.',
         '연애시작': '나를 이해하고 있는 그대로 받아주는 사람이 나타나는 흐름이에요. 조용하고 편안한 방식의 만남이 이 해에 가장 잘 맞아요. 억지로 활발하게 돌아다니기보다 내 일상 속에서 자연스럽게 찾아오는 인연을 기다리세요.',
         '관계진전': '상대가 나를 충분히 지지해준다는 확신이 있다면 진전을 이야기하기 좋아요. 내 감정과 상황을 솔직하게 나누는 대화가 먼저예요. 혼자만의 시간과 공간을 존중해주는 파트너인지 확인하고, 그 부분이 맞다면 자연스럽게 다음 단계로 나아갈 수 있어요. 서두르지 않아도 돼요..',
-        '투자': '교육·자격·기술 향상에 투자하는 것이 이 해에 가장 확실한 투자예요. 금융 투자는 원금이 보장되는 안전 자산에만 소규모로 운용하세요. 직관적으로 끌리는 투자처가 있어도 반드시 검증 후 실행하고, 큰 금액은 에너지가 회복되는 내년으로 미루는 것이 현명해요.해요.',
+        '투자': '교육·자격·기술 향상에 투자하는 것이 이 해에 가장 확실한 투자예요. 금융 투자는 원금이 보장되는 안전 자산에만 소규모로 운용하세요. 직관적으로 끌리는 투자처가 있어도 반드시 검증 후 실행하고, 큰 금액은 에너지가 회복되는 내년으로 미루는 것이 현명해요.',
     },
     ('정인', '신강'): {
         '이직': '귀인의 추천이나 예상치 못한 스카우트 기회가 들어올 수 있는 해예요. 적극적으로 찾아다니기보다 현재 실력을 쌓고 인맥을 유지하다 보면 좋은 기회가 자연스럽게 찾아와요. 기회가 왔을 때 너무 오래 고민하지 말고 빠르게 결정하는 것이 중요해요.',
         '창업': '학문·교육·상담·복지 분야의 창업이 특히 잘 맞는 해예요. 귀인의 도움이나 파트너십을 통한 창업 기회가 생길 수 있어요. 수동적으로 기다리기보다 먼저 제안하거나 나서는 적극성이 필요한 해예요.',
         '연애시작': '온화하고 배려 깊은 매력이 자연스럽게 드러나는 해예요. 지적이고 성실한 사람에게 끌리는 시기예요. 너무 수동적으로 기다리면 좋은 인연이 지나칠 수 있어요. 마음에 드는 상대에게 먼저 따뜻하게 관심을 표현해보세요. 공통 관심사나 배움의 자리에서 만나는 인연이 이 해에 오래가는 경우가 많아요. 다가가는 작은 용기를 내보세요.',
-        '관계진전': '귀인이나 주변의 도움으로 자연스럽게 진전이 이루어지는 흐름이에요. 적극적으로 추진하기보다 자연스러운 흐름에 맡기면서 때를 기다리는 것이 이 해의 방식이에요. 주변의 응원과 신뢰 속에서 결정이 이루어지면 가장 오래가는 구조예요. 어머니나 신뢰하는 사람의 조언을 참고해보세요.면서 진행하세요.',
-        '투자': '안정적인 장기 투자가 잘 맞아요. 학습과 자기계발에 투자하는 것이 이 해에 가장 높은 수익률을 내는 방법이에요. 금전 투자는 검증된 안전 자산(정기예금·연금·부동산 소액 투자) 위주로 꾸준하게 운용하고, 단기 수익을 쫓는 투자는 피하세요. 화려한 수익보다 차근차근 쌓이는 방식이 이 사주에 가장 맞아요.는 방식이 이 해에 더 맞아요.',
+        '관계진전': '귀인이나 주변의 도움으로 자연스럽게 진전이 이루어지는 흐름이에요. 적극적으로 추진하기보다 자연스러운 흐름에 맡기면서 때를 기다리는 것이 이 해의 방식이에요. 주변의 응원과 신뢰 속에서 결정이 이루어지면 가장 오래가는 구조예요. 어머니나 신뢰하는 사람의 조언을 참고해보세요.',
+        '투자': '안정적인 장기 투자가 잘 맞아요. 학습과 자기계발에 투자하는 것이 이 해에 가장 높은 수익률을 내는 방법이에요. 금전 투자는 검증된 안전 자산(정기예금·연금·부동산 소액 투자) 위주로 꾸준하게 운용하고, 단기 수익을 쫓는 투자는 피하세요. 화려한 수익보다 차근차근 쌓이는 방식이 이 사주에 가장 맞아요.',
     },
     ('정인', '신약'): {
         '이직': '귀인의 추천이나 예상치 못한 기회가 찾아올 수 있는 해예요. 학문·교육·상담·복지 분야의 이직 기회가 특히 좋아요. 지금 있는 곳에서 실력을 쌓으면서 열린 자세를 유지하면 좋은 기회가 자연스럽게 들어와요.',
@@ -3465,33 +3495,38 @@ def explain_yongshin(pillars):
 
     i_ga = _jp(ya_name, '이', '가')
 
-    if '조후' in basis and '태과' not in basis:
-        season_map = {'봄':'봄(목기운 강함)', '여름':'여름(화기운 강함)', '가을':'가을(금기운 강함)', '겨울':'겨울(수기운 강함)', '환절기':'환절기(토기운 강함)'}
-        s_desc = season_map.get(season_name, season_name)
+    if basis == '조후(調候)':
+        _, johu_reason = get_johu_priority(pillars)
         lines = [
             f'**🔮 용신·기신 판단 근거**',
             f'',
-            f'- **용신: {ya_name}(오행)** — 조후(調候) 기준',
-            f'  {s_desc}에 태어나 계절의 치우친 기운을 조절하기 위해 {ya_name}{i_ga} 가장 필요한 오행이에요.',
-        ]
-        if temp_adj:
-            lines.append(f'  태어난 시기 기운 특성: {temp_adj}')
-    elif '태과' in basis:
-        gyeok = basis.split('격국(')[1].split(')')[0] if '격국(' in basis else ''
-        lines = [
-            f'**🔮 용신·기신 판단 근거**',
-            f'',
-            f'- **용신: {ya_name}(오행)** — 격국({gyeok}) 기반',
-            f'  계절 기준으로는 다른 오행이 용신이어야 하지만, 그 오행이 사주에 이미 3개 이상이라(태과) 균형을 위해 {ya_name}으로 전환됐어요.',
+            f'- **용신: {ya_name}(오행)** — 조후(調候) 우선',
+            f'  {johu_reason}예요. 이렇게 온도가 한쪽으로 크게 치우치면 강약보다 온도 조절이 먼저라서 {ya_name}{i_ga} 용신이 돼요.',
         ]
     else:
-        gyeok = basis.replace('격국(', '').replace(')', '') if '격국(' in basis else basis
+        gyeok = basis.replace('+조후', '').replace('격국(', '').replace(')', '') if '격국(' in basis else basis
+        il_oh = OHAENG_IDX[pillars[2][0]]
+        helps = ya_oh == il_oh or (ya_oh + 1) % 5 == il_oh   # 비겁·인성
+        _l8, _ = get_strength_detail(pillars)
+        _l8 = _l8.split('(')[0]
+        _tone = {'중화신약': '중화에 가깝지만 살짝 약한 편', '중화신강': '중화에 가깝지만 살짝 강한 편'}.get(_l8, f'{_l8}한 편')
+        if helps:
+            why = f'일간이 {_tone}이라 힘을 보태주는 {ya_name}{i_ga} 가장 필요한 오행이에요.'
+        else:
+            why = f'일간이 {_tone}이라 넘치는 힘을 덜어 쓰게 해주는 {ya_name}{i_ga} 가장 필요한 오행이에요.'
         lines = [
             f'**🔮 용신·기신 판단 근거**',
             f'',
-            f'- **용신: {ya_name}(오행)** — 격국({gyeok}) 기반',
-            f'  사주 구조({gyeok})에서 일간을 도와 균형을 잡아주는 가장 필요한 오행이에요.',
+            f'- **용신: {ya_name}(오행)** — 억부(抑扶) · 격국({gyeok}) 기준',
+            f'  {why}',
         ]
+        _, johu_oh_tbl, _, johu_nm = get_johu(pillars)
+        if '+조후' in basis:
+            lines.append(f'  같은 역할을 하는 오행 가운데 {season_name} 출생의 온도까지 맞춰주는 {ya_name}{_jp(ya_name, "을", "를")} 골랐어요(조후 보정).')
+        elif johu_nm and johu_nm == ya_name:
+            lines.append(f'  계절({season_name})로 봐도 {ya_name}{i_ga} 필요해서 억부와 조후가 같은 답을 가리켜요.')
+        elif johu_nm and johu_nm != ya_name:
+            lines.append(f'  계절({season_name})로 보면 {johu_nm} 기운도 도움이 되지만, 온도가 극단적이지 않아 보조로만 봐요.')
 
     if dist:
         lines.append(f'- **오행 분포:** {dist}')
@@ -3675,6 +3710,17 @@ def _year_domain_holistic(domain, gyeok_name, ss_g, strength, oa, ya_name, ki_na
         },
     }
     result = _DATA.get(domain, {}).get((_gcat, _ss_cat), '')
+    # 위 문장은 십성만 보고 쓴 것이라, 기신 해에는 어긋나지 않게 단서를 붙임
+    if result and is_ki and not is_yong:
+        _kn = '·'.join(ki_names) if ki_names else ''
+        _ki_lbl = f'기신({_kn})' if _kn else '기신'
+        _KI_NOTE = {
+            '재물': f' 올해는 {_ki_lbl} 기운이 강한 해라는 점도 함께 봐야 해요. 기회가 보여도 규모를 줄이고, 버는 것보다 지키는 쪽에 무게를 두세요.',
+            '직업': f' 올해는 {_ki_lbl} 기운이 강한 해라는 점도 함께 봐야 해요. 새 일을 벌이기보다 맡은 일의 완성도를 높이는 쪽이 안전해요.',
+            '연애': f' 올해는 {_ki_lbl} 기운이 강한 해라 서두르면 어긋나기 쉬워요. 속도를 늦추고 충분히 지켜본 뒤 움직이세요.',
+            '건강': f' 올해는 {_ki_lbl} 기운이 강한 해라 회복이 평소보다 더딜 수 있어요. 무리한 일정은 피하세요.',
+        }
+        result += _KI_NOTE.get(domain, '')
     # 오행 과다/부족 맞춤 텍스트 추가
     if result and domain in ('재물', '직업', '건강'):
         _gwada = [oh for oh, cnt in oa.items() if cnt >= 3]
@@ -3782,7 +3828,14 @@ def _year_total_holistic(gyeok_name, ss_g, strength, oa, ya_name, ki_names, is_y
         parts.append(f'{nm}{_core}')
     _yong_key = '용신' if (is_yong and not is_ki) else ('기신' if (is_ki and not is_yong) else '중립')
     _str_msg = _STR_YONG.get((_sk, _yong_key), '')
-    if _str_msg:
+    if _yong_key == '기신' and _str_msg and parts:
+        _lead = parts.pop()
+        if nm and _lead.startswith(nm):
+            _lead = _lead[len(nm):]
+        parts.append(f'{nm}{_str_msg}')
+        parts.append(f'그 가운데 십성 흐름을 보면, {_lead}')
+        parts.append('십성 흐름이 좋게 보이는 부분이 있어도 올해는 크게 벌이기보다 작게·천천히 가는 쪽이 맞아요.')
+    elif _str_msg:
         parts.append(_str_msg)
     _flow = _GCAT_FLOW.get(_gcat, '')
     if _flow:
@@ -3976,6 +4029,69 @@ _ILGAN_SS_CAUTION = {
     (9,'정인'): '감이 맞는 때를 기다리다가 기회를 놓치기 쉬운 달이에요. 지금 시작하는 것이 가장 좋은 타이밍이에요.',
 }
 
+def _jeolgi_month_label(target_year, mon):
+    """앱의 'N월'(절기월, 1월=인월) → '1월(2/4~3/5)' 처럼 양력 기간을 붙인 라벨."""
+    lon_s = (315 + 30 * (mon - 1)) % 360
+    y_s = target_year + (1 if mon == 12 else 0)
+    s = solar_term(y_s, lon_s)
+    if mon == 12:
+        e = solar_term(target_year + 1, 315)
+    else:
+        lon_e = (lon_s + 30) % 360
+        y_e = target_year + (1 if mon == 11 else 0)
+        e = solar_term(y_e, lon_e)
+    return f'{mon}월({s.month}/{s.day}~{e.month}/{e.day})'   # 끝 날짜 = 다음 절입일(그날 절입 시각까지)
+
+
+def _sewoon_natal_points(pillars, yg, yj, ya_name, ki_names):
+    """세운 간지가 원국과 만나 생기는 핵심 구조(방합·삼합 완성, 천간합·충, 지지충) → 문장 리스트."""
+    pos_nm = ['년', '월', '일', '시']
+    pos_mean = ['조상·부모·바깥 환경', '부모·형제·직장', '배우자·가정', '자녀·결과·아랫사람']
+
+    def _tag(oh):
+        if oh == ya_name:
+            return f'용신({oh})'
+        if oh in ki_names:
+            return f'기신({oh})'
+        return oh
+
+    out = []
+    natal_j = set(p[1] for p in pillars)
+    for fs, nm in list(_BANGHAP) + list(SAMHAP):
+        oh = nm[nm.index('(') + 1:nm.index(')')]
+        if yj in fs and not fs.issubset(natal_j) and fs.issubset(natal_j | {yj}):
+            if oh in ki_names:
+                eff = '부담이 되는 기운이 한꺼번에 커지는 해예요. 무리한 확장보다 체력·지출 관리가 우선이에요.'
+            elif oh == ya_name:
+                eff = '나를 돕는 기운이 크게 모이는 해예요. 준비해온 일을 밀어붙이기 좋아요.'
+            else:
+                eff = '이 기운이 한 해의 분위기를 크게 좌우해요.'
+            out.append(f'🔥 **{nm} 완성** — 올해 {JIJI[yj]}가 들어와 원국과 함께 세 글자가 모두 모여요. {_tag(oh)} {eff}')
+    for i, (g, j) in enumerate(pillars):
+        fs = frozenset([yg, g])
+        if fs in _CHUNGAN_HAP:
+            g_oh = OHAENG_G[g]
+            if i == 2:
+                out.append(f'💞 **{_CHUNGAN_HAP[fs]} (일간)** — 올해 기운이 나와 직접 합해요. 일·사람에게 강하게 묶이는 해예요.')
+            elif g_oh == ya_name:
+                out.append(f'🔗 **{_CHUNGAN_HAP[fs]} ({pos_nm[i]}간)** — 용신({g_oh}) 천간이 올해 기운에 묶여요. 나를 받쳐주던 힘(공부·문서·도움)이 잠시 약해지니 계약·서류는 꼼꼼히 확인하세요.')
+            elif g_oh in ki_names:
+                out.append(f'🔓 **{_CHUNGAN_HAP[fs]} ({pos_nm[i]}간)** — 기신({g_oh}) 천간이 올해 기운에 묶여 부담이 덜어지는 효과가 있어요.')
+        if frozenset([yj, j]) in CHUNG:
+            out.append(f'💥 **{JIJI[min(yj, j)]}{JIJI[max(yj, j)]}충 ({pos_nm[i]}지)** — {pos_mean[i]} 자리에 변동이 생기기 쉬워요.')
+    _ilc = frozenset([yg, pillars[2][0]])
+    if _ilc in _CHUNGAN_CHUNG:
+        out.append(f'⚡ **{_CHUNGAN_CHUNG[_ilc]} (일간)** — 올해 기운이 나를 정면으로 쳐요. 스트레스와 예민함 관리가 필요해요.')
+    # 같은 문장 중복 제거 (년·월에 같은 천간이 있으면 한 번만)
+    seen, uniq = set(), []
+    for o in out:
+        key = o.split('—')[0].split('(')[0]
+        if key not in seen:
+            seen.add(key)
+            uniq.append(o)
+    return uniq
+
+
 def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로'):
     """target_year 에 해당하는 연운 개인화 상세 해설 반환
     rel_status: '솔로' | '연애중' | '기혼'
@@ -4012,7 +4128,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     # 신강/신약 키
     if '신강' in strength: sk = '신강'
     elif '신약' in strength: sk = '신약'
-    else: sk = '중화'   # 중화 사주 전용 키 (없으면 아래 dom 조회에서 신강 fallback)
+    else: sk = '신강' if get_strength_detail(pillars)[1] >= 0.5 else '신약'   # 중화는 실제 비율로 기울기 판단
 
     ss_data = _YEAR_DOMAIN.get(ss_g, {})
     dom = ss_data.get(sk) or ss_data.get('신강') or ss_data.get('신약') or {}
@@ -4139,6 +4255,14 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         lines.append(f'')
         lines.append(f'> 🔗 올해 통관(通關) 오행({tg_name})이 들어와 사주 내 상극 에너지가 자연스럽게 해소되는 해예요. 막혔던 흐름이 풀리면서 의외의 기회가 찾아올 수 있어요.')
 
+    _natal_pts = _sewoon_natal_points(pillars, yg, yj, ya_name, ki_names)
+    if _natal_pts:
+        lines.append('')
+        lines.append('**🧩 올해 기운이 내 사주와 만나는 지점**')
+        lines.append('')
+        for _np in _natal_pts:
+            lines.append(f'- {_np}')
+
     # 월별 흐름 요약 배너 (이유 포함 — 테이블 형식)
     _yg_b, _ = _year_pillar(target_year)
     _MJM_B = {1:2,2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:0,12:1}
@@ -4169,10 +4293,14 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
             _sc += 2; _pos_r.append(f'용신({ya_name}) 천간')
         elif _mjb_oh == ya_name:
             _sc += 2; _pos_r.append(f'용신({ya_name}) 지지')
-        if _ssb in _GOOD_SS_B:
-            _sc += 1; _pos_r.append(f'{_ssb}운')
-        if _ssb in _BAD_SS_B:
-            _sc -= 1; _neg_r.append(f'{_ssb}운')
+        # 용신·기신이 아닌 천간은 '용신과 같은 방향(돕기/덜기)'이면 +1, 반대면 -1
+        if _mgb_oh != ya_name and _mgb_oh not in ki_names:
+            _il_o = OHAENG_IDX[ilgan]
+            _hb = lambda o: o == _il_o or (o + 1) % 5 == _il_o
+            if _hb(OHAENG_IDX[_mgb]) == _hb(ya_oh):
+                _sc += 1; _pos_r.append(f'{_ssb}운')
+            else:
+                _sc -= 1; _neg_r.append(f'{_ssb}운')
         if _mgb_oh in ki_names and _mjb_oh in ki_names and _mgb_oh == _mjb_oh:
             _sc -= 2; _neg_r.append(f'기신({_mgb_oh}) 천간·지지')
         elif _mgb_oh in ki_names and _mjb_oh in ki_names:
@@ -4183,25 +4311,27 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
             _sc -= 1; _neg_r.append(f'기신({_mjb_oh}) 지지')
         _mon_sc.append((_mb, _sc))
         _mon_reason[_mb] = (_pos_r, _neg_r, _ssb)
-    _KMB = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+    _KMB = [_jeolgi_month_label(target_year, _m) for _m in range(1, 13)]
     _good_months = [(m, s) for m, s in sorted(_mon_sc, key=lambda x: -x[1]) if s >= 2][:3]
     _bad_months  = [(m, s) for m, s in sorted(_mon_sc, key=lambda x:  x[1]) if s <= -1][:3]
     if _good_months or _bad_months:
         lines.append('')
         lines.append(f'**📊 {target_year}년 기대달 · 조심달**')
         lines.append('')
+        lines.append('_사주의 달은 절기로 바뀌어요. 괄호 안이 양력 기간이에요._')
+        lines.append('')
         lines.append('| 구분 | 달 | 이유 |')
         lines.append('|:--|:--|:--|')
         for _m, _s in _good_months:
             _pr, _nr, _ss = _mon_reason[_m]
             _col_r = ' + '.join(_pr) if _pr else '흐름이 좋은 달'
-            _col_t = _SS_GOOD_TIP.get(_ss, '') if _ss in _GOOD_SS_B else ''
+            _col_t = _SS_GOOD_TIP.get(_ss, '') if f'{_ss}운' in _pr else ''
             _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
             lines.append(f'| 🌟 기대 | **{_KMB[_m-1]}** | {_col} |')
         for _m, _s in _bad_months:
             _pr, _nr, _ss = _mon_reason[_m]
             _col_r = ' + '.join(_nr) if _nr else '주의가 필요한 달'
-            _col_t = _SS_BAD_TIP.get(_ss, '') if _ss in _BAD_SS_B else ''
+            _col_t = _SS_BAD_TIP.get(_ss, '') if f'{_ss}운' in _nr else ''
             _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
             lines.append(f'| ⚠️ 조심 | **{_KMB[_m-1]}** | {_col} |')
         lines.append('')
@@ -4362,6 +4492,13 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
                 lines.append(f'> 🌙 **{JIJI[ilji]}일지** — {_ilji_health}')
         lines.append('')
 
+    _ki_year = is_ki and not is_yong
+    _KI_QA_NOTE = {
+        '이직':  '다만 올해는 기신운이라, 옮기더라도 조건이 확실히 좋아질 때만 움직이세요.',
+        '창업':  '다만 올해는 기신운이라 실제 창업·독립은 준비만 해두고 실행은 내년 이후가 안전해요.',
+        '투자':  '다만 올해는 기신운이라 투자 규모를 평소보다 줄이는 쪽이 맞아요.',
+        '관계진전': '다만 올해는 기신운이라 큰 결정은 서두르지 말고 충분히 이야기한 뒤에 정하세요.',
+    }
     # 핵심 고민별 Q&A (중화일 때 신강/신약 fallback)
     qa = _YEAR_QA.get((ss_g, sk), {}) or _YEAR_QA.get((ss_g, '신강'), {}) or _YEAR_QA.get((ss_g, '신약'), {})
     if qa:
@@ -4379,7 +4516,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         for k, label in qa_labels.items():
             if k in qa:
                 lines.append(f'**{label}**')
-                lines.append(qa[k])
+                lines.append(qa[k] + (f' {_KI_QA_NOTE[k]}' if _ki_year and k in _KI_QA_NOTE else ''))
                 lines.append('')
 
     # -- 신살 × 세운 교차 포인트 (배치1: 도화살·역마살)
@@ -4410,6 +4547,9 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         lines.append('')
         lines.append('**✨ 올해 신살 교차 포인트**')
         lines.append('')
+        if _ki_year:
+            lines.append('_신살은 보조 신호예요. 올해는 기신운이 바탕이라, 아래 좋은 흐름도 무리하지 않는 선에서 활용하세요._')
+            lines.append('')
         for _sc in _sinsal_cross:
             lines.append(_sc)
         lines.append('')
@@ -4572,7 +4712,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
 
     # 5. 조심해야 할 월 (십성 기반 + 일지충 + 천간·지지 모두 기신)
     _MONTH_JIJI_MAP = {1:2,2:3,3:4,4:5,5:6,6:7,7:8,8:9,9:10,10:11,11:0,12:1}
-    _KOR_MON = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+    _KOR_MON = [_jeolgi_month_label(target_year, _m) for _m in range(1, 13)]
     _JIJI_CHUNG = {frozenset({k, (k+6)%12}) for k in range(6)}
     _ilji = pillars[2][1]   # 일지만 비교 (가장 중요)
     yg_val, _ = _year_pillar(target_year)
@@ -4600,8 +4740,12 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         _ss = get_sipseong(ilgan, _mg_oh, _mg % 2)
         _reasons = []
 
-        # ① 십성이 흉성인 달 (가장 중요)
-        if _ss in _SS_MSG:
+        # ① 위 '기대달·조심달' 점수가 마이너스인 달 → 기신이 걸린 글자의 십성으로 조심 메시지
+        if dict(_mon_sc).get(_mon, 0) <= -1:
+            if _mg_oh not in ki_list and _mj_oh in ki_list:
+                _jg = JIJANGAN_IDX[_mj][-1]
+                _ss = get_sipseong(ilgan, OHAENG_IDX[_jg], _jg % 2)
+        if dict(_mon_sc).get(_mon, 0) <= -1 and _ss in _SS_MSG:
             _icon, _title, _tip = _SS_MSG[_ss]
             _tip = _ILGAN_SS_CAUTION.get((ilgan, _ss), _tip)
             _reasons.append((_icon, _title, _tip))
@@ -4620,7 +4764,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     if bad_months:
         lines.append('---')
         _mon_labels = '·'.join(f'**{_KOR_MON[m-1]}**' for m, _, _ in bad_months)
-        lines.append(f'**\U0001f4c5 {target_year}년 특히 조심할 달: {_mon_labels}**')
+        lines.append(f'**\U0001f4c5 {target_year}년 특히 조심할 달:** {_mon_labels}')
         lines.append('')
         for _mon, _ss, _reasons in bad_months:
             _parts = '  \n  '.join(f'{ic} **{ttl}** — {tip}' for ic, ttl, tip in _reasons)
@@ -5445,6 +5589,14 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로', gender
         ('건강',    '🏥'),
     ]
 
+    # 기신달에는 영역별 문장이 좋게만 읽히지 않도록 단서를 붙인다
+    _WOLUN_KI_NOTE = {
+        '연애': '\n\n다만 이달은 기신달이라 서두르면 어긋나기 쉬워요. 고백·화해처럼 큰 움직임은 한 박자 늦추세요.',
+        '재물': '\n\n다만 이달은 기신달이라 기회가 보여도 규모를 줄이고, 버는 것보다 지키는 쪽에 무게를 두세요.',
+        '직장': '\n\n다만 이달은 기신달이라 새 일을 벌이기보다 맡은 일을 마무리하는 쪽이 안전해요.',
+        '건강': '\n\n다만 이달은 기신달이라 회복이 평소보다 더딜 수 있어요. 무리한 일정은 피하세요.',
+    }
+
     lines = [f'## {target_year}년 월운(月運) 상세', '']
     for label, st_dt, mg, mj in wolun:
         ss_g = get_sipseong(ilgan, OHAENG_IDX[mg], mg % 2)
@@ -5454,6 +5606,8 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로', gender
         is_yong = (mg_oh == ya_name or mj_oh == ya_name)
         is_ki   = (mg_oh in ki_names or mj_oh in ki_names)
         tag = '  🌟 용신달' if is_yong and not is_ki else ('  ⚠️ 기신달' if is_ki and not is_yong else '')
+        _ki_only = is_ki and not is_yong
+        _kn_w = '·'.join(o for o in dict.fromkeys((mg_oh, mj_oh)) if o in ki_names)   # 이달 실제로 들어온 기신
 
         lines.append(f'### {label} ({st_dt.strftime("%m/%d")} ~)  {CHEONGAN[mg]}{JIJI[mj]} [{ss_g}·{ss_j}]{tag}')
 
@@ -5499,6 +5653,12 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로', gender
                 text = domain_data.get(domain, '')
                 if _w_intro and text:
                     text = _w_intro + '\n\n' + text
+                if text and _ki_only:
+                    text = (f'이달은 기신({_kn_w}) 기운이 들어오는 달이에요. 아래 풀이에서 좋게 보이는 부분은 평소보다 약하게, '
+                            f'조심하라는 부분은 더 크게 나타난다고 보세요.\n\n' + text)
+                elif text and is_yong and is_ki:
+                    text = (f'이달은 용신({ya_name})과 기신({_kn_w}) 기운이 함께 들어와 좋은 일과 부담이 섞이는 달이에요. '
+                            f'잘 풀리는 일은 밀고 가되 무리해서 넓히지는 마세요.\n\n' + text)
             else:
                 _hol = _wolun_domain_holistic(domain, gyeok_name, ss_g)
                 _tmpl = domain_data.get(domain, '')
@@ -5508,6 +5668,8 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로', gender
                     text = _hol
                 else:
                     text = _tmpl
+                if text and _ki_only:
+                    text += _WOLUN_KI_NOTE.get(domain, '')
                 # 오행 과다/부족 맞춤 코멘트 (재물/직장/건강)
                 if text and domain in ('재물', '직장', '건강'):
                     _dk = '직업' if domain == '직장' else domain
@@ -5551,7 +5713,7 @@ def analyze_wolun_detail(name, pillars, target_year, rel_status='솔로', gender
         if is_yong and not is_ki:
             lines.append(f'> 이달은 용신({ya_name}) 기운이 강해 좋은 흐름이 이어져요. 적극적으로 움직이세요.')
         elif is_ki and not is_yong:
-            lines.append(f'> 이달은 기신({", ".join(ki_names)}) 기운이 들어옵니다. 무리한 계획보다 현재 상태를 지키는 전략이 유리해요.')
+            lines.append(f'> 이달은 기신({_kn_w}) 기운이 들어옵니다. 무리한 계획보다 현재 상태를 지키는 전략이 유리해요.')
 
         # 신강약 × 십성 맥락 (세밀 분기)
         _STR_SS_NOTE = {
@@ -7429,29 +7591,53 @@ def analyze_sewoon_narrative(name, pillars, birth_year, gender='남'):
 
 # ── 신강/신약 판단 ────────────────────────────────────
 
-def get_strength_detail(pillars):
-    """신강/신약 8단계 분류 + ratio 반환. 기존 judge_strength는 그대로 유지."""
+def _strength_ratio(pillars):
+    """일간을 돕는 기운의 비율(0~1). 신강/신약 판정은 전부 이 값 하나로 한다.
+    일간 자신: 1.0 (내 편. 빼고 세면 돕는 오행이 5개 중 2개뿐이라 평균이 40%로 내려가 약한 쪽으로 쏠린다)
+    천간: 년1.0·월1.5·시1.0 (합화된 천간은 합화 오행 기준)
+    지지: 년1.0·월2.0·일1.5·시1.0 × 지장간 비중(여기→정기)
+    삼합 ±1.5, 방합 ±1.0 보너스."""
     ilgan = pillars[2][0]
-    sup = opp = 0
+    sup, opp = 1.0, 0.0   # sup 1.0 = 일간 자신
+    gan_changed, _ = get_cheongan_hwa(pillars)
     _gw = [1.0, 1.5, 0.0, 1.0]
     _jw = [1.0, 2.0, 1.5, 1.0]
     _sw2 = [0.3, 0.7]
     _sw3 = [0.1, 0.3, 0.6]
+    _SUP = ('비견','겁재','편인','정인')
     for i, (g, j) in enumerate(pillars):
         if i != 2:
-            ss = get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
-            w = _gw[i]
-            if ss in ('비견','겁재','편인','정인'): sup += w
-            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
+            g_oh = gan_changed[i] if i in gan_changed else OHAENG_IDX[g]
+            ss = get_sipseong(ilgan, g_oh, g % 2)
+            if ss in _SUP: sup += _gw[i]
+            else:          opp += _gw[i]
         stems = JIJANGAN_IDX[j]
         sw = _sw2 if len(stems) == 2 else _sw3
         for stem, s in zip(stems, sw):
             ss = get_sipseong(ilgan, OHAENG_IDX[stem], stem % 2)
-            w = _jw[i] * s
-            if ss in ('비견','겁재','편인','정인'): sup += w
-            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
+            if ss in _SUP: sup += _jw[i] * s
+            else:          opp += _jw[i] * s
+    ji_set = set(p[1] for p in pillars)
+    _OH_IDX = {'목':0,'화':1,'토':2,'금':3,'수':4}
+    il_oh = OHAENG_IDX[ilgan]
+    def _is_sup(oh_name):
+        r = _OH_IDX[oh_name]
+        return r == il_oh or (r + 1) % 5 == il_oh   # 비겁 또는 인성
+    for fs, oh in SAMHAP_OH.items():
+        if fs.issubset(ji_set):
+            if _is_sup(oh): sup += 1.5
+            else:           opp += 1.5
+    for fs, oh in BANGHAP_OH.items():
+        if fs.issubset(ji_set):
+            if _is_sup(oh): sup += 1.0
+            else:           opp += 1.0
     total = sup + opp
-    ratio = sup / total if total > 0 else 0.5
+    return sup / total if total > 0 else 0.5
+
+
+def get_strength_detail(pillars):
+    """신강/신약 8단계 분류 + ratio. judge_strength와 같은 ratio를 쓴다."""
+    ratio = _strength_ratio(pillars)
     if ratio >= 0.82:   label8 = '극왕(極旺)'
     elif ratio >= 0.70: label8 = '태강(太强)'
     elif ratio >= 0.58: label8 = '신강(身强)'
@@ -7657,59 +7843,8 @@ def get_mingung(pillars):
 
 
 def judge_strength(pillars):
-    ilgan = pillars[2][0]
-    sup = opp = 0
-    # 천간합화: 합화된 천간은 새 오행의 십성으로 계산
-    gan_changed, _ = get_cheongan_hwa(pillars)
-    # 천간 가중치: 년간 1.0, 월간 1.5, 일간 skip, 시간 1.0
-    _gw = [1.0, 1.5, 0.0, 1.0]
-    # 지지 기본 가중치: 년지 1.0, 월지 2.0, 일지 1.5, 시지 1.0
-    _jw = [1.0, 2.0, 1.5, 1.0]
-    # 지장간 내부 비중 (여기→정기)
-    _sw2 = [0.3, 0.7]
-    _sw3 = [0.1, 0.3, 0.6]
-
-    for i, (g, j) in enumerate(pillars):
-        # 천간 (합화된 천간은 합화 오행 기준 십성 계산, 음양은 원래 천간 유지)
-        if i != 2:
-            g_oh = gan_changed[i] if i in gan_changed else OHAENG_IDX[g]
-            ss = get_sipseong(ilgan, g_oh, g % 2)
-            w = _gw[i]
-            if ss in ('비견','겁재','편인','정인'): sup += w
-            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
-        # 지장간 (여기·중기·정기 가중치 반영)
-        stems = JIJANGAN_IDX[j]
-        sw = _sw2 if len(stems) == 2 else _sw3
-        # 궁성 보정: _APPLY_JOHU ON 시 일간의 십이운성으로 지지 가중치 조정
-        jw_mult = _UNSUNG_WEIGHT.get(get_12unsung(ilgan, j), 1.0) if _APPLY_JOHU else 1.0
-        for stem, s in zip(stems, sw):
-            ss = get_sipseong(ilgan, OHAENG_IDX[stem], stem % 2)
-            w = _jw[i] * s * jw_mult
-            if ss in ('비견','겁재','편인','정인'): sup += w
-            elif ss in ('식신','상관','편재','정재','편관','정관'): opp += w
-
-    # 삼합/방합 보너스 — 지지 3개가 모여 오행이 강해지는 효과
-    jijis = [p[1] for p in pillars]
-    ji_set = set(jijis)
-    _OH_IDX = {'목':0,'화':1,'토':2,'금':3,'수':4}
-    _SENG = [1, 2, 3, 4, 0]   # i가 생하는 오행 인덱스
-    il_oh = OHAENG_IDX[ilgan]
-    def _side(oh_name):
-        r = _OH_IDX[oh_name]
-        if r == il_oh: return 'sup'          # 비겁
-        if _SENG[r] == il_oh: return 'sup'   # 인성
-        return 'opp'                          # 식상/재/관
-    for fs, oh in SAMHAP_OH.items():
-        if fs.issubset(ji_set):
-            if _side(oh) == 'sup': sup += 1.5
-            else: opp += 1.5
-    for fs, oh in BANGHAP_OH.items():
-        if fs.issubset(ji_set):
-            if _side(oh) == 'sup': sup += 1.0
-            else: opp += 1.0
-    total = sup + opp
-    if total == 0: return '중화(中和)'
-    ratio = sup / total
+    """신강/중화/신약 3단계. get_strength_detail(8단계)과 같은 ratio 사용."""
+    ratio = _strength_ratio(pillars)
     if ratio >= 0.58:   return '신강(身强)'
     elif ratio <= 0.42: return '신약(身弱)'
     else:               return '중화(中和)'
@@ -7944,8 +8079,8 @@ _KIGAN_DESC = {
     ),
 }
 
-def get_gyeokguk(pillars):
-    """격국 판별: (격국명, 용신 오행 인덱스, 기신 오행 인덱스 리스트)"""
+def _get_gyeokguk_raw(pillars):
+    """격국 판별(억부 기준 원본): (격국명, 용신 오행 인덱스, 기신 오행 인덱스 리스트)"""
     ilgan    = pillars[2][0]
     ilgan_oh = OHAENG_IDX[ilgan]
     mj       = pillars[1][1]
@@ -8028,13 +8163,13 @@ def get_gyeokguk(pillars):
         else:
             opts = [(sik_oh, sik_cnt), (jae_oh, jae_cnt), (gwan_oh, gwan_cnt)]
         yong_oh = min(opts, key=lambda x: x[1])[0]
-        ki_base = [bi_oh, in_oh] if ratio >= 0.58 else [gwan_oh, jae_oh]
+        ki_base = [bi_oh, in_oh] if ratio >= 0.50 else [gwan_oh, jae_oh]
         return gyeok, yong_oh, _ki(yong_oh, ki_base)
 
     elif ss == '식신':
         if ratio >= 0.70:  # 태강: 재성 강력 우선, 기신=인성+비겁
             return '식신격', jae_oh, _ki(jae_oh, [in_oh, bi_oh])
-        elif '신강' in strength:
+        elif ratio >= 0.50:  # 중화신강(50~58%)부터는 덜어 쓰는 쪽
             return '식신격', jae_oh, _ki(jae_oh, [in_oh])
         elif ratio <= 0.30:  # 태약: 인성 강력 우선, 기신=관성+재성
             return '식신격', in_oh,  _ki(in_oh,  [gwan_oh, jae_oh])
@@ -8044,7 +8179,7 @@ def get_gyeokguk(pillars):
     elif ss == '상관':
         if ratio >= 0.70:  # 태강: 재성 강력 우선
             return '상관격', jae_oh, _ki(jae_oh, [in_oh, bi_oh])
-        elif '신강' in strength:
+        elif ratio >= 0.50:  # 중화신강(50~58%)부터는 덜어 쓰는 쪽
             return '상관격', jae_oh, _ki(jae_oh, [in_oh])
         elif ratio <= 0.30:  # 태약: 인성 강력 우선
             return '상관격', in_oh,  _ki(in_oh,  [gwan_oh, jae_oh])
@@ -8055,7 +8190,7 @@ def get_gyeokguk(pillars):
         gyeok = f'{ss}격'
         if ratio >= 0.70:  # 태강: 재성용신, 기신=비겁+인성(설기 막는 것들)
             return gyeok, jae_oh, _ki(jae_oh, [bi_oh, in_oh])
-        elif '신강' in strength:
+        elif ratio >= 0.50:  # 중화신강(50~58%)부터는 덜어 쓰는 쪽
             return gyeok, jae_oh, _ki(jae_oh, [bi_oh])
         elif ratio <= 0.30:  # 태약: 인성 우선(비겁보다 안정적 생조)
             return gyeok, in_oh,  _ki(in_oh,  [gwan_oh])
@@ -8067,7 +8202,7 @@ def get_gyeokguk(pillars):
         gyeok = f'{ss}격'
         if ratio >= 0.70:  # 태강: 관성 강력 제어, 기신=비겁+인성+재성
             return gyeok, gwan_oh, _ki(gwan_oh, [bi_oh, in_oh])
-        elif '신강' in strength:
+        elif ratio >= 0.50:  # 중화신강(50~58%)부터는 덜어 쓰는 쪽
             return gyeok, gwan_oh, _ki(gwan_oh, [bi_oh, jae_oh])
         elif ratio <= 0.30:  # 태약: 인성 강력 우선, 기신=재성+관성
             yong = in_oh  # 태약에서 관성 극은 위험, 인성 생조 최우선
@@ -8079,7 +8214,7 @@ def get_gyeokguk(pillars):
         gyeok = f'{ss}격'
         if ratio >= 0.70:  # 태강: 재성 강력 설기, 기신=인성+비겁
             return gyeok, jae_oh, _ki(jae_oh, [in_oh, bi_oh])
-        elif '신강' in strength:
+        elif ratio >= 0.50:  # 중화신강(50~58%)부터는 덜어 쓰는 쪽
             return gyeok, jae_oh, _ki(jae_oh, [in_oh])
         elif ratio <= 0.30:  # 태약: 비겁도 함께 용신 후보
             yong = in_oh if in_cnt >= bi_cnt else bi_oh
@@ -8266,30 +8401,74 @@ def get_job_aptitude(pillars):
     yong_jobs  = _JOB_BY_YONG.get(yong_nm, [])
     return gyeok_nm, yong_nm, gyeok_info['desc'], gyeok_info['jobs'], yong_jobs
 
-# 조후+궁성 보정 ON/OFF 플래그 (기본 OFF = 格局 기반)
-_APPLY_JOHU = True
+# ── 최종 용신·기신 결정 (앱 전체가 이 결과 하나만 쓴다) ──────────
+# 기본은 억부(격국). 조후는 '너무 덥거나 너무 추운' 사주에서만 용신으로 올린다.
+#   여름(사·오·미월) 출생 + 원국에 수(水) 0개 + 화(火) 3개 이상 → 조열(燥熱)
+#   겨울(해·자·축월) 출생 + 원국에 화(火) 0개 + 수(水) 3개 이상 → 한습(寒濕)
+# 용신은 기신 목록에서 항상 제외한다.
+_YONG_CACHE = {}
+_SPECIAL_GYEOK = ('종아격', '종재격', '종살격', '종강격',
+                  '곡직격(曲直格)', '염상격(炎上格)', '가색격(稼穡格)', '종혁격(從革格)', '윤하격(潤下格)')
+
+def _pkey(pillars):
+    return tuple((int(g), int(j)) for g, j in pillars)
+
+def get_johu_priority(pillars):
+    """조후가 용신을 대신해야 하는 극단 사주인지 판정 → (조후 오행 idx | None, 사유 문자열)."""
+    season_name, johu_oh, _, _ = get_johu(pillars)
+    if johu_oh is None:
+        return None, ''
+    oa = analyze_ohaeng(pillars)
+    hwa, su = oa.get('화', 0), oa.get('수', 0)
+    if season_name == '여름' and su == 0 and hwa >= 3:
+        return johu_oh, f'여름 출생인데 수(水)가 하나도 없고 화(火)가 {hwa}개라 지나치게 뜨거운 사주'
+    if season_name == '겨울' and hwa == 0 and su >= 3:
+        return johu_oh, f'겨울 출생인데 화(火)가 하나도 없고 수(水)가 {su}개라 지나치게 차가운 사주'
+    return None, ''
+
+def _yong_decision(pillars):
+    key = _pkey(pillars)
+    if key in _YONG_CACHE:
+        return _YONG_CACHE[key]
+    gyeok, yong, ki = _get_gyeokguk_raw(pillars)
+    basis = f'격국({gyeok})'
+    johu_reason = ''
+    # 종격·일행득기격은 '기운을 따르는' 특수 구조라 조후로 뒤집지 않는다
+    special = gyeok in _SPECIAL_GYEOK
+    if not special:
+        johu_oh, johu_reason = get_johu_priority(pillars)
+        if johu_oh is not None and johu_oh != yong:
+            # ① 조열·한습이 극단적 → 조후가 용신
+            yong = johu_oh
+            basis = '조후(調候)'
+        else:
+            johu_reason = ''
+            # ② 그 외 → 억부로 정한 방향(돕기/덜기)이 같은 오행 중 계절 온도까지 맞는 쪽을 고른다
+            _, johu_tbl, _, _ = get_johu(pillars)
+            if johu_tbl is not None and johu_tbl != yong and johu_tbl not in ki:
+                il_oh = OHAENG_IDX[pillars[2][0]]
+                def _helps(o): return o == il_oh or (o + 1) % 5 == il_oh
+                if _helps(johu_tbl) == _helps(yong):
+                    yong = johu_tbl
+                    basis = f'격국({gyeok})+조후'
+    ki = [k for k in dict.fromkeys(ki) if k != yong]
+    if len(_YONG_CACHE) > 5000:
+        _YONG_CACHE.clear()
+    _YONG_CACHE[key] = (gyeok, yong, ki, basis, johu_reason)
+    return _YONG_CACHE[key]
+
+def get_gyeokguk(pillars):
+    """격국 판별: (격국명, 최종 용신 오행 인덱스, 기신 오행 인덱스 리스트).
+    용신은 get_yongshin과 항상 같다(조후 우선 사주 포함)."""
+    gyeok, yong, ki, _, _ = _yong_decision(pillars)
+    return gyeok, yong, list(ki)
 
 def get_yongshin(pillars):
-    """용신(用神) 확정.
-    _APPLY_JOHU=False(기본): 格局 기반 억부만 사용
-    _APPLY_JOHU=True: 조후 우선 → 格局 기반 억부 (태과 시 전환)
-    """
-    season_name, johu_oh, temp_adj, _ = get_johu(pillars)
-
-    if _APPLY_JOHU and johu_oh is not None:
-        oa = analyze_ohaeng(pillars)
-        johu_name = OHAENG_NAMES[johu_oh]
-        if oa.get(johu_name, 0) >= 3:
-            gyeok, yongshin_oh, _ = get_gyeokguk(pillars)
-            basis = f'격국({gyeok}) [조후태과 전환]'
-        else:
-            yongshin_oh = johu_oh
-            basis = '조후(調候)'
-    else:
-        gyeok, yongshin_oh, _ = get_gyeokguk(pillars)
-        basis = f'격국({gyeok})'
-
-    return yongshin_oh, OHAENG_NAMES[yongshin_oh], basis, season_name, temp_adj
+    """용신(用神) 확정 → (용신 idx, 용신명, 근거, 계절, 계절 형용사).
+    억부(격국) 기본, 조열·한습이 극단적인 사주만 조후 우선."""
+    season_name, _, temp_adj, _ = get_johu(pillars)
+    _, yong, _, basis, _ = _yong_decision(pillars)
+    return yong, OHAENG_NAMES[yong], basis, season_name, temp_adj
 
 # ── 용신별 개운 데이터 ────────────────────────────────
 
@@ -8462,7 +8641,7 @@ def _personality_holistic_text(ilgan, season_name, yongshin_name, strength, name
     if ss_cnt:
         _top = max(ss_cnt, key=ss_cnt.get)
         if ss_cnt[_top] >= 2 and _top in SS_PERSONALITY:
-            base += f'\n\n  사주에 **{_top}**이(가) 두드러져요. {SS_PERSONALITY[_top]}'
+            base += f'\n\n  사주에 **{_top}**{_jp(_top, "이", "가")} 두드러져요. {SS_PERSONALITY[_top]}'
 
     return base
 
@@ -8797,7 +8976,7 @@ def _personality_text(ilgan, season_name, yongshin_name, strength, name='', gyeo
         top_ss = max(ss_cnt, key=ss_cnt.get)
         top_cnt = ss_cnt[top_ss]
         if top_cnt >= 2 and top_ss in SS_PERSONALITY:
-            base += f'\n\n  사주에 **{top_ss}**이(가) 두드러져요. {SS_PERSONALITY[top_ss]}'
+            base += f'\n\n  사주에 **{top_ss}**{_jp(top_ss, "이", "가")} 두드러져요. {SS_PERSONALITY[top_ss]}'
 
     return base
 
@@ -9499,9 +9678,9 @@ def analyze_saju(name, pillars, gil, hyung, gender='남'):
     out.append(_personality_holistic_text(ilgan, season_name, yongshin_name, strength, name, gyeok=gyeok, ss_cnt=ss_cnt, oa=oa, gil=gil, hyung=hyung))
     out.append('')
     if deukryeong:
-        out.append(f'> 🌟 **득령(得令)** 태어난 계절({season_name})에서 일간 {il_name}이(가) 왕성한 기운을 얻었어요. 타고난 기질이 뚜렷하고 의지력과 추진력이 강해요.')
+        out.append(f'> 🌟 **득령(得令)** 태어난 계절({season_name})에서 일간 {il_name}{_jp(il_name.split("(")[0], "이", "가")} 왕성한 기운을 얻었어요. 타고난 기질이 뚜렷하고 의지력과 추진력이 강해요.')
     else:
-        out.append(f'> ⚠️ **실령(失令)** 태어난 계절({season_name})에서 일간 {il_name}이(가) 기운을 충분히 얻지 못했어요. 용신({yongshin_name})의 기운을 가까이할수록 삶의 균형이 회복돼요.')
+        out.append(f'> ⚠️ **실령(失令)** 태어난 계절({season_name})에서 일간 {il_name}{_jp(il_name.split("(")[0], "이", "가")} 기운을 충분히 얻지 못했어요. 용신({yongshin_name})의 기운을 가까이할수록 삶의 균형이 회복돼요.')
     out.append('')
 
     # ①-A-2 통합 성격 보완: 오행 부족/과다 + 신살 연결
@@ -10669,9 +10848,9 @@ def 궁합_점수_named(pa, pb, na, nb):
     ya_name = OHAENG_NAMES[ya_oh]
     yb_name = OHAENG_NAMES[yb_oh]
     if ob.get(ya_name, 0) > 0:
-        score += 9; reasons.append(f'[용신보완 +9] {nb}가 {na}의 용신({ya_name}) 보유')
+        score += 9; reasons.append(f'[용신보완 +9] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
     if oa.get(yb_name, 0) > 0:
-        score += 9; reasons.append(f'[용신보완 +9] {na}가 {nb}의 용신({yb_name}) 보유')
+        score += 9; reasons.append(f'[용신보완 +9] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
 
     return max(0, min(100, score)), reasons, rel
 
@@ -10740,7 +10919,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'함께 성장하는 파트너십으로 방향을 맞출 때 이 궁합이 가장 빛나요.'
         ),
         1: (
-            f'{na}님({ILGAN_DESC[ia][0]})의 기운이 {nb}님({ILGAN_DESC[ib][0]})을 자연스럽게 생하는 구조이에요. '
+            f'{na}님({ILGAN_DESC[ia][0]})의 기운이 {nb}님({ILGAN_DESC[ib][0]})을 자연스럽게 생하는 구조예요. '
             f'{na}님이 {nb}님에게 에너지와 영감을 공급하며 성장을 도와주는 역할을 맡게 돼요. '
             f'{nb}님은 {na}님 곁에 있을 때 자신도 모르게 활력과 아이디어가 샘솟는 것을 느껴요. '
             f'이 관계는 {na}님이 먼저 다가가고 이끌 때 가장 자연스럽게 흘러가요. '
@@ -10750,7 +10929,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'함께할수록 두 분 모두 더 나은 방향으로 성장하는 아름다운 구조예요.'
         ),
         4: (
-            f'{nb}님({ILGAN_DESC[ib][0]})의 기운이 {na}님({ILGAN_DESC[ia][0]})을 자연스럽게 생하는 구조이에요. '
+            f'{nb}님({ILGAN_DESC[ib][0]})의 기운이 {na}님({ILGAN_DESC[ia][0]})을 자연스럽게 생하는 구조예요. '
             f'{nb}님이 {na}님에게 안정과 든든함을 제공하며 삶의 기반을 만들어주는 역할이에요. '
             f'{na}님은 {nb}님 곁에 있을 때 삶이 더 안정되고 풍요로워지는 것을 느껴요. '
             f'{nb}님이 먼저 움직이고 결정할 때 관계가 가장 자연스럽게 흘러가요. '
@@ -10760,7 +10939,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'함께할수록 두 분의 삶이 더 풍요로워지는 따뜻한 인연이에요.'
         ),
         2: (
-            f'{na}님({ILGAN_DESC[ia][0]})의 기운이 {nb}님({ILGAN_DESC[ib][0]})을 강하게 극하는 구조이에요. '
+            f'{na}님({ILGAN_DESC[ia][0]})의 기운이 {nb}님({ILGAN_DESC[ib][0]})을 강하게 극하는 구조예요. '
             f'{na}님이 관계를 주도하고 {nb}님이 따라가는 형태가 자연스럽게 형성돼요. '
             f'초반에는 {na}님의 강한 에너지가 {nb}님에게 매력적으로 느껴질 수 있어요. '
             f'그러나 시간이 지나면서 {nb}님이 압박감이나 위축감을 느끼는 순간이 생길 수 있어요. '
@@ -10770,7 +10949,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'힘의 균형을 의식적으로 맞춰갈 때 이 관계가 가장 안정적이에요.'
         ),
         3: (
-            f'{nb}님({ILGAN_DESC[ib][0]})의 기운이 {na}님({ILGAN_DESC[ia][0]})을 강하게 극하는 구조이에요. '
+            f'{nb}님({ILGAN_DESC[ib][0]})의 기운이 {na}님({ILGAN_DESC[ia][0]})을 강하게 극하는 구조예요. '
             f'{nb}님이 관계를 주도하고 {na}님이 따르는 경향이 자연스럽게 생겨요. '
             f'초반에는 {nb}님의 강한 존재감이 {na}님에게 끌리는 요소가 되기도 해요. '
             f'그러나 시간이 지나면서 {na}님이 자존감이 낮아지거나 위축될 수 있어요. '
@@ -10802,7 +10981,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'  {nb}님은 {na}님 곁에서 부족한 기운을 채워 더욱 빛나게 돼요.'
         )
         out.append(
-            f'  함께할수록 두 분 모두의 운이 열리는 진정한 천생연분 구조이에요. '
+            f'  함께할수록 두 분 모두의 운이 열리는 진정한 천생연분 구조예요. '
             f'  이 인연을 소중히 여기고 꾸준히 감사함을 표현하며 함께 성장해 나가시길 바랍니다.'
         )
     elif a_yn_in_b:
@@ -10810,7 +10989,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             f'  {nb}님의 사주에 {na}님의 용신인 {ya_name}의 기운이 있어,'
         )
         out.append(
-            f'  {nb}님은 {na}님에게 심리적 안정과 활력을 공급해 주는 소중한 존재이에요.'
+            f'  {nb}님은 {na}님에게 심리적 안정과 활력을 공급해 주는 소중한 존재예요.'
         )
         out.append(
             f'  {na}님은 {nb}님 곁에 있을 때 자신도 모르게 편안함과 운이 열리는 것을 느낍니다.'
@@ -10840,7 +11019,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
         )
     else:
         out.append(
-            f'  두 분의 용신이 서로의 사주에 직접적으로 나타나지 않는 구조이에요.'
+            f'  두 분의 용신이 서로의 사주에 직접적으로 나타나지 않는 구조예요.'
         )
         out.append(
             f'  이는 서로가 상대방의 필요를 자연스럽게 채워주기보다 '
@@ -10848,8 +11027,8 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
         )
         out.append(
             f'  서로의 다름을 인정하고 상대가 원하는 것을 배우려는 적극적인 자세가 '
-            f'이 궁합을 빛나게 하는 핵심 열쇠이에요. '
-            f'사랑과 노력이 더해질수록 관계가 깊어지는 구조이에요.'
+            f'이 궁합을 빛나게 하는 핵심 열쇠예요. '
+            f'사랑과 노력이 더해질수록 관계가 깊어지는 구조예요.'
         )
 
     # 용신 충(冲) 파괴 경고
@@ -11131,7 +11310,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
             _ab_last = comp_ab[-1]
             out.append(
                 f'  {na}님 사주에 부족한 {", ".join(comp_ab)}{_jp(_ab_last,"을","를")} {nb}님이 가지고 있어요. '
-                f'{nb}님은 {na}님이 삶에서 취약한 부분을 자연스럽게 채워주는 소중한 존재이에요. '
+                f'{nb}님은 {na}님이 삶에서 취약한 부분을 자연스럽게 채워주는 소중한 존재예요. '
                 f'특히 {", ".join([f"{k}({OHAENG_JANG2.get(k,k)})" for k in comp_ab])} 관련 영역에서 '
                 f'{na}님이 {nb}님에게 의지하고 도움받는 상황이 자주 생깁니다.'
             )
@@ -11245,10 +11424,10 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
     elif score >= 55:
         out.append(
             f'  종합 {score}점으로 무난한 궁합이에요. '
-            f'보완되는 기운도 있고 부딪히는 기운도 있는 현실적인 관계이에요. '
+            f'보완되는 기운도 있고 부딪히는 기운도 있는 현실적인 관계예요. '
             f'사랑만으로 모든 것을 해결하려 하기보다 서로의 다름을 인정하고 '
-            f'구체적인 소통 방식과 역할을 정해 나가는 것이 이 궁합을 빛나게 하는 열쇠이에요. '
-            f'노력하는 만큼 관계가 깊어지는 구조이에요.'
+            f'구체적인 소통 방식과 역할을 정해 나가는 것이 이 궁합을 빛나게 하는 열쇠예요. '
+            f'노력하는 만큼 관계가 깊어지는 구조예요.'
         )
     elif score >= 40:
         out.append(
@@ -11261,7 +11440,7 @@ def analyze_gunghap(pa, pb, na, nb, score, rel):
     else:
         out.append(
             f'  종합 {score}점으로 매우 신중한 접근이 필요한 궁합이에요. '
-            f'사주의 기운이 여러 면에서 충돌하여 함께할 때 서로가 힘들어지는 구조이에요. '
+            f'사주의 기운이 여러 면에서 충돌하여 함께할 때 서로가 힘들어지는 구조예요. '
             f'억지로 맞추려 하기보다 각자의 시간과 공간을 충분히 존중하고 '
             f'서로의 역할과 경계선을 명확히 정하는 것이 관계 유지에 필수적이에요. '
             f'관계를 지속하려 한다면 두 분 모두의 강한 의지와 지속적인 노력이 필요해요.'
@@ -11431,9 +11610,9 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
             if oa.get(spo_b, 0) > 0:
                 score += 10; reasons.append(f'[배우자성 +10] {na} 사주에 {nb}의 배우자성({spo_b}) 존재')
         if ob.get(ya_name, 0) > 0:
-            score += 10; reasons.append(f'[용신보완 +10] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 10; reasons.append(f'[용신보완 +10] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 10; reasons.append(f'[용신보완 +10] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 10; reasons.append(f'[용신보완 +10] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
         comp = [k for k in oa if oa[k]==0 and ob[k]>0]
         if comp:
             score += len(comp)*3; reasons.append(f'[오행보완 +{len(comp)*3}] {",".join(comp)} 보완')
@@ -11447,7 +11626,7 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         elif ss_nb_to_na in ('겁재', '상관'):
             score -= 8; reasons.append(f'[갈등관계 -{8}] {nb}(상사)이 {na}에게 {ss_nb_to_na} — 상사와 에너지 충돌')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
 
     elif rel_type == '직장_부하':
         # 부하(nb)가 나(na)에게 식상이면 내가 잘 이끄는 구조
@@ -11460,7 +11639,7 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         if ss_na_to_nb in ('정관', '편관'):
             score += 8; reasons.append(f'[리더십 +8] {na}이 {nb}(부하)에게 {ss_na_to_nb} — 자연스러운 리더십')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
 
     elif rel_type in ('직장_동료', '직장_동업'):
         ss_a = OHAENG_NAMES[(OHAENG_IDX[ia]+1)%5]
@@ -11482,9 +11661,9 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
             if any(j in gm_b for j in ja):
                 score -= 12; reasons.append(f'[공망 -12] {na}의 지지가 {nb}의 공망 — 동업 결실이 공허해질 위험')
         if ob.get(ya_name, 0) > 0:
-            score += 7; reasons.append(f'[용신보완 +7] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 7; reasons.append(f'[용신보완 +7] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 7; reasons.append(f'[용신보완 +7] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 7; reasons.append(f'[용신보완 +7] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
         comp = [k for k in oa if oa[k]==0 and ob[k]>0]
         if comp:
             score += len(comp)*2; reasons.append(f'[능력보완 +{len(comp)*2}] {",".join(comp)} 능력 보완')
@@ -11493,9 +11672,9 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         if OHAENG_IDX[ia] == OHAENG_IDX[ib]:
             score += 5; reasons.append('[동류 +5] 같은 오행 계열 — 가치관 공감대')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
         comp = [k for k in oa if oa[k]==0 and ob[k]>0]
         if comp:
             score += len(comp)*3; reasons.append(f'[오행보완 +{len(comp)*3}] {",".join(comp)} 보완')
@@ -11507,9 +11686,9 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         if ss_nb_to_na in ('비견', '겁재'):
             score += 5; reasons.append(f'[비겁 +5] {nb}이 {na}에게 {ss_nb_to_na} — 동류 에너지 강함')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
         comp = [k for k in oa if oa[k]==0 and ob[k]>0]
         if comp:
             score += len(comp)*3; reasons.append(f'[오행보완 +{len(comp)*3}] {",".join(comp)} 보완')
@@ -11525,9 +11704,9 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         if ob.get(in_a, 0) > 0:
             score += 8; reasons.append(f'[인성보완 +8] {nb}(부모) 사주에 {na}의 인성 오행({in_a}) 존재')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
 
     elif rel_type == '자식':
         # 자녀(nb)가 na에게 식상이면 자연스러운 자녀 에너지
@@ -11545,15 +11724,15 @@ def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=Non
         if ob.get(ss_a, 0) > 0:
             score += 8; reasons.append(f'[자식성 +8] {nb}(자녀) 사주에 {na}의 자식성 오행({ss_a}) 존재')
         if ob.get(ya_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {nb}가 {na}의 용신({ya_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
         if oa.get(yb_name, 0) > 0:
-            score += 6; reasons.append(f'[용신보완 +6] {na}가 {nb}의 용신({yb_name}) 보유')
+            score += 6; reasons.append(f'[용신보완 +6] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
 
     elif rel_type == '전연인':
         if ob.get(ya_name, 0) > 0:
-            score += 12; reasons.append(f'[용신보완 +12] {nb}가 {na}의 용신({ya_name}) 보유 — 함께할 때 더 빛남')
+            score += 12; reasons.append(f'[용신보완 +12] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유 — 함께할 때 더 빛남')
         if oa.get(yb_name, 0) > 0:
-            score += 12; reasons.append(f'[용신보완 +12] {na}가 {nb}의 용신({yb_name}) 보유 — 함께할 때 더 빛남')
+            score += 12; reasons.append(f'[용신보완 +12] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유 — 함께할 때 더 빛남')
         comp = [k for k in oa if oa[k]==0 and ob[k]>0]
         if comp:
             score += len(comp)*4; reasons.append(f'[오행보완 +{len(comp)*4}] {",".join(comp)} 삶이 풍요로워짐')
@@ -11598,8 +11777,8 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         0: f'두 분({ia_name}, {ib_name})은 같은 오행 계열로 서로를 직관적으로 이해해요.',
         1: f'{na}님({ia_name})의 에너지가 {nb}님({ib_name})에게 자연스럽게 생기를 줘요.',
         4: f'{nb}님({ib_name})의 에너지가 {na}님({ia_name})에게 자연스럽게 생기를 줘요.',
-        2: f'{na}님({ia_name})의 에너지가 {nb}님({ib_name})을 강하게 극(剋)하는 구조이에요.',
-        3: f'{nb}님({ib_name})의 에너지가 {na}님({ia_name})을 강하게 극(剋)하는 구조이에요.',
+        2: f'{na}님({ia_name})의 에너지가 {nb}님({ib_name})을 강하게 극(剋)하는 구조예요.',
+        3: f'{nb}님({ib_name})의 에너지가 {na}님({ia_name})을 강하게 극(剋)하는 구조예요.',
     }
 
     # ════════════════════════════════
@@ -11674,7 +11853,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             else:
                 out.append(
                     f'양측 모두 상대방의 배우자성이 사주에 뚜렷하게 나타나지 않아요.\n'
-                    f'이것이 인연이 없다는 뜻은 아니에요. 배우자성 외에 오행 보완, 용신 교차, 일지 관계 등 다른 요소로 관계가 유지되는 형태이에요.\n'
+                    f'이것이 인연이 없다는 뜻은 아니에요. 배우자성 외에 오행 보완, 용신 교차, 일지 관계 등 다른 요소로 관계가 유지되는 형태예요.\n'
                     f'처음의 강렬한 끌림보다는 함께하면서 서로의 부족한 부분을 채워주는 실질적 보완이 이 관계의 핵심 동력이에요.\n'
                     f'오래 함께할수록 "이 사람이 내 삶에 실질적으로 좋은 영향을 준다"는 것을 느끼는 관계가 돼요.'
                 )
@@ -11832,7 +12011,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             0: (f'  {na}님({ia_name}, {ia_kw})과 {nb}님({ib_name})은 업무 스타일이 유사해요.\n'
                 f'  서로를 빠르게 이해하고 호흡이 잘 맞지만, 같은 약점이 겹쳐 사각지대가 생길 수 있어요.\n'
                 f'  서로 다른 역할을 의식적으로 나눠야 시너지가 극대화돼요.'),
-            1: (f'  {na}님({ia_name})이 {nb}님({ib_name})에게 아이디어와 에너지를 공급하는 구조이에요.\n'
+            1: (f'  {na}님({ia_name})이 {nb}님({ib_name})에게 아이디어와 에너지를 공급하는 구조예요.\n'
                 f'  {na}님이 기획·주도하고 {nb}님이 실행·마무리하는 역할 분담이 잘 맞습니다.'),
             4: (f'  {nb}님({ib_name})이 {na}님({ia_name})에게 안정적인 지원을 제공해요.\n'
                 f'  {nb}님이 실무 기반을 닦고 {na}님이 대외 활동을 맡는 구조가 효율적이에요.'),
@@ -11856,17 +12035,17 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         out.append(f'\n### 전체 직장·동업 궁합: {score}점')
         if score >= 75:
             out.append(
-                f'  매우 좋은 업무 파트너이에요.\n'
+                f'  매우 좋은 업무 파트너예요.\n'
                 f'  두 분의 사주 에너지가 서로를 자연스럽게 보완하여 함께하면 혼자보다 훨씬 좋은 결과가 나와요.\n'
                 f'  협업할 때 각자의 강점이 선명하게 드러나므로 역할만 잘 나눠도 시너지가 극대화돼요.\n'
-                f'  장기 협력에 매우 유리한 구조이에요.'
+                f'  장기 협력에 매우 유리한 구조예요.'
             )
         elif score >= 55:
             out.append(
                 f'  양호한 업무 궁합이에요.\n'
                 f'  사주 에너지가 완전히 충돌하지는 않지만 스타일 차이가 분명히 존재해요.\n'
                 f'  역할을 명확히 나누고 정기적으로 업무 방향을 점검하면 안정적인 파트너 관계를 유지할 수 있어요.\n'
-                f'  서로에 대한 이해와 신뢰가 쌓일수록 더 좋아지는 관계이에요.'
+                f'  서로에 대한 이해와 신뢰가 쌓일수록 더 좋아지는 관계예요.'
             )
         else:
             out.append(
@@ -11882,7 +12061,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if rel.get('형', []):
             out.append(f'  형(刑) 관계({", ".join(rel["형"])})가 있어 규칙·원칙 다툼이 생기기 쉽습니다. 역할을 명문화하세요.')
         if not chung_list and not rel.get('형', []):
-            out.append(f'  충·형 없이 합이 주를 이루는 편안한 업무 관계이에요. 장기 협업에 안정적이에요.')
+            out.append(f'  충·형 없이 합이 주를 이루는 편안한 업무 관계예요. 장기 협업에 안정적이에요.')
 
     # ════════════════════════════════
     elif rel_type == '친구':
@@ -11892,11 +12071,11 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             0: (f'  {na}님({ia_name})과 {nb}님({ib_name})은 비슷한 감성과 관심사를 공유해요.\n'
                 f'  처음 만나도 오랜 친구처럼 편안한 인연이에요.\n'
                 f'  서로 같은 실수를 반복할 수 있으니 상대를 거울 삼아 성장하는 관계가 좋습니다.'),
-            1: (f'  {na}님({ia_name})이 {nb}님({ib_name})에게 영감과 활력을 주는 관계이에요.\n'
+            1: (f'  {na}님({ia_name})이 {nb}님({ib_name})에게 영감과 활력을 주는 관계예요.\n'
                 f'  {na}님이 먼저 연락하고 이끌 때 우정이 깊어지는 경향이 있어요.\n'
                 f'  {nb}님은 충분한 감사 표현으로 균형을 맞추는 것이 좋습니다.'),
             4: (f'  {nb}님({ib_name})이 {na}님({ia_name})에게 든든한 지지대가 돼요.\n'
-                f'  {na}님이 힘들 때 {nb}님 곁에서 위로받는 관계이에요.\n'
+                f'  {na}님이 힘들 때 {nb}님 곁에서 위로받는 관계예요.\n'
                 f'  {na}님도 상대의 필요를 살피는 배려가 우정을 오래 유지하게 해요.'),
             2: (f'  {na}님({ia_name})의 에너지가 {nb}님({ib_name})을 압도하기 쉽습니다.\n'
                 f'  {na}님이 무의식 중에 {nb}님을 끌고 다니는 형태가 될 수 있어요.\n'
@@ -11912,22 +12091,22 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if chung_list:
             out.append(
                 f'  충·원진: {chung_str}\n'
-                f'  의견 충돌이 생기기 쉬우나, 다름을 인정하면 오히려 자극이 되는 관계이에요.\n'
+                f'  의견 충돌이 생기기 쉬우나, 다름을 인정하면 오히려 자극이 되는 관계예요.\n'
                 f'  "틀린 것"이 아닌 "다른 것"으로 받아들이는 태도가 우정을 지킵니다.'
             )
         if not chung_list:
-            out.append('  큰 충돌 없이 편안하게 지낼 수 있는 관계 구조이에요.')
+            out.append('  큰 충돌 없이 편안하게 지낼 수 있는 관계 구조예요.')
 
         out.append(f'\n### 전체 친구 궁합: {score}점')
         if score >= 75:
             out.append(
-                f'  평생 함께할 수 있는 든든한 우정의 사주 구조이에요.\n'
+                f'  평생 함께할 수 있는 든든한 우정의 사주 구조예요.\n'
                 f'  두 분의 에너지가 서로를 자연스럽게 보완하여 함께할수록 각자의 삶이 풍요로워집니다.\n'
                 f'  어렵고 힘든 시기일수록 서로가 버팀목이 되어주는 진짜 우정의 인연이에요.'
             )
         elif score >= 55:
             out.append(
-                f'  좋은 친구 관계이에요.\n'
+                f'  좋은 친구 관계예요.\n'
                 f'  서로 다른 에너지가 가끔 충돌하기도 하지만, 그 다름이 오히려 서로에게 자극과 영감이 돼요.\n'
                 f'  공통 관심사를 통해 교류하면 오랫동안 유지되는 우정이 될 수 있어요.'
             )
@@ -11949,7 +12128,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             out.append(
                 f'  {na}님({ia_name})이 필요로 하는 인성(印星) 오행은 {in_a_name}이에요.\n'
                 f'  {nb}님(부모) 사주에 {in_a_name}의 기운이 있어, 자연스럽게 보호·지원·인정의 에너지가 흐릅니다.\n'
-                f'  부모로부터 받는 정서적 안정감과 지원이 자식의 삶에 든든한 뿌리가 되는 구조이에요.'
+                f'  부모로부터 받는 정서적 안정감과 지원이 자식의 삶에 든든한 뿌리가 되는 구조예요.'
             )
         else:
             out.append(
@@ -11963,16 +12142,16 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                 f'  공감대가 넓어 말하지 않아도 통하는 경우가 많지만,\n'
                 f'  같은 고집과 성향 때문에 의견이 충돌할 때 대화가 막히는 경향이 있어요.\n'
                 f'  서로 달라지려 하기보다 역할을 명확히 구분하는 것이 관계 조화의 핵심이에요.'),
-            1: (f'  {na}님(자식)의 에너지가 {nb}님(부모)에게 자연스럽게 활력을 드리는 구조이에요.\n'
+            1: (f'  {na}님(자식)의 에너지가 {nb}님(부모)에게 자연스럽게 활력을 드리는 구조예요.\n'
                 f'  자식이 부모를 살뜰히 챙기고 싶은 마음이 사주에서 자연스럽게 발생해요.\n'
                 f'  부모님의 건강과 일상에 관심을 기울이면 그 에너지가 자식에게도 좋은 형태로 되돌아와요.'),
-            4: (f'  {nb}님(부모)의 에너지가 {na}님(자식)을 자연스럽게 감싸고 지원하는 구조이에요.\n'
-                f'  양육 에너지가 순탄하게 흘러 부모가 아낌없이 베푸는 형태이에요.\n'
+            4: (f'  {nb}님(부모)의 에너지가 {na}님(자식)을 자연스럽게 감싸고 지원하는 구조예요.\n'
+                f'  양육 에너지가 순탄하게 흘러 부모가 아낌없이 베푸는 형태예요.\n'
                 f'  자식은 이 든든한 지원을 당연하게 여기지 말고, 감사를 자주 표현하는 것이 관계를 더욱 풍요롭게 해요.'),
             2: (f'  {na}님(자식)의 사주 에너지가 {nb}님(부모)을 다소 압박하는 구조가 형성돼요.\n'
                 f'  자식의 강한 의지나 개성이 부모에게 부담감이나 긴장감으로 느껴질 수 있어요.\n'
                 f'  자식 쪽에서 먼저 부드럽게 소통하고 부모의 방식을 존중하는 자세가 관계 조화를 만듭니다.'),
-            3: (f'  {nb}님(부모)의 기대와 에너지가 {na}님(자식)을 강하게 자극하는 구조이에요.\n'
+            3: (f'  {nb}님(부모)의 기대와 에너지가 {na}님(자식)을 강하게 자극하는 구조예요.\n'
                 f'  부모의 높은 기준이 자식에게 성장의 동력이 되기도 하지만, 때로는 큰 심리적 부담이 되기도 해요.\n'
                 f'  부모님이 자녀에게 충분한 자율성과 선택권을 주는 것이 관계 회복의 첫걸음이에요.'),
         }
@@ -12002,19 +12181,19 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         out.append(f'\n### 전체 부모-자식 궁합: {score}점')
         if score >= 70:
             out.append(
-                f'  부모-자식 간 에너지 흐름이 매우 원활한 사주 구조이에요.\n'
-                f'  서로의 기운이 자연스럽게 통하여 말하지 않아도 마음이 전해지는 든든한 관계이에요.\n'
+                f'  부모-자식 간 에너지 흐름이 매우 원활한 사주 구조예요.\n'
+                f'  서로의 기운이 자연스럽게 통하여 말하지 않아도 마음이 전해지는 든든한 관계예요.\n'
                 f'  이 유대감을 소중히 여기고 꾸준히 교류를 이어가면 평생 든든한 지지대가 돼요.'
             )
         elif score >= 50:
             out.append(
-                f'  보통 수준의 부모-자식 에너지 관계이에요.\n'
+                f'  보통 수준의 부모-자식 에너지 관계예요.\n'
                 f'  사주 구조상 완전히 충돌하지는 않지만, 서로의 표현 방식 차이가 종종 오해를 만들 수 있어요.\n'
                 f'  사랑하는 마음보다 전달 방식이 문제인 경우가 많으니, 서로의 언어를 배우는 노력이 필요해요.'
             )
         else:
             out.append(
-                f'  에너지가 충돌하는 부분이 있는 관계이에요.\n'
+                f'  에너지가 충돌하는 부분이 있는 관계예요.\n'
                 f'  직접적인 대화보다 함께하는 활동(식사·여행·취미)을 통해\n'
                 f'  자연스럽게 관계를 쌓아가는 방식이 훨씬 효과적이에요.\n'
                 f'  시간을 두고 천천히 서로를 이해해가는 과정을 포기하지 마세요.'
@@ -12031,30 +12210,30 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             out.append(
                 f'  {na}님(부모)의 자식성(食傷) 오행은 {ss_a_name}이며,\n'
                 f'  {nb}님(자녀) 사주에 해당 기운이 존재해요.\n'
-                f'  부모가 자녀의 성향을 자연스럽게 이해하고 소통할 수 있는 에너지 구조이에요.\n'
+                f'  부모가 자녀의 성향을 자연스럽게 이해하고 소통할 수 있는 에너지 구조예요.\n'
                 f'  자녀의 성장을 응원하고 자율성을 부여하는 양육 방식에서 관계가 더욱 빛나요.'
             )
         else:
             out.append(
                 f'  {na}님(부모)의 자식성(食傷) 오행은 {ss_a_name}이지만,\n'
                 f'  {nb}님(자녀) 사주에서 해당 기운이 뚜렷하지 않습니다.\n'
-                f'  부모가 자녀의 기질과 사고방식을 이해하는 데 더 많은 노력이 필요한 구조이에요.\n'
+                f'  부모가 자녀의 기질과 사고방식을 이해하는 데 더 많은 노력이 필요한 구조예요.\n'
                 f'  자녀의 관심사와 눈높이로 먼저 다가가는 자세가 관계의 핵심 열쇠가 돼요.'
             )
         child_story = {
             0: (f'  부모({na}님)와 자녀({nb}님)는 같은 오행 기질을 공유해요.\n'
                 f'  서로를 본능적으로 이해하지만, 같은 성향의 고집이 부딪힐 때 갈등이 깊어질 수 있어요.\n'
                 f'  서로의 다름을 인정하고 역할 경계를 명확히 하는 것이 관계 조화의 핵심이에요.'),
-            1: (f'  {na}님(부모)의 에너지가 {nb}님(자녀)에게 자연스럽게 흘러가는 순탄한 양육 구조이에요.\n'
+            1: (f'  {na}님(부모)의 에너지가 {nb}님(자녀)에게 자연스럽게 흘러가는 순탄한 양육 구조예요.\n'
                 f'  부모의 가르침과 지원이 자녀에게 잘 받아들여지는 편이에요.\n'
                 f'  자녀의 성장 속도에 맞춰 점차 자율성을 늘려주는 것이 더 깊은 신뢰를 만듭니다.'),
-            4: (f'  {nb}님(자녀)이 {na}님(부모)에게 활력과 생기를 주는 아름다운 구조이에요.\n'
+            4: (f'  {nb}님(자녀)이 {na}님(부모)에게 활력과 생기를 주는 아름다운 구조예요.\n'
                 f'  자녀로 인해 부모의 삶에 새로운 에너지와 동기가 생깁니다.\n'
                 f'  자녀를 통해 배우고 성장하는 부모의 자세가 관계를 더욱 깊고 풍요롭게 만듭니다.'),
-            2: (f'  {na}님(부모)의 강한 에너지가 {nb}님(자녀)에게 압박으로 느껴질 수 있는 구조이에요.\n'
+            2: (f'  {na}님(부모)의 강한 에너지가 {nb}님(자녀)에게 압박으로 느껴질 수 있는 구조예요.\n'
                 f'  부모의 높은 기대와 방식이 자녀에게 심리적 부담이 되기 쉽습니다.\n'
                 f'  자녀에게 충분한 자율성과 선택권을 주고, 결과보다 과정을 존중하는 양육이 필요해요.'),
-            3: (f'  {nb}님(자녀)의 사주 에너지가 강하여 부모({na}님)가 이끌기 어렵게 느껴질 수 있는 구조이에요.\n'
+            3: (f'  {nb}님(자녀)의 사주 에너지가 강하여 부모({na}님)가 이끌기 어렵게 느껴질 수 있는 구조예요.\n'
                 f'  자녀의 독립적인 의지가 매우 강한 편이므로 직접적인 통제보다\n'
                 f'  방향을 제시하고 스스로 선택하게 하는 방식이 훨씬 효과적이에요.'),
         }
@@ -12071,19 +12250,19 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         out.append(f'\n### 전체 부모-자녀 궁합: {score}점')
         if score >= 70:
             out.append(
-                f'  부모-자녀 에너지 흐름이 매우 원활한 사주 구조이에요.\n'
+                f'  부모-자녀 에너지 흐름이 매우 원활한 사주 구조예요.\n'
                 f'  자연스러운 소통과 상호 이해가 가능하며, 함께하는 시간이 두 분 모두에게 활력이 돼요.\n'
                 f'  이 유대감을 소중히 여기고 성장하면서도 꾸준히 교류를 이어가세요.'
             )
         elif score >= 50:
             out.append(
-                f'  보통 수준의 부모-자녀 에너지 관계이에요.\n'
+                f'  보통 수준의 부모-자녀 에너지 관계예요.\n'
                 f'  자녀의 기질을 먼저 이해하고 그 언어로 다가가는 것이 소통의 첫걸음이에요.\n'
                 f'  서로 다른 성향을 인정하면서 공통분모를 찾아가는 과정이 관계를 성장시켜요.'
             )
         else:
             out.append(
-                f'  에너지 충돌이 있는 부모-자녀 관계이에요.\n'
+                f'  에너지 충돌이 있는 부모-자녀 관계예요.\n'
                 f'  통제와 지시보다 지지하고 응원하는 양육 방식이 훨씬 효과적이에요.\n'
                 f'  자녀의 있는 그대로를 인정해주는 것이 관계 회복의 가장 빠른 길이에요.'
             )
@@ -12097,10 +12276,10 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                 f'  공감대가 넓고 편안한 관계이지만 같은 고집으로 충돌할 수 있어요.\n'
                 f'  서로 다른 강점을 인정하고 경쟁이 아닌 협력 관계를 만드는 것이 중요해요.'),
             1: (f'  {na}님({ia_name})의 에너지가 {nb}님({ib_name})에게 생기를 줘요.\n'
-                f'  {na}님이 자연스럽게 이끌고 {nb}님이 따라가는 구조이에요.\n'
+                f'  {na}님이 자연스럽게 이끌고 {nb}님이 따라가는 구조예요.\n'
                 f'  {nb}님이 {na}님의 그늘에 가려지지 않도록 각자의 영역을 존중하는 것이 중요해요.'),
             4: (f'  {nb}님({ib_name})의 에너지가 {na}님({ia_name})에게 생기를 줘요.\n'
-                f'  {nb}님이 자연스럽게 든든한 버팀목 역할을 하는 구조이에요.\n'
+                f'  {nb}님이 자연스럽게 든든한 버팀목 역할을 하는 구조예요.\n'
                 f'  {na}님도 충분한 감사 표현과 보답으로 균형을 맞추는 것이 좋습니다.'),
             2: (f'  {na}님({ia_name})의 에너지가 {nb}님({ib_name})을 압박하기 쉽습니다.\n'
                 f'  {na}님이 무의식 중에 {nb}님을 끌고 다니는 형태가 될 수 있어요.\n'
@@ -12114,7 +12293,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         ss_nb_to_na = get_sipseong(ia, OHAENG_IDX[ib], ib % 2)
         ss_na_to_nb = get_sipseong(ib, OHAENG_IDX[ia], ia % 2)
         sib_ss_desc = {
-            '비견': f'{nb}님이 {na}님에게 비견 — 동등한 동류, 경쟁하지 않으면 최고의 동반자이에요.',
+            '비견': f'{nb}님이 {na}님에게 비견 — 동등한 동류, 경쟁하지 않으면 최고의 동반자예요.',
             '겁재': f'{nb}님이 {na}님에게 겁재 — 강한 자극 에너지, 서로 동기부여가 되지만 재물 관련 다툼 주의.',
             '식신': f'{nb}님이 {na}님에게 식신 — 형제 중 한쪽이 표현력으로 상대를 살찌웁니다.',
             '상관': f'{nb}님이 {na}님에게 상관 — 개성 강한 관계, 서로의 창의성을 자극해요.',
@@ -12135,24 +12314,24 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                 f'  성인이 된 후 서로 다름을 인정하면 오히려 든든한 지지대가 돼요.'
             )
         else:
-            out.append('  구조적 충돌이 없는 편안한 형제·자매 관계이에요.')
+            out.append('  구조적 충돌이 없는 편안한 형제·자매 관계예요.')
 
         out.append(f'\n### 전체 형제·자매 궁합: {score}점')
         if score >= 72:
             out.append(
-                f'  서로가 서로의 가장 든든한 지지대가 되는 좋은 형제·자매 관계이에요.\n'
-                f'  사주 에너지가 잘 맞아 어렵고 힘든 시기일수록 서로를 자연스럽게 도와주는 구조이에요.\n'
+                f'  서로가 서로의 가장 든든한 지지대가 되는 좋은 형제·자매 관계예요.\n'
+                f'  사주 에너지가 잘 맞아 어렵고 힘든 시기일수록 서로를 자연스럽게 도와주는 구조예요.\n'
                 f'  이 유대감을 소중히 여기고 성인이 되어서도 꾸준히 교류를 이어가세요.'
             )
         elif score >= 52:
             out.append(
-                f'  보통 수준의 형제·자매 에너지 관계이에요.\n'
+                f'  보통 수준의 형제·자매 에너지 관계예요.\n'
                 f'  서로의 성향 차이가 분명하여 어릴 때는 갈등이 있었을 수 있지만,\n'
                 f'  각자의 영역을 인정하고 존중하면 성인이 되면서 더 편안한 관계로 발전해요.'
             )
         else:
             out.append(
-                f'  에너지 충돌이 있는 형제·자매 관계이에요.\n'
+                f'  에너지 충돌이 있는 형제·자매 관계예요.\n'
                 f'  직접적인 경쟁이나 비교보다 각자의 길을 응원하는 방식이 훨씬 효과적이에요.\n'
                 f'  성인이 된 후 서로의 다름을 완전히 인정하면 오히려 보완적인 관계가 될 수 있어요.'
             )
@@ -12168,38 +12347,38 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if rel_type == '직장_상사':
             if ss_nb_to_na in ('정관', '편관'):
                 out.append(
-                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  사주 구조상 상사가 나를 올바르게 제어하고 방향을 제시하는 이상적인 상하관계이에요.\n'
+                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  사주 구조상 상사가 나를 올바르게 제어하고 방향을 제시하는 이상적인 상하관계예요.\n'
                     f'  이 상사 밑에서 일하면 자신의 실력이 빠르게 향상되고 인정받는 기회가 많아집니다.\n'
                     f'  상사의 지시에 유연하게 따르면서 자신의 능력을 꾸준히 증명해 나가세요.'
                 )
             elif ss_nb_to_na in ('정인', '편인'):
                 out.append(
-                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  상사가 나를 가르치고 보호하며 성장시키는 멘토형 관계 구조이에요.\n'
+                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  상사가 나를 가르치고 보호하며 성장시키는 멘토형 관계 구조예요.\n'
                     f'  지식과 경험을 아낌없이 전수받을 수 있는 귀한 인연이며,\n'
                     f'  이 상사와의 관계가 커리어 전체에 긍정적인 영향을 미칩니다.\n'
                     f'  적극적으로 배우려는 자세를 보이는 것이 관계를 더욱 깊게 만듭니다.'
                 )
             elif ss_nb_to_na in ('비견', '겁재'):
                 out.append(
-                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  상사와 나의 기운이 비슷하여 경쟁 구도가 형성되기 쉬운 관계이에요.\n'
+                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  상사와 나의 기운이 비슷하여 경쟁 구도가 형성되기 쉬운 관계예요.\n'
                     f'  상사가 나의 성장을 경계하거나 견제하는 느낌이 들 수 있어요.\n'
                     f'  감정적으로 대응하기보다 업무 실력과 성과로 조용히 인정받는 전략이 가장 현명해요.\n'
                     f'  언행을 조심하고 충돌을 피하면서 실력을 꾸준히 쌓아가세요.'
                 )
             elif ss_nb_to_na in ('상관',):
                 out.append(
-                    f'  {nb}님(상사)이 {na}님에게 상관에 해당하는 에너지이에요.\n'
+                    f'  {nb}님(상사)이 {na}님에게 상관에 해당하는 에너지예요.\n'
                     f'  상사가 나에게 압박을 주거나 자유를 제한하는 형태로 느껴질 수 있어요.\n'
                     f'  이 구조에서는 상사의 방식을 정면으로 거스르면 반드시 손해가 돼요.\n'
                     f'  자신의 의견은 유연하게 표현하되, 결과로 능력을 증명하는 접근이 가장 효과적이에요.'
                 )
             else:
                 out.append(
-                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  특별한 갈등 구조 없이 무난하게 업무를 이어갈 수 있는 관계이에요.\n'
+                    f'  {nb}님(상사)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  특별한 갈등 구조 없이 무난하게 업무를 이어갈 수 있는 관계예요.\n'
                     f'  상사와의 관계에서 주도권을 내가 잡으려 하기보다는\n'
                     f'  맡은 업무에서 성과를 꾸준히 내는 방식이 가장 안정적인 전략이에요.'
                 )
@@ -12207,36 +12386,36 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         elif rel_type == '직장_부하':
             if ss_nb_to_na in ('식신',):
                 out.append(
-                    f'  {nb}님(부하)이 나에게 식신에 해당하는 에너지이에요.\n'
-                    f'  내 지시와 방향을 잘 이해하고 안정적으로 실행하는 순탄한 관계 구조이에요.\n'
+                    f'  {nb}님(부하)이 나에게 식신에 해당하는 에너지예요.\n'
+                    f'  내 지시와 방향을 잘 이해하고 안정적으로 실행하는 순탄한 관계 구조예요.\n'
                     f'  이 부하를 믿고 점진적으로 더 많은 역할을 맡기면 좋은 성과가 나와요.\n'
                     f'  신뢰를 바탕으로 자율적으로 일할 수 있는 환경을 만들어주는 것이 핵심이에요.'
                 )
             elif ss_nb_to_na in ('상관',):
                 out.append(
-                    f'  {nb}님(부하)이 나에게 상관에 해당하는 에너지이에요.\n'
+                    f'  {nb}님(부하)이 나에게 상관에 해당하는 에너지예요.\n'
                     f'  창의적이고 독립적인 성향의 부하로, 개성이 강해 기존 방식과 충돌할 수 있어요.\n'
                     f'  통제하려 할수록 반발이 커지므로, 자율성과 창의적 공간을 충분히 주는 것이 중요해요.\n'
                     f'  이 부하의 창의성을 올바른 방향으로 이끌면 뛰어난 성과를 내는 핵심 인재가 돼요.'
                 )
             elif ss_nb_to_na in ('정관', '편관'):
                 out.append(
-                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  사주 구조상 부하가 오히려 나를 압박하거나 경쟁하려는 에너지가 있는 관계이에요.\n'
-                    f'  역할과 권한의 경계를 처음부터 명확하게 설정하고 문서화해두는 것이 필수이에요.\n'
+                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  사주 구조상 부하가 오히려 나를 압박하거나 경쟁하려는 에너지가 있는 관계예요.\n'
+                    f'  역할과 권한의 경계를 처음부터 명확하게 설정하고 문서화해두는 것이 필수예요.\n'
                     f'  감정적으로 대응하지 말고 리더로서의 역량과 기준을 일관되게 보여주는 것이 중요해요.'
                 )
             elif ss_nb_to_na in ('비견', '겁재'):
                 out.append(
-                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
+                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
                     f'  나와 비슷한 기질을 가진 부하로, 경쟁 의식이 생기거나 눈치 보기가 어려울 수 있어요.\n'
                     f'  서로의 역할을 명확히 나누고 각자의 영역을 존중하는 구조를 만드는 것이 핵심이에요.\n'
-                    f'  협력 관계로 이끌면 강력한 시너지를 낼 수 있는 잠재력이 있는 관계이에요.'
+                    f'  협력 관계로 이끌면 강력한 시너지를 낼 수 있는 잠재력이 있는 관계예요.'
                 )
             else:
                 out.append(
-                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  특별히 강한 갈등 구조 없이 무난하게 협력할 수 있는 관계이에요.\n'
+                    f'  {nb}님(부하)이 나에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  특별히 강한 갈등 구조 없이 무난하게 협력할 수 있는 관계예요.\n'
                     f'  부하의 강점을 파악하고 그에 맞는 역할을 부여하는 것이\n'
                     f'  이 관계에서 최고의 성과를 이끌어내는 방법이에요.'
                 )
@@ -12244,15 +12423,15 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         elif rel_type == '직장_동업':
             if ss_nb_to_na in ('정재', '편재'):
                 out.append(
-                    f'  {nb}님(동업자)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지이에요.\n'
-                    f'  사주 구조상 {nb}님이 {na}님에게 재물을 가져다주는 이상적인 동업 구조이에요.\n'
+                    f'  {nb}님(동업자)이 {na}님에게 {ss_nb_to_na}에 해당하는 에너지예요.\n'
+                    f'  사주 구조상 {nb}님이 {na}님에게 재물을 가져다주는 이상적인 동업 구조예요.\n'
                     f'  {nb}님이 영업·재무·대외 활동을 맡고,\n'
                     f'  {na}님이 운영·기획·내부 관리를 담당하는 역할 분담이 가장 자연스럽습니다.\n'
                     f'  수익 배분은 반드시 계약서로 명문화하여 신뢰를 제도화해야 해요.'
                 )
             elif ss_na_to_nb in ('정재', '편재'):
                 out.append(
-                    f'  {na}님이 동업자({nb}님)에게 {ss_na_to_nb}에 해당하는 에너지이에요.\n'
+                    f'  {na}님이 동업자({nb}님)에게 {ss_na_to_nb}에 해당하는 에너지예요.\n'
                     f'  {na}님이 {nb}님에게 재물을 가져다주는 구조로,\n'
                     f'  {na}님이 영업·대외 활동에서 두각을 나타내는 형태가 자연스럽습니다.\n'
                     f'  {nb}님은 내부 운영과 관리에 집중하는 역할 분담이 효율적이에요.\n'
@@ -12260,10 +12439,10 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                 )
             else:
                 out.append(
-                    f'  두 분 사주의 재성 교차가 뚜렷하지 않은 구조이에요.\n'
+                    f'  두 분 사주의 재성 교차가 뚜렷하지 않은 구조예요.\n'
                     f'  동업에서 재물 에너지가 한 방향으로 흐르지 않으면 이익 분배 갈등이 생기기 쉽습니다.\n'
-                    f'  역할과 수익 배분을 반드시 계약서로 먼저 명문화하고 시작하는 것이 필수이에요.\n'
-                    f'  서로의 강점이 무엇인지 명확히 파악하고 그에 맞게 역할을 나누는 것이 성공의 열쇠이에요.'
+                    f'  역할과 수익 배분을 반드시 계약서로 먼저 명문화하고 시작하는 것이 필수예요.\n'
+                    f'  서로의 강점이 무엇인지 명확히 파악하고 그에 맞게 역할을 나누는 것이 성공의 열쇠예요.'
                 )
 
         else:  # 직장_동료
@@ -12272,16 +12451,16 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                     f'  호흡이 빠르게 맞고 공감대가 넓어 협업이 편안하지만,\n'
                     f'  같은 약점을 공유해 서로의 사각지대를 보완하지 못하는 경우가 생길 수 있어요.\n'
                     f'  의식적으로 역할을 나눠 다양한 관점이 반영되도록 하는 것이 중요해요.'),
-                1: (f'  {na}님({ia_name})의 에너지가 {nb}님({ib_name})에게 아이디어와 방향을 제공하는 구조이에요.\n'
+                1: (f'  {na}님({ia_name})의 에너지가 {nb}님({ib_name})에게 아이디어와 방향을 제공하는 구조예요.\n'
                     f'  {na}님이 기획·주도하고 {nb}님이 실행·마무리하는 역할 분담이 자연스럽습니다.\n'
                     f'  {nb}님이 충분한 인정과 감사를 표현해야 장기적으로 좋은 관계가 유지돼요.'),
                 4: (f'  {nb}님({ib_name})이 {na}님({ia_name})에게 안정적인 지원과 실무 기반을 제공해요.\n'
                     f'  {nb}님이 내부를 탄탄히 다지고 {na}님이 대외 활동을 맡는 분업이 효율적이에요.\n'
                     f'  {na}님이 {nb}님의 기여를 충분히 인정하고 감사하는 것이 관계 유지의 핵심이에요.'),
-                2: (f'  {na}님({ia_name})의 업무 방식이 {nb}님({ib_name})에게 압박으로 느껴질 수 있는 구조이에요.\n'
-                    f'  능력 차이가 아닌 스타일 차이임을 서로 인식하는 것이 먼저이에요.\n'
+                2: (f'  {na}님({ia_name})의 업무 방식이 {nb}님({ib_name})에게 압박으로 느껴질 수 있는 구조예요.\n'
+                    f'  능력 차이가 아닌 스타일 차이임을 서로 인식하는 것이 먼저예요.\n'
                     f'  {nb}님에게도 동등한 발언권을 보장하고 의견을 충분히 반영해야 시너지가 나요.'),
-                3: (f'  {nb}님({ib_name})의 업무 방식이 {na}님({ia_name})에게 압박으로 느껴질 수 있는 구조이에요.\n'
+                3: (f'  {nb}님({ib_name})의 업무 방식이 {na}님({ia_name})에게 압박으로 느껴질 수 있는 구조예요.\n'
                     f'  {na}님이 {nb}님의 페이스에 일방적으로 끌려가지 않도록\n'
                     f'  자신의 의견을 분명하게 표현하고 경계를 유지하는 것이 중요해요.'),
             }
@@ -12291,7 +12470,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if hap_list:
             out.append(
                 f'  합 관계({hap_str})가 있어요.\n'
-                f'  협업 시 자연스러운 시너지가 발생하고, 함께 목표를 향해 에너지를 모으기 쉬운 구조이에요.'
+                f'  협업 시 자연스러운 시너지가 발생하고, 함께 목표를 향해 에너지를 모으기 쉬운 구조예요.'
             )
         if chung_list:
             if rel_type == '직장_동업':
@@ -12299,12 +12478,12 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
                     f'  충·원진({chung_str})이 있어요.\n'
                     f'  동업 관계에서 충돌은 파탄의 씨앗이 될 수 있어요.\n'
                     f'  반드시 계약서를 작성하고, 갈등이 생겼을 때 처리 방식을 미리 합의해두세요.\n'
-                    f'  감정이 개입되기 전에 제도와 규칙으로 해결하는 구조를 만드는 것이 필수이에요.'
+                    f'  감정이 개입되기 전에 제도와 규칙으로 해결하는 구조를 만드는 것이 필수예요.'
                 )
             elif rel_type == '직장_상사':
                 out.append(
                     f'  충·원진({chung_str})이 있어요.\n'
-                    f'  상사와의 에너지 충돌이 구조적으로 발생하기 쉬운 관계이에요.\n'
+                    f'  상사와의 에너지 충돌이 구조적으로 발생하기 쉬운 관계예요.\n'
                     f'  감정적으로 맞서기보다 결과와 성과로 묵묵히 자신을 증명하는 전략이 가장 현명해요.\n'
                     f'  불필요한 마찰은 피하고 업무 집중도를 높이는 방향으로 에너지를 쓰세요.'
                 )
@@ -12317,11 +12496,11 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if rel.get('형', []):
             out.append(
                 f'  형(刑) 관계({", ".join(rel["형"])})가 있어요.\n'
-                f'  원칙·규칙·권한을 놓고 갈등이 생기기 쉬운 구조이에요.\n'
+                f'  원칙·규칙·권한을 놓고 갈등이 생기기 쉬운 구조예요.\n'
                 f'  역할과 책임 범위를 처음부터 명문화해두는 것이 갈등 예방의 핵심이에요.'
             )
         if not hap_list and not chung_list and not rel.get('형', []):
-            out.append('  특별한 합·충 관계 없이 무난한 업무 에너지 구조이에요. 안정적인 장기 협업에 유리해요.')
+            out.append('  특별한 합·충 관계 없이 무난한 업무 에너지 구조예요. 안정적인 장기 협업에 유리해요.')
 
         out.append(f'\n### 전체 직장 궁합: {score}점')
         if score >= 75:
@@ -12369,8 +12548,8 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
         if score >= 68 and not ilji_bad:
             verdict = '재회 권장'
             out.append(
-                f'  ✅ {verdict} — 재회 후 더 좋아질 가능성이 높은 구조이에요.\n'
-                f'  두 분의 사주가 서로를 보완하고 함께할 때 더 빛나는 구조이에요.\n'
+                f'  ✅ {verdict} — 재회 후 더 좋아질 가능성이 높은 구조예요.\n'
+                f'  두 분의 사주가 서로를 보완하고 함께할 때 더 빛나는 구조예요.\n'
                 f'  이별이 오히려 서로를 더 이해하는 계기가 되었다면, 재회 후 관계가 더 성숙해집니다.\n'
                 f'  단, 이별의 원인을 먼저 솔직하게 대화하고 해결하는 것이 선행되어야 해요.'
             )
@@ -12387,7 +12566,7 @@ def _analyze_gunghap_typed(pa, pb, na, nb, score, rel, reasons, rel_type,
             verdict = '재회 비권장'
             out.append(
                 f'  ❌ {verdict} — 구조적으로 재회보다 각자의 길이 더 유리해요.\n'
-                f'  사주에 충·원진이 많고 일지 관계도 갈등 구조이에요.\n'
+                f'  사주에 충·원진이 많고 일지 관계도 갈등 구조예요.\n'
                 f'  재회해도 같은 이유로 다시 이별할 가능성이 통계적으로 높습니다.\n'
                 f'  이 그리움이 진짜 사랑인지, 외로움인지 스스로 먼저 구별하는 시간이 필요해요.'
             )
@@ -12453,8 +12632,8 @@ def _gwiin_cross(pa, pb, na, nb):
             f'  ★ 쌍방 천을귀인 관계!\n'
             f'  {nb}님의 지지({", ".join(nb_in_na_cy)})가 {na}님의 천을귀인이고,\n'
             f'  {na}님의 지지({", ".join(na_in_nb_cy)})가 {nb}님의 천을귀인이에요.\n'
-            f'  서로가 서로의 귀인인 매우 특별한 인연 구조이에요.\n'
-            f'  어려울 때 상대방이 반드시 도움의 손길이 되어주는 관계이에요.'
+            f'  서로가 서로의 귀인인 매우 특별한 인연 구조예요.\n'
+            f'  어려울 때 상대방이 반드시 도움의 손길이 되어주는 관계예요.'
         )
     elif nb_in_na_cy:
         lines.append(
@@ -12467,7 +12646,7 @@ def _gwiin_cross(pa, pb, na, nb):
             f'  {nb}님에게 {na}님은 어려울 때 힘이 되어주는 귀인 역할을 해요.'
         )
     else:
-        lines.append('  천을귀인 교차는 없어요. 귀인 인연보다 노력으로 만들어가는 관계이에요.')
+        lines.append('  천을귀인 교차는 없어요. 귀인 인연보다 노력으로 만들어가는 관계예요.')
     return '\n'.join(lines)
 
 
@@ -12506,37 +12685,37 @@ def _sewoon_rel(pa, pb, na, nb, rel_type):
     if hap_a and hap_b:
         lines.append(
             f'  올해 {yj_name}년 세운 지지가 두 분 모두의 일지와 합을 이루고 있어요.\n'
-            f'  두 분의 관계가 올해 특히 강하게 활성화되는 최상의 시기이에요.\n'
+            f'  두 분의 관계가 올해 특히 강하게 활성화되는 최상의 시기예요.\n'
             f'  이 관계에서 중요한 결정이나 행동을 올해 안에 시도하면 좋은 결과가 나와요.'
         )
     elif hap_a:
         lines.append(
             f'  올해 세운 지지가 {na}님 일지와 합을 이룹니다.\n'
-            f'  {na}님 입장에서 이 관계가 올해 유독 마음에 걸리고 중요하게 느껴지는 시기이에요.\n'
+            f'  {na}님 입장에서 이 관계가 올해 유독 마음에 걸리고 중요하게 느껴지는 시기예요.\n'
             f'  {na}님이 먼저 관계에 에너지를 쏟는 것이 올해에는 자연스러운 흐름이에요.'
         )
     elif hap_b:
         lines.append(
             f'  올해 세운 지지가 {nb}님 일지와 합을 이룹니다.\n'
-            f'  {nb}님 입장에서 이 관계가 올해 유독 중요하게 부각되는 시기이에요.\n'
+            f'  {nb}님 입장에서 이 관계가 올해 유독 중요하게 부각되는 시기예요.\n'
             f'  {nb}님 쪽에서 먼저 다가오거나 관계에 변화를 만들 가능성이 있어요.'
         )
     elif chung_a and chung_b:
         lines.append(
             f'  올해 세운 지지가 두 분 모두의 일지와 충(沖)을 이룹니다.\n'
-            f'  이 관계에서 갈등이나 변화의 기운이 올해 특히 강하게 작용하는 시기이에요.\n'
+            f'  이 관계에서 갈등이나 변화의 기운이 올해 특히 강하게 작용하는 시기예요.\n'
             f'  중요한 결정이나 충돌이 예상되면 가급적 내년으로 미루는 것이 현명해요.'
         )
     elif chung_a:
         lines.append(
             f'  올해 세운 지지가 {na}님 일지와 충(沖)을 이룹니다.\n'
-            f'  {na}님 입장에서 이 관계에 변화나 갈등이 생기는 시기이에요.\n'
+            f'  {na}님 입장에서 이 관계에 변화나 갈등이 생기는 시기예요.\n'
             f'  감정적으로 흔들릴 때 중요한 판단을 내리지 않도록 주의가 필요해요.'
         )
     elif chung_b:
         lines.append(
             f'  올해 세운 지지가 {nb}님 일지와 충(沖)을 이룹니다.\n'
-            f'  {nb}님 입장에서 이 관계에 변화나 갈등의 기운이 있는 시기이에요.\n'
+            f'  {nb}님 입장에서 이 관계에 변화나 갈등의 기운이 있는 시기예요.\n'
             f'  {nb}님의 감정 상태가 불안정할 수 있으니 관계에서 여유를 두는 것이 좋습니다.'
         )
     else:
@@ -12549,7 +12728,7 @@ def _sewoon_rel(pa, pb, na, nb, rel_type):
     if a_good and b_good:
         lines.append(
             f'\n  두 분 모두 올해 이 관계에 유리한 십성 에너지가 들어오고 있어요.\n'
-            f'  {na}님은 {ss_a}, {nb}님은 {ss_b} 운으로, 양쪽 모두 이 관계에 에너지가 집중되는 시기이에요.\n'
+            f'  {na}님은 {ss_a}, {nb}님은 {ss_b} 운으로, 양쪽 모두 이 관계에 에너지가 집중되는 시기예요.\n'
             f'  올해가 이 관계에서 중요한 전환점이 될 가능성이 높습니다.'
         )
     elif a_good:
@@ -12566,7 +12745,7 @@ def _sewoon_rel(pa, pb, na, nb, rel_type):
         )
     else:
         lines.append(
-            f'\n  두 분 모두 올해 이 관계보다 각자의 개인 과제에 에너지가 집중되는 시기이에요.\n'
+            f'\n  두 분 모두 올해 이 관계보다 각자의 개인 과제에 에너지가 집중되는 시기예요.\n'
             f'  ({na}님: {ss_a} 운, {nb}님: {ss_b} 운)\n'
             f'  관계에 무리한 변화를 시도하기보다는 각자의 성장에 집중하며 자연스럽게 유지하는 것이 좋습니다.'
         )
@@ -12668,7 +12847,7 @@ def _sinsal_score_adj(pa, pb, na, nb, mode='재회'):
     elif goran_a or goran_b:
         who = na if goran_a else nb
         d = -6 if mode == '재회' else -8
-        delta += d; reasons.append(f'[고란살({who}) {d}] {who}은 혼자가 편한 타입 — 정착 어려움')
+        delta += d; reasons.append(f'[고란살({who}) {d}] {who}{_jp(who, "은", "는")} 혼자가 편한 타입 — 정착 어려움')
 
     yukma_a = _has(all_a, '역마살')
     yukma_b = _has(all_b, '역마살')
@@ -12677,7 +12856,7 @@ def _sinsal_score_adj(pa, pb, na, nb, mode='재회'):
     elif yukma_a or yukma_b:
         who = na if yukma_a else nb
         d = -3
-        delta += d; reasons.append(f'[역마살({who}) {d}] {who}은 정착보다 변화 선호 — 한 쪽만 있으면 방향 차이 생길 수 있음')
+        delta += d; reasons.append(f'[역마살({who}) {d}] {who}{_jp(who, "은", "는")} 정착보다 변화 선호 — 한 쪽만 있으면 방향 차이 생길 수 있음')
 
     dohwa_a = _has(all_a, '도화살')
     dohwa_b = _has(all_b, '도화살')
@@ -12716,7 +12895,7 @@ def _sinsal_score_adj(pa, pb, na, nb, mode='재회'):
     elif hwagae_a or hwagae_b:
         who = na if hwagae_a else nb
         d = -3
-        delta += d; reasons.append(f'[화개살({who}) {d}] {who}은 혼자만의 세계 중시 — 관계보다 고독 선호')
+        delta += d; reasons.append(f'[화개살({who}) {d}] {who}{_jp(who, "은", "는")} 혼자만의 세계 중시 — 관계보다 고독 선호')
 
     # 효신살
     hyoshin_a = _has(all_a, '효신살')
@@ -12757,20 +12936,20 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     yang_b = _has(all_b, '양인살')
     if yang_a and yang_b:
         opinions.append(
-            f'⚡ **양인살 (두 분 모두)** — 두 분 모두 강한 자존심과 폭발적 에너지를 가졌어요.\n'
+            f'**양인살 (두 분 모두)** — 두 분 모두 강한 자존심과 폭발적 에너지를 가졌어요.\n'
             f'  이별할 때 감정이 극단적으로 치닫는 경우가 많아요. '
             f'"내가 왜 먼저 연락해"라는 자존심 싸움이 재회를 막는 가장 큰 벽이에요.\n'
             f'  둘 다 먼저 손 내밀기 싫어하는 구조라 중간에서 자연스러운 계기가 필요해요.'
         )
     elif yang_a:
         opinions.append(
-            f'⚡ **양인살 ({na}님)** — {na}님은 이별 시 감정이 폭발하거나 극단적으로 차단하는 패턴이 있어요.\n'
+            f'**양인살 ({na}님)** — {na}님은 이별 시 감정이 폭발하거나 극단적으로 차단하는 패턴이 있어요.\n'
             f'  화가 나면 아예 연락을 끊거나 "다시는 안 본다"고 선언하지만 속으로는 미련이 남는 타입이에요.\n'
             f'  {nb}님이 {na}님의 자존심을 건드리지 않는 방식으로 접근하는 것이 재회의 핵심이에요.'
         )
     elif yang_b:
         opinions.append(
-            f'⚡ **양인살 ({nb}님)** — {nb}님은 이별 시 감정을 격하게 표현하거나 완전히 차단하는 성향이에요.\n'
+            f'**양인살 ({nb}님)** — {nb}님은 이별 시 감정을 격하게 표현하거나 완전히 차단하는 성향이에요.\n'
             f'  강한 자존심 때문에 먼저 연락하기 어려워해요.\n'
             f'  재회를 원한다면 {nb}님의 자존심을 존중하면서 자연스러운 접점을 만드는 것이 중요해요.'
         )
@@ -12782,7 +12961,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if baekho_a else f'{nb}님'
         if baekho_a and baekho_b: who = '두 분 모두'
         opinions.append(
-            f'🔴 **백호대살 ({who})** — 백호대살은 갑작스럽고 충격적인 사건이 인연을 끊는 구조예요.\n'
+            f'**백호대살 ({who})** — 백호대살은 갑작스럽고 충격적인 사건이 인연을 끊는 구조예요.\n'
             f'  예상하지 못한 순간에 이별이 찾아오거나, 사고·건강 문제가 관계에 영향을 주기도 해요.\n'
             f'  이별의 원인이 감정적 갈등보다 외부 충격이나 돌발 상황이었을 가능성이 있어요.\n'
             f'  재회를 원한다면 "그때 그 상황은 어쩔 수 없었어"라는 이해와 공감이 먼저 필요해요.'
@@ -12795,7 +12974,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if goran_a else f'{nb}님'
         if goran_a and goran_b: who = '두 분 모두'
         opinions.append(
-            f'🌙 **고란살 ({who})** — 고란살은 혼자가 편한 타입임을 나타내요.\n'
+            f'**고란살 ({who})** — 고란살은 혼자가 편한 타입임을 나타내요.\n'
             f'  깊은 관계에 들어가면 자유가 제한되는 느낌을 받고 본능적으로 거리를 두려는 성향이에요.\n'
             f'  이별의 원인 중 하나가 "혼자만의 공간이 필요해"라는 감정이었을 수 있어요.\n'
             f'  재회 후에는 각자의 공간과 독립성을 충분히 보장하는 구조를 만드는 것이 중요해요.'
@@ -12806,7 +12985,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     yukma_b = _has(all_b, '역마살')
     if yukma_a and yukma_b:
         opinions.append(
-            f'🏃 **역마살 (두 분 모두)** — 두 분 모두 변화와 자유를 좋아하는 기운이에요.\n'
+            f'**역마살 (두 분 모두)** — 두 분 모두 변화와 자유를 좋아하는 기운이에요.\n'
             f'  이건 오히려 서로 잘 맞는 포인트예요. 함께 여행하거나 새로운 경험을 나누는 관계에서 빛나요.\n'
             f'  다만 함께 나아갈 공통 방향이 없으면 각자 다른 곳으로 흘러갈 수 있어요.\n'
             f'  "어디로 같이 가자"는 공동 목표가 이 인연을 오래 이어주는 핵심이에요.'
@@ -12814,7 +12993,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     elif yukma_a or yukma_b:
         who = f'{na}님' if yukma_a else f'{nb}님'
         opinions.append(
-            f'🏃 **역마살 ({who})** — {who}은 정착보다 변화를 선호하는 기운이에요.\n'
+            f'**역마살 ({who})** — {who}{_jp(who, "은", "는")} 정착보다 변화를 선호하는 기운이에요.\n'
             f'  이별의 원인 중 하나가 "답답함" 또는 "자유롭고 싶다"는 감정이었을 수 있어요.\n'
             f'  재회 후에는 지나치게 밀착된 관계보다 서로 숨 쉴 공간을 주는 것이 핵심이에요.'
         )
@@ -12826,7 +13005,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if dohwa_a else f'{nb}님'
         if dohwa_a and dohwa_b: who = '두 분 모두'
         opinions.append(
-            f'🌸 **도화살 ({who})** — 도화살은 타고난 이성 매력과 인기의 기운이에요.\n'
+            f'**도화살 ({who})** — 도화살은 타고난 이성 매력과 인기의 기운이에요.\n'
             f'  이성에게 자연스럽게 인기를 끌어 상대방의 질투나 불안을 유발할 수 있어요.\n'
             f'  이별의 원인 중 이성 관계 문제나 오해가 있었다면 이 기운의 영향일 수 있어요.\n'
             f'  재회 후엔 이성 관계에서 명확한 선을 보여주는 행동이 신뢰 회복의 핵심이에요.'
@@ -12839,7 +13018,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if gwi_a else f'{nb}님'
         if gwi_a and gwi_b: who = '두 분 모두'
         opinions.append(
-            f'🔮 **귀문관살 ({who})** — 귀문관살은 헤어진 후에도 상대를 잊지 못하고 집착하는 에너지예요.\n'
+            f'**귀문관살 ({who})** — 귀문관살은 헤어진 후에도 상대를 잊지 못하고 집착하는 에너지예요.\n'
             f'  직관이 강해 상대방의 감정을 예민하게 감지하고 멀리 있어도 연결된 느낌을 받아요.\n'
             f'  이것이 재회에 대한 강한 집착으로 이어질 수 있어요.\n'
             f'  집착과 진심 사이의 균형을 유지하는 것이 건강한 재회를 위한 핵심이에요.'
@@ -12850,7 +13029,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     hong_b = _has(all_b, '홍염살')
     if hong_a and hong_b:
         opinions.append(
-            f'💋 **홍염살 (두 분 모두)** — 두 분 사이에 강렬한 끌림과 색정 에너지가 흘러요.\n'
+            f'**홍염살 (두 분 모두)** — 두 분 사이에 강렬한 끌림과 색정 에너지가 흘러요.\n'
             f'  처음 만났을 때 강하게 끌리는 느낌, 이별 후에도 생각나는 감각적 기억이 남아 있어요.\n'
             f'  이 에너지는 재회의 동력이 되기도 하지만, 감정에 휩쓸리면 현실을 놓치기 쉬워요.\n'
             f'  "끌림"과 "맞음"은 다를 수 있어요. 감정이 아닌 관계 자체를 냉정하게 봐야 해요.'
@@ -12858,7 +13037,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     elif hong_a or hong_b:
         who = f'{na}님' if hong_a else f'{nb}님'
         opinions.append(
-            f'💋 **홍염살 ({who})** — {who}은 이성에게 강한 매력을 발산하는 기운이에요.\n'
+            f'**홍염살 ({who})** — {who}{_jp(who, "은", "는")} 이성에게 강한 매력을 발산하는 기운이에요.\n'
             f'  의도와 무관하게 이성의 관심을 끌어 상대방이 불안함을 느꼈을 수 있어요.\n'
             f'  재회 후엔 이성 관계에서 명확한 선을 행동으로 보여주는 것이 신뢰 회복의 핵심이에요.'
         )
@@ -12868,7 +13047,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     hwagae_b = _has(all_b, '화개살')
     if hwagae_a and hwagae_b:
         opinions.append(
-            f'🌙 **화개살 (두 분 모두)** — 두 분 모두 혼자만의 세계와 고독을 소중히 여기는 타입이에요.\n'
+            f'**화개살 (두 분 모두)** — 두 분 모두 혼자만의 세계와 고독을 소중히 여기는 타입이에요.\n'
             f'  예술·철학·영적인 것에 깊이 빠지는 성향이라 관계보다 자신의 내면에 집중하는 시간이 많아요.\n'
             f'  이별 후 각자 자신만의 세계에 빠져 시간이 흘러가는 구조예요.\n'
             f'  재회하려면 서로의 고독한 공간을 인정하고 침범하지 않는 관계 방식이 필요해요.'
@@ -12876,7 +13055,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     elif hwagae_a or hwagae_b:
         who = f'{na}님' if hwagae_a else f'{nb}님'
         opinions.append(
-            f'🌙 **화개살 ({who})** — {who}은 혼자만의 세계와 고독을 중요하게 생각하는 타입이에요.\n'
+            f'**화개살 ({who})** — {who}{_jp(who, "은", "는")} 혼자만의 세계와 고독을 중요하게 생각하는 타입이에요.\n'
             f'  이별 후 자신의 세계에 깊이 빠져들어 연락 자체를 차단하는 패턴일 수 있어요.\n'
             f'  억지로 끌어내려 하기보다 그 세계를 존중하면서 자연스럽게 접근하는 것이 핵심이에요.'
         )
@@ -12888,7 +13067,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if hyoshin_a else f'{nb}님'
         if hyoshin_a and hyoshin_b: who = '두 분 모두'
         opinions.append(
-            f'💧 **효신살 ({who})** — 효신살은 진심을 다해도 결실이 공허하게 끝나는 패턴이에요.\n'
+            f'**효신살 ({who})** — 효신살은 진심을 다해도 결실이 공허하게 끝나는 패턴이에요.\n'
             f'  사랑을 열심히 줬지만 뭔가 허무하게 끝난 느낌이 이별 과정에 있었을 수 있어요.\n'
             f'  재회를 원한다면 "이번엔 무엇이 다른가"를 스스로 먼저 확인해야 해요.\n'
             f'  같은 패턴이 반복되지 않으려면 관계 방식 자체를 바꾸는 용기가 필요해요.'
@@ -12899,7 +13078,7 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
     goegang_b = _has(all_b, '괴강살')
     if goegang_a and goegang_b:
         opinions.append(
-            f'⚔️ **괴강살 (두 분 모두)** — 두 분 모두 강한 카리스마와 자아를 가졌어요.\n'
+            f'**괴강살 (두 분 모두)** — 두 분 모두 강한 카리스마와 자아를 가졌어요.\n'
             f'  함께할 때 강렬한 에너지가 충돌하거나 주도권 싸움이 생기기 쉬운 구조예요.\n'
             f'  이별의 원인 중 "누가 더 강한가"의 무언의 싸움이 있었을 수 있어요.\n'
             f'  재회 후엔 서로의 강함을 경쟁이 아닌 시너지로 보는 시각 전환이 필요해요.'
@@ -12908,15 +13087,18 @@ def _sinsal_relation_opinion(pa, pb, na, nb):
         who = f'{na}님' if goegang_a else f'{nb}님'
         other = f'{nb}님' if goegang_a else f'{na}님'
         opinions.append(
-            f'⚔️ **괴강살 ({who})** — {who}은 강한 카리스마와 극단적인 에너지를 가진 타입이에요.\n'
-            f'  {other}이 관계에서 압도당하거나 자신을 잃는 느낌을 받았을 수 있어요.\n'
-            f'  재회를 원한다면 {who}이 먼저 상대를 동등한 파트너로 대하는 변화를 보여줘야 해요.\n'
+            f'**괴강살 ({who})** — {who}{_jp(who, "은", "는")} 강한 카리스마와 극단적인 에너지를 가진 타입이에요.\n'
+            f'  {other}{_jp(other, "이", "가")} 관계에서 압도당하거나 자신을 잃는 느낌을 받았을 수 있어요.\n'
+            f'  재회를 원한다면 {who}{_jp(who, "이", "가")} 먼저 상대를 동등한 파트너로 대하는 변화를 보여줘야 해요.\n'
             f'  강함은 매력이지만 관계에서는 부드러움이 더 오래가요.'
         )
 
     return opinions
 
-def 재회운_분석(pa, pb, na, nb):
+JAEHOE_BLOCKED_PENALTY = 20   # 차단 상태일 때 빼는 점수 (해설과 화면 점수가 같은 값을 쓰도록 한 곳에 둠)
+
+
+def 재회운_분석(pa, pb, na, nb, is_male_a=None, is_male_b=None):
     cur_year = _now_kst().year
     ia, ib   = pa[2][0], pb[2][0]
     ja = [p[1] for p in pa]
@@ -12949,13 +13131,21 @@ def 재회운_분석(pa, pb, na, nb):
             if j in s: return i
         return -1
 
-    for pillars, name in [(pa, na), (pb, nb)]:
+    for pillars, name, _male in [(pa, na, is_male_a), (pb, nb, is_male_b)]:
         ilgan = pillars[2][0]
         ss_g  = get_sipseong(ilgan, OHAENG_IDX[yg_cur], yg_cur % 2)
-        if ss_g in ('정관', '정재'):
+        # 성별을 알면 배우자성(남 재성·여 관성)만 이성 인연으로 센다 — 해설(analyze_jaehoe)과 같은 기준.
+        # 성별을 안 넘기면(None) 예전처럼 재성·관성 모두 센다.
+        if _male is None:
+            _sp = ss_g in ('정관', '정재', '편관', '편재')
+        else:
+            _sp = ss_g in (('정재', '편재') if _male else ('정관', '편관'))
+        if _sp and ss_g in ('정관', '정재'):
             score += 10; reasons.append(f'[{name} 세운 +10] {ss_g} — 안정적 이성 인연 활성화')
-        elif ss_g in ('편관', '편재'):
+        elif _sp:
             score += 6;  reasons.append(f'[{name} 세운 +6] {ss_g} — 강렬한 이성 인연 에너지')
+        elif ss_g in ('정재', '편재'):   # 여성의 재성: 관성을 돕는 간접 기운 (남성의 관성은 일·책임 쪽이라 점수 없음)
+            score += 3;  reasons.append(f'[{name} 세운 +3] {ss_g} — 이성 인연에는 간접적인 기운(현실·재물 쪽이 중심)')
         elif ss_g in ('겁재', '상관'):
             score -= 8;  reasons.append(f'[{name} 세운 -8] {ss_g} — 이별·갈등 에너지 우세')
 
@@ -12983,9 +13173,9 @@ def 재회운_분석(pa, pb, na, nb):
     ya_name = OHAENG_NAMES[ya_oh]; yb_name = OHAENG_NAMES[yb_oh]
     oa = analyze_ohaeng(pa);       ob = analyze_ohaeng(pb)
     if ob.get(ya_name, 0) > 0:
-        score += 8; reasons.append(f'[용신보완 +8] {nb}가 {na}의 용신({ya_name}) 보유')
+        score += 8; reasons.append(f'[용신보완 +8] {nb}{_jp(nb, "이", "가")} {na}의 용신({ya_name}) 보유')
     if oa.get(yb_name, 0) > 0:
-        score += 8; reasons.append(f'[용신보완 +8] {na}가 {nb}의 용신({yb_name}) 보유')
+        score += 8; reasons.append(f'[용신보완 +8] {na}{_jp(na, "이", "가")} {nb}의 용신({yb_name}) 보유')
 
     # 5. 공망 체크
     gm_a = get_gongmang(pa[2][0], pa[2][1])
@@ -13075,28 +13265,28 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     # 차단 상태 점수 보정 및 안내
     blocked_penalty = 0
     if is_blocked:
-        blocked_penalty = 20
+        blocked_penalty = JAEHOE_BLOCKED_PENALTY
         score = max(0, score - blocked_penalty)
 
     if score >= 75:
         _jtitle = f'{score}점 — 다시 이어질 인연의 흐름이 강하게 감지돼요'
     elif score >= 58:
-        _jtitle = f'{score}점 — 재회의 씨앗이 싹트기 시작하는 시기이에요'
+        _jtitle = f'{score}점 — 재회의 씨앗이 싹트기 시작하는 시기예요'
     elif score >= 42:
-        _jtitle = f'{score}점 — 재회보다 각자의 성장이 먼저인 시기이에요'
+        _jtitle = f'{score}점 — 재회보다 각자의 성장이 먼저인 시기예요'
     else:
         _jtitle = f'{score}점 — 운의 흐름이 재회보다 다른 방향을 가리키고 있어요'
 
     out = ['## ◈ 재회 상세 해설']
     if is_blocked:
         out.append(
-            f'\n  ⛔ **차단 상태 반영** — 상대방이 현재 연락을 차단한 상태예요.\n'
+            f'\n  **차단 상태 반영** — 상대방이 현재 연락을 차단한 상태예요.\n'
             f'  차단은 감정적 방어 표현이지 인연의 끝을 의미하지 않아요.\n'
             f'  사주 점수에서 {blocked_penalty}점을 차감한 **{score}점**으로 현실적인 가능성을 분석했어요.'
         )
     out.append(f'\n  {_jtitle}')
     out.append(
-        f'  {na}님은 {jma_desc}이고, {nb}님은 {jmb_desc}이에요.\n'
+        f'  {na}님은 {jma_desc}{_jp(jma_desc, "이고", "고")}, {nb}님은 {jmb_desc}{_jp(jmb_desc, "이에요", "예요")}.\n'
         f'  두 분의 인연이 다시 이어질 수 있는지,\n'
         f'  사주 속에 새겨진 운의 흐름을 통해 진심으로 답해드릴게요.'
     )
@@ -13104,20 +13294,22 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     # ① 현재 재회 가능성 총평
     out.append(f'\n### {cur_year}년 재회 가능성  |  지금 두 분의 운이 다시 만날 준비가 됐나요')
     # 핵심 긍정 요소 한 줄 추출
-    pos_hint = f' {pos_facts[0].split("—")[0].strip()}이 작용하고 있으며,' if pos_facts else ''
-    neg_hint = f' 다만 {neg_facts[0].split("—")[0].strip()}이 변수이에요.' if neg_facts else ''
+    _pf = pos_facts[0].split("—")[0].strip() if pos_facts else ''
+    _nf = neg_facts[0].split("—")[0].strip() if neg_facts else ''
+    pos_hint = f' {_pf}{_jp_last(_pf, "이", "가")} 작용하고 있으며,' if _pf else ''
+    neg_hint = f' 다만 {_nf}{_jp_last(_nf, "이", "가")} 변수예요.' if _nf else ''
     if score >= 75:
         out.append(
-            f'**종합 {score}점 — 재회 가능성이 매우 높은 시기이에요.**\n\n'
+            f'**종합 {score}점 — 재회 가능성이 매우 높은 시기예요.**\n\n'
             f'{na}님({ia_name})과 {nb}님({ib_name})의 사주 에너지가{pos_hint} 다시 이어질 강한 흐름을 형성하고 있어요.\n'
             f'두 분이 헤어진 뒤에도 서로를 완전히 잊지 못하고 있다면, 그것은 단순한 미련이 아니라 사주 구조가 만들어내는 인연의 힘일 수 있어요.\n'
-            f'지금 이 시기가 재회의 에너지가 가장 강하게 열려 있는 때이에요. 먼저 연락을 취하거나 자연스러운 자리를 만드는 것이 효과적이에요.\n'
+            f'지금 이 시기가 재회의 에너지가 가장 강하게 열려 있는 때예요. 먼저 연락을 취하거나 자연스러운 자리를 만드는 것이 효과적이에요.\n'
             f'단, 재회 후 같은 이유로 다시 이별하지 않으려면 이별의 원인이 무엇이었는지를 먼저 솔직하게 돌아보는 것이 선행되어야 해요.\n'
             f'관계가 다시 시작된다면 이전과 똑같은 방식이 아닌, 두 분이 함께 새로운 방식을 만들어가겠다는 합의가 있어야 해요.{neg_hint}'
         )
     elif score >= 58:
         out.append(
-            f'**종합 {score}점 — 재회의 실마리가 열리는 시기이에요.**\n\n'
+            f'**종합 {score}점 — 재회의 실마리가 열리는 시기예요.**\n\n'
             f'{na}님({ia_name})과 {nb}님({ib_name})의 인연 에너지가{pos_hint} 완전히 닫힌 것은 아니에요.\n'
             f'완전한 재회보다는 우연한 연락이 닿거나, 공통 지인을 통해 소식이 오가는 형태의 기회가 먼저 열릴 수 있어요.\n'
             f'그 작은 신호를 자연스럽게 이어가는 것이 이 시기에 맞는 방식이에요. 급하게 결론을 내려 하지 마세요.\n'
@@ -13155,7 +13347,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  서로를 너무 잘 알기 때문에 오히려 자극 없이 권태가 오기 쉬운 구조이기도 해요.\n'
             f'  재회 후에는 새로운 경험과 자극을 함께 만들어가는 노력이 관계를 신선하게 유지해줘요.\n'
             f'  같은 오행이라는 공통점을 강점으로, 차이점을 매력으로 바라볼 때 가장 단단한 재회가 돼요.'),
-        1: (f'{na}님({ia_name}, {ia_kw})의 에너지가 {nb}님({ib_name})에게 생기를 주는 구조이에요.\n'
+        1: (f'{na}님({ia_name}, {ia_kw})의 에너지가 {nb}님({ib_name})에게 생기를 주는 구조예요.\n'
             f'  {na}님이 먼저 다가갈 때 관계가 자연스럽게 열리는 경향이 있어요.\n'
             f'  {nb}님은 {na}님 곁에 있을 때 활력과 안정감을 느끼는 구조라 기억 속에 좋은 감정이 남아 있어요.\n'
             f'  재회를 원한다면 {na}님이 먼저 연락을 취하거나 자연스러운 만남의 계기를 만드는 것이 효과적이에요.\n'
@@ -13163,7 +13355,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  재회 후에도 {na}님이 주도적으로 이끌어가되 {nb}님의 페이스를 충분히 존중해야 해요.\n'
             f'  {nb}님이 스스로 마음이 움직일 수 있는 공간과 시간을 주는 것이 재회의 핵심이에요.\n'
             f'  생(生)하는 인연은 함께할수록 더 성장하는 구조라 재회 후가 더 좋아질 가능성이 높아요.'),
-        4: (f'{nb}님({ib_name}, {ib_kw})의 에너지가 {na}님({ia_name})에게 생기를 주는 구조이에요.\n'
+        4: (f'{nb}님({ib_name}, {ib_kw})의 에너지가 {na}님({ia_name})에게 생기를 주는 구조예요.\n'
             f'  {nb}님이 마음을 열면 관계가 자연스럽게 회복되는 구조예요.\n'
             f'  {na}님은 {nb}님 곁에 있을 때 든든함과 안정감을 느끼는 기억이 강하게 남아 있어요.\n'
             f'  재회의 열쇠는 {nb}님이 쥐고 있으니 {nb}님의 감정 변화를 섬세하게 살펴야 해요.\n'
@@ -13171,7 +13363,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  재회 후에도 {nb}님이 관계의 방향을 결정하는 역할을 자연스럽게 맡게 돼요.\n'
             f'  {na}님이 {nb}님의 판단과 결정을 신뢰하고 따르는 모습을 보일 때 관계가 더 깊어져요.\n'
             f'  생(生)하는 인연은 함께할수록 더 따뜻해지는 구조라 재회 후 더 성숙한 관계가 될 수 있어요.'),
-        2: (f'{na}님({ia_name})의 에너지가 {nb}님({ib_name})을 강하게 극(剋)하는 구조이에요.\n'
+        2: (f'{na}님({ia_name})의 에너지가 {nb}님({ib_name})을 강하게 극(剋)하는 구조예요.\n'
             f'  이별의 원인 중 하나가 이 에너지 불균형에 있을 가능성이 높아요.\n'
             f'  {na}님이 의도치 않게 {nb}님에게 압박감이나 위축감을 줬을 수 있어요.\n'
             f'  재회를 원한다면 {na}님이 먼저 이별의 과정에서 자신이 어떤 역할을 했는지 솔직하게 돌아봐야 해요.\n'
@@ -13179,11 +13371,11 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  말이 아닌 행동으로 변화를 증명할 때 {nb}님의 마음이 다시 열릴 수 있어요.\n'
             f'  재회 후에는 상하 관계가 아닌 동반자 관계를 의식적으로 만들어가는 노력이 반드시 필요해요.\n'
             f'  극(剋) 구조를 넘어서는 재회는 두 분 모두에게 큰 성장이 되는 특별한 인연이에요.'),
-        3: (f'{nb}님({ib_name})의 에너지가 {na}님({ia_name})을 강하게 극(剋)하는 구조이에요.\n'
+        3: (f'{nb}님({ib_name})의 에너지가 {na}님({ia_name})을 강하게 극(剋)하는 구조예요.\n'
             f'  관계의 주도권이 자연스럽게 {nb}님에게 기울어지는 형태예요.\n'
             f'  이별 과정에서 {na}님이 자존감에 상처를 받았을 가능성이 있어요.\n'
             f'  재회를 원한다면 {nb}님이 먼저 그 부분을 인정하고 진심 어린 사과를 전하는 것이 중요해요.\n'
-            f'  {na}님의 자존감을 지켜주고 동등한 파트너로 대하는 변화가 재회의 핵심 열쇠이에요.\n'
+            f'  {na}님의 자존감을 지켜주고 동등한 파트너로 대하는 변화가 재회의 핵심 열쇠예요.\n'
             f'  {nb}님이 관계를 주도하되 통제하지 않는 섬세한 균형 감각이 필요해요.\n'
             f'  {na}님의 의견을 먼저 묻고 존중하는 모습이 {na}님의 마음을 다시 열게 만들어요.\n'
             f'  극(剋) 구조를 넘어선 재회는 두 분 모두가 한 단계 성장했다는 증거가 돼요.'),
@@ -13247,34 +13439,34 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             out.append(
                 f'  {person_name}님({ILGAN_DESC[ilgan][0]}): {dw_gan}{dw_ji} 대운 ({dw_yr}~{dw_end}년)\n'
                 f'  → 대운 십성 [{ss_dw}] — {spouse_label}에 해당해요.\n'
-                f'    현재 대운 자체가 이성·배우자 인연을 강하게 끌어당기는 시기이에요.\n'
+                f'    현재 대운 자체가 이성·배우자 인연을 강하게 끌어당기는 시기예요.\n'
                 f'    재회 에너지가 구조적으로 뒷받침되고 있어요.'
             )
         elif ss_dw in ('비견', '겁재'):
             out.append(
                 f'  {person_name}님({ILGAN_DESC[ilgan][0]}): {dw_gan}{dw_ji} 대운 ({dw_yr}~{dw_end}년)\n'
-                f'  → 대운 십성 [{ss_dw}] — 자기 자신에게 집중하는 시기이에요.\n'
+                f'  → 대운 십성 [{ss_dw}] — 자기 자신에게 집중하는 시기예요.\n'
                 f'    이성 인연보다 독립·자존감 회복에 에너지가 쏠려 있어\n'
-                f'    재회보다 자기 성장이 먼저인 구조이에요.'
+                f'    재회보다 자기 성장이 먼저인 구조예요.'
             )
         elif ss_dw in ('식신', '상관'):
             out.append(
                 f'  {person_name}님({ILGAN_DESC[ilgan][0]}): {dw_gan}{dw_ji} 대운 ({dw_yr}~{dw_end}년)\n'
-                f'  → 대운 십성 [{ss_dw}] — 표현력·창의력이 발산되는 시기이에요.\n'
+                f'  → 대운 십성 [{ss_dw}] — 표현력·창의력이 발산되는 시기예요.\n'
                 f'    이성에게 매력을 어필하기에 좋은 에너지이나,\n'
                 f'    안정적 관계 정착보다 새로운 만남을 추구하는 경향이 강해질 수 있어요.'
             )
         elif ss_dw in ('편인', '정인'):
             out.append(
                 f'  {person_name}님({ILGAN_DESC[ilgan][0]}): {dw_gan}{dw_ji} 대운 ({dw_yr}~{dw_end}년)\n'
-                f'  → 대운 십성 [{ss_dw}] — 내면 성찰과 학문·자기계발에 집중하는 시기이에요.\n'
+                f'  → 대운 십성 [{ss_dw}] — 내면 성찰과 학문·자기계발에 집중하는 시기예요.\n'
                 f'    감정보다 이성이 앞서는 시기로, 재회를 위해선\n'
                 f'    충분한 내면 준비가 선행되어야 해요.'
             )
         else:
             out.append(
                 f'  {person_name}님({ILGAN_DESC[ilgan][0]}): {dw_gan}{dw_ji} 대운 ({dw_yr}~{dw_end}년)\n'
-                f'  → 대운 십성 [{ss_dw}] — 재물·현실적 성취에 에너지가 집중되는 시기이에요.\n'
+                f'  → 대운 십성 [{ss_dw}] — 재물·현실적 성취에 에너지가 집중되는 시기예요.\n'
                 f'    이성 인연 에너지가 직접적이지 않으므로\n'
                 f'    세운(연간) 흐름이 재회의 실질적 타이밍을 결정해요.'
             )
@@ -13287,21 +13479,21 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     out.append(f'\n### {cur_year}년 세운  |  이성 인연 에너지가 열리는 해인가요')
     if a_good and b_good:
         out.append(
-            f'  {na}님은 올해 세운에서 {ss_a}이 들어와 {spouse_label_a}가 활성화된 시기이에요.\n'
-            f'  {nb}님 역시 {ss_b}이 들어와 {spouse_label_b}가 강하게 작용해요.\n'
+            f'  {na}님은 올해 세운에서 {ss_a}{_jp(ss_a, "이", "가")} 들어와 {spouse_label_a}{_jp_last(spouse_label_a, "이", "가")} 활성화된 시기예요.\n'
+            f'  {nb}님 역시 {ss_b}{_jp(ss_b, "이", "가")} 들어와 {spouse_label_b}{_jp_last(spouse_label_b, "이", "가")} 강하게 작용해요.\n'
             f'  두 분 모두 올해 이성 인연 에너지가 열려 있어, 재회를 시도하기 가장 좋은 운세 타이밍이에요.\n'
             f'  사주 구조와 운세 흐름이 동시에 뒷받침되는 드문 기회를 적극 활용하세요.'
         )
     elif a_good:
         out.append(
-            f'  {na}님은 올해 세운에서 {ss_a}이 들어와 이성 인연 에너지가 활발한 시기이에요.\n'
+            f'  {na}님은 올해 세운에서 {ss_a}{_jp(ss_a, "이", "가")} 들어와 이성 인연 에너지가 활발한 시기예요.\n'
             f'  반면 {nb}님은 {ss_b} 운으로 현재 이성보다 다른 방향에 에너지가 집중되어 있어요.\n'
             f'  {na}님이 먼저 연락을 시도하는 것은 좋지만, {nb}님의 반응이 느릴 수 있으니\n'
             f'  조급해하지 않고 충분한 여유를 두고 접근하는 것이 유리해요.'
         )
     elif b_good:
         out.append(
-            f'  {nb}님은 올해 세운에서 {ss_b}이 들어와 이성 인연 에너지가 강한 시기이에요.\n'
+            f'  {nb}님은 올해 세운에서 {ss_b}{_jp(ss_b, "이", "가")} 들어와 이성 인연 에너지가 강한 시기예요.\n'
             f'  {nb}님 쪽에서 먼저 연락해오거나 그리움을 표현할 가능성이 있어요.\n'
             f'  {na}님은 {ss_a} 운으로 현재 내실을 다지는 시기이므로,\n'
             f'  연락이 왔을 때 감정이 충분히 정리된 상태에서 응하는 것이 더 깊은 대화로 이어집니다.'
@@ -13309,29 +13501,36 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     else:
         out.append(
             f'  {na}님({ss_a} 운)과 {nb}님({ss_b} 운) 모두\n'
-            f'  올해 세운에서 이성 인연보다 각자의 성장과 현실 과제에 에너지가 집중되는 시기이에요.\n'
+            f'  올해 세운에서 이성 인연보다 각자의 성장과 현실 과제에 에너지가 집중되는 시기예요.\n'
             f'  억지로 재회를 추진하기보다 각자 충분히 성장하며 준비를 갖추는 것이 현명해요.\n'
-            f'  {spouse_label_a}/{spouse_label_b}이 활성화되는 다음 세운에 자연스러운 기회가 찾아와요.'
+            f'  {spouse_label_a}/{spouse_label_b}{_jp_last(spouse_label_b, "이", "가")} 활성화되는 다음 세운에 자연스러운 기회가 찾아와요.'
         )
 
     # ⑤ 재회 후 관계 전망
     out.append(f'\n### 재회 후 관계 전망  |  다시 만난다면 어떤 모습일까요')
     hap_list  = rel.get('합',[]) + rel.get('삼합',[]) + rel.get('방합',[])
-    chung_list = rel.get('충',[]) + rel.get('원진',[])
+    chung_list = rel.get('충',[]) + rel.get('형',[]) + rel.get('원진',[])   # '점검해야 할 신호'와 같은 기준
     hap_cnt   = len(hap_list)
     chung_cnt = len(chung_list)
     hap_str   = ', '.join(hap_list[:3]) if hap_list else ''
     chung_str = ', '.join(chung_list[:3]) if chung_list else ''
-    if hap_cnt > chung_cnt:
+    if hap_cnt > chung_cnt and score < 50:
         out.append(
-            f'  합의 기운({hap_str})이 충보다 강해요.\n'
+            f'  합의 기운({hap_str})이 충·형·원진보다 많아요.\n'
+            f'  다시 만나게 되면 정이 다시 붙기는 쉬운 편이에요.\n'
+            f'  다만 지금은 재회 점수({score}점)가 낮아, 다시 만나는 일 자체가 쉽지 않은 흐름이에요.\n'
+            f'  서두르기보다 운의 흐름이 바뀌는 때를 기다리는 편이 좋아요.'
+        )
+    elif hap_cnt > chung_cnt:
+        out.append(
+            f'  합의 기운({hap_str})이 충·형·원진보다 많아요.\n'
             f'  재회 후 관계가 이전보다 더 안정되고 성숙해질 가능성이 높습니다.\n'
-            f'  이별을 통해 서로를 더 이해하게 된 만큼, 두 번째 관계가 더 깊어지는 구조이에요.\n'
-            f'  재회 후 초기 3개월이 관계의 방향을 결정하는 핵심 시기이에요.'
+            f'  이별을 통해 서로를 더 이해하게 된 만큼, 두 번째 관계가 더 깊어지는 구조예요.\n'
+            f'  재회 후 초기 3개월이 관계의 방향을 결정하는 핵심 시기예요.'
         )
     elif chung_cnt > hap_cnt:
         out.append(
-            f'  충·원진({chung_str})이 합보다 강해요.\n'
+            f'  충·형·원진({chung_str})이 합보다 많아요.\n'
             f'  재회하더라도 과거와 같은 갈등 패턴이 반복될 위험이 있어요.\n'
             f'  재회를 원한다면 두 분 모두 관계 방식에 대한 진지한 성찰과 변화가 선행되어야 해요.\n'
             f'  충은 성장의 자극이기도 해요. 의식적인 노력이 있다면 더 강한 관계가 될 수도 있어요.'
@@ -13340,7 +13539,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         hap_note = f' ({hap_str})' if hap_str else ''
         chung_note = f' ({chung_str})' if chung_str else ''
         out.append(
-            f'  합{hap_note}과 충{chung_note}이 균형을 이루고 있어요.\n'
+            f'  합{hap_note}과 충·형·원진{chung_note}이 균형을 이루고 있어요.\n'
             f'  재회 후 관계는 두 분의 선택과 노력에 달려 있어요.\n'
             f'  이전 관계에서 무엇이 문제였는지 충분히 대화하고 서로의 다름을 인정하는 것이 핵심이에요.'
         )
@@ -13514,7 +13713,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         out.append(f'  {IB_APPROACH[ib]}')
         out.append('')
         out.append(
-            f'  ⛔ **차단 상태 전용 전략**\n\n'
+            f'  **차단 상태 전용 전략**\n\n'
             f'  직접 연락은 현재 불가능하거나 역효과가 날 수 있어요.\n'
             f'  차단은 감정이 아직 정리되지 않았다는 신호이기도 해요.\n\n'
             f'  **1단계 — 존재 알리기 (지금~1개월)**\n'
@@ -13540,7 +13739,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         if score >= 75:
             out.append(
                 f'  **타이밍:** 지금 바로 연락해도 좋아요.\n'
-                f'  운세 흐름이 재회에 강하게 열려 있는 시기이에요.\n'
+                f'  운세 흐름이 재회에 강하게 열려 있는 시기예요.\n'
                 f'  가벼운 안부로 시작해서 자연스럽게 만남으로 이어가세요.\n'
                 f'  첫 만남에서 과거 이야기를 꺼내기보다 현재의 모습을 보여주는 데 집중하세요.'
             )
@@ -13556,12 +13755,12 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
                 f'  **타이밍:** 지금 당장보다 조금 더 기다리는 것이 유리해요.\n'
                 f'  연락보다 먼저 스스로 성장하는 모습을 갖추는 것이 더 강한 끌림을 만들어요.\n'
                 f'  SNS에 긍정적이고 성장하는 일상을 자연스럽게 노출하는 것도 간접적인 어필이 돼요.\n'
-                f'  아래 재회 적기 달을 확인하고 그 시기를 노려보세요.'
+                f'  아래 재회 적기에 달이 나와 있으면 그 시기를 노려보세요.'
             )
         else:
             out.append(
                 f'  **타이밍:** 지금 연락은 신중하게 고려해보세요.\n'
-                f'  현재 운 흐름이 재회에 불리한 구조이에요.\n'
+                f'  현재 운 흐름이 재회에 불리한 구조예요.\n'
                 f'  연락 전 먼저 "나는 어떻게 달라졌는가"를 스스로 확인해보세요.\n'
                 f'  변한 게 없다면 같은 이유로 다시 상처를 주고받을 가능성이 있어요.'
             )
@@ -13586,26 +13785,28 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             elif mj in fs and (da in fs or db in fs): ms += 5
         month_scores.append((ms, mon))
 
-    month_scores.sort(key=lambda x: (-x[0], x[1]))
-    top_months = [m for _, m in month_scores if _ >= 0][:3]
-    passed_mark = lambda m: ' *(지남)' if m < cur_month else ''
     KOR_MONTH = ['','1월','2월','3월','4월','5월','6월',
                  '7월','8월','9월','10월','11월','12월']
-    out.append(f'\n### {cur_year}년 재회 적기  |  에너지가 가장 높은 달')
-    if top_months:
-        for m in top_months:
-            ms_val = next(s for s, mo in month_scores if mo == m)
+    # 지난 달은 빼고 이번 달부터 1년 동안에서 고른다 (월지 기준이라 해가 바뀌어도 같은 달은 같은 지수)
+    _ms_map = {mo: s for s, mo in month_scores}
+    _ahead = []
+    for _k in range(12):
+        _m = (cur_month - 1 + _k) % 12 + 1
+        if _ms_map[_m] > 0:
+            _ahead.append((_ms_map[_m], _k, _m))
+    _best = sorted(_ahead, key=lambda x: (-x[0], x[1]))[:3]
+    _mlabel = lambda k, m: ('' if m >= cur_month else '내년 ') + KOR_MONTH[m]
+    out.append(f'\n### 재회 적기  |  앞으로 1년 중 에너지가 높은 달')
+    if _best:
+        _top = _best[0]
+        for ms_val, _k, m in sorted(_best, key=lambda x: x[1]):   # 가까운 달부터
             ji_name = JIJI[MONTH_TO_JI[m]]
-            tag = '(지남) ' if m < cur_month else ''
             star = '★' if ms_val >= 10 else '▲'
-            out.append(f'  {star} {KOR_MONTH[m]} ({ji_name}월) {tag}— 재회 에너지 지수 {ms_val:+d}')
-        remaining = [m for m in top_months if m >= cur_month]
-        if remaining:
-            out.append(f'  → 남은 기간 중 {KOR_MONTH[remaining[0]]}이 가장 적기이에요.')
-        else:
-            out.append(f'  → 올해 남은 기간은 다소 조용한 흐름이에요. 내년 운세를 참고하세요.')
+            now_tag = ' · 이번 달' if _k == 0 else ''
+            out.append(f'  {star} {_mlabel(_k, m)} ({ji_name}월{now_tag}) — 재회 에너지 지수 {ms_val:+d}')
+        out.append(f'  → 이 가운데 {_mlabel(_top[1], _top[2])}의 기운이 가장 높아요.')
     else:
-        out.append(f'  → 올해는 전반적으로 재회 에너지가 약한 해이에요. 내면 성장에 집중하세요.')
+        out.append(f'  → 앞으로 1년은 재회 에너지가 뚜렷하게 높은 달이 없어요. 내면 성장에 집중하세요.')
 
     # ⑧ 재회하지 않는 것이 나을 수 있는 경우
     bad_rels = len(rel.get('충',[])) + len(rel.get('원진',[])) + len(rel.get('형',[]))
@@ -13616,12 +13817,12 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         signals = []
         if has_ilji_chung:
             signals.append(
-                f'  • 일지충 — 배우자궁이 정면으로 충돌하는 구조이에요.\n'
+                f'  • 일지충 — 배우자궁이 정면으로 충돌하는 구조예요.\n'
                 f'    강하게 끌리지만 함께 있으면 반드시 마찰이 생기는 패턴이 반복돼요.'
             )
         if has_ilji_wonjin:
             signals.append(
-                f'  • 일지원진 — 같이 있으면 불편하고 없으면 그리운 묘한 에너지이에요.\n'
+                f'  • 일지원진 — 같이 있으면 불편하고 없으면 그리운 묘한 에너지예요.\n'
                 f'    이 그리움이 진짜 사랑인지, 습관적 그리움인지 먼저 구별이 필요해요.'
             )
         if bad_rels >= 3:
@@ -13646,7 +13847,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
 
     # ⑧-B 재회 최적 타이밍 + 행동 가이드 (점수 42점 이상일 때만)
     if score >= 42:
-        out.append(f'\n### 📅 재회 최적 타이밍  |  언제, 어떻게 다가가야 할까요')
+        out.append(f'\n### 재회 최적 타이밍  |  언제, 어떻게 다가가야 할까요')
 
         # 향후 6개월 중 재회에 유리한 달 탐색
         KOR_MON2 = ['','1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
@@ -13654,8 +13855,9 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         SPOUSE_SS_B2 = {'정재','편재'} if is_male_b else {'정관','편관'}
 
         reconnect_months = []
-        for mon in range(cur_month, min(cur_month + 7, 13)):
-            if mon == 0: continue
+        for _k in range(7):   # 이번 달부터 7개월 (해가 바뀌면 내년 달까지)
+            mon = (cur_month - 1 + _k) % 12 + 1
+            _mon_lbl = KOR_MON2[mon] if mon >= cur_month else f'내년 {KOR_MON2[mon]}'
             mj_raw = {1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10,11:11,12:0}.get(mon, 0)
             mj_oh_a = OHAENG_J[mj_raw]
             ss_m_a = get_sipseong(ia, OHAENG_IDX_J[mj_raw], mj_raw % 2)
@@ -13669,15 +13871,15 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             either = a_good or b_good
 
             if both:
-                reconnect_months.append((mon, '★ 쌍방 호기', '두 분 모두 인연 에너지가 열리는 최고의 달이에요. 자연스러운 연락이나 우연한 만남이 이 달에 성사될 가능성이 가장 높아요.'))
+                reconnect_months.append((_mon_lbl, '★ 쌍방 호기', '두 분 모두 인연 에너지가 열리는 최고의 달이에요. 자연스러운 연락이나 우연한 만남이 이 달에 성사될 가능성이 가장 높아요.'))
             elif a_good:
-                reconnect_months.append((mon, f'◎ {na}님 호기', f'{na}님의 이성 에너지가 강하게 열리는 달이에요. 먼저 가볍게 연락을 취하거나 안부를 묻는 시도가 효과적이에요.'))
+                reconnect_months.append((_mon_lbl, f'◎ {na}님 호기', f'{na}님의 이성 에너지가 강하게 열리는 달이에요. 먼저 가볍게 연락을 취하거나 안부를 묻는 시도가 효과적이에요.'))
             elif b_good:
-                reconnect_months.append((mon, f'◎ {nb}님 호기', f'{nb}님의 마음이 열리기 쉬운 달이에요. 부담 없는 방식으로 접촉하면 좋은 반응을 얻을 가능성이 높아요.'))
+                reconnect_months.append((_mon_lbl, f'◎ {nb}님 호기', f'{nb}님의 마음이 열리기 쉬운 달이에요. 부담 없는 방식으로 접촉하면 좋은 반응을 얻을 가능성이 높아요.'))
 
         if reconnect_months:
             for mon, tag, desc in reconnect_months[:3]:
-                out.append(f'  **{KOR_MON2[mon]} [{tag}]**')
+                out.append(f'  **{mon} [{tag}]**')
                 out.append(f'  {desc}')
                 out.append('')
         else:
@@ -13689,27 +13891,27 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         out.append(f'  **행동 가이드 — {score}점 기준 추천 전략:**')
         if score >= 75:
             out.append(
-                f'  1️⃣ **첫 연락** — 가벼운 안부나 공유하고 싶은 것(음악·장소·추억)으로 시작하세요. 감정 고백은 두 번째 대화 이후로 미루세요.\n'
-                f'  2️⃣ **반응 확인** — 상대의 첫 반응을 충분히 살피고, 긍정적이라면 자연스럽게 만남을 제안하세요. 부담을 주는 형태의 요청은 피하세요.\n'
-                f'  3️⃣ **만남** — 커피나 식사처럼 짧고 가벼운 만남으로 시작해 서로의 현재를 자연스럽게 확인하세요.\n'
-                f'  4️⃣ **솔직한 대화** — 이별 원인에 대한 솔직한 인정과 변화에 대한 이야기가 재회의 진짜 시작이에요.\n'
-                f'  5️⃣ **새로운 시작 합의** — 이전과 같은 방식이 아닌 두 분만의 새로운 방식을 함께 정하는 것이 재회를 오래가게 하는 핵심이에요.'
+                f'  ① **첫 연락** — 가벼운 안부나 공유하고 싶은 것(음악·장소·추억)으로 시작하세요. 감정 고백은 두 번째 대화 이후로 미루세요.\n'
+                f'  ② **반응 확인** — 상대의 첫 반응을 충분히 살피고, 긍정적이라면 자연스럽게 만남을 제안하세요. 부담을 주는 형태의 요청은 피하세요.\n'
+                f'  ③ **만남** — 커피나 식사처럼 짧고 가벼운 만남으로 시작해 서로의 현재를 자연스럽게 확인하세요.\n'
+                f'  ④ **솔직한 대화** — 이별 원인에 대한 솔직한 인정과 변화에 대한 이야기가 재회의 진짜 시작이에요.\n'
+                f'  ⑤ **새로운 시작 합의** — 이전과 같은 방식이 아닌 두 분만의 새로운 방식을 함께 정하는 것이 재회를 오래가게 하는 핵심이에요.'
             )
         elif score >= 58:
             out.append(
-                f'  1️⃣ **신호 먼저** — 직접적인 연락보다 SNS 좋아요, 공통 지인을 통한 안부 전달 등 간접적 신호로 시작하세요.\n'
-                f'  2️⃣ **가벼운 연락** — 상대가 신호를 받은 뒤, 부담 없는 공통 화제로 짧게 연락하세요. 감정적인 내용은 아직 이르에요.\n'
-                f'  3️⃣ **반응 기다리기** — 연락 후 최소 2~3일은 기다리세요. 상대가 스스로 반응할 공간을 충분히 주는 것이 핵심이에요.\n'
-                f'  4️⃣ **자연스러운 만남** — 공통 지인과의 자리, 우연인 척한 만남이 직접적인 약속 요청보다 더 효과적이에요.\n'
-                f'  5️⃣ **서두르지 않기** — 이 점수 구간에서 가장 큰 실수는 조급함이에요. 자연스러운 흐름을 타는 것이 성공의 열쇠예요.'
+                f'  ① **신호 먼저** — 직접적인 연락보다 SNS 좋아요, 공통 지인을 통한 안부 전달 등 간접적 신호로 시작하세요.\n'
+                f'  ② **가벼운 연락** — 상대가 신호를 받은 뒤, 부담 없는 공통 화제로 짧게 연락하세요. 감정적인 내용은 아직 이르에요.\n'
+                f'  ③ **반응 기다리기** — 연락 후 최소 2~3일은 기다리세요. 상대가 스스로 반응할 공간을 충분히 주는 것이 핵심이에요.\n'
+                f'  ④ **자연스러운 만남** — 공통 지인과의 자리, 우연인 척한 만남이 직접적인 약속 요청보다 더 효과적이에요.\n'
+                f'  ⑤ **서두르지 않기** — 이 점수 구간에서 가장 큰 실수는 조급함이에요. 자연스러운 흐름을 타는 것이 성공의 열쇠예요.'
             )
         else:
             out.append(
-                f'  1️⃣ **지금 당장은 기다리기** — 재회를 서두르면 오히려 상대가 더 멀어질 수 있어요. 운의 흐름이 바뀌는 시기를 기다리세요.\n'
-                f'  2️⃣ **자기 성장 집중** — 이 기간 동안 매력적인 사람으로 성장하는 것이 나중에 재회 가능성을 높이는 가장 현명한 전략이에요.\n'
-                f'  3️⃣ **SNS 관리** — 상대방이 볼 수 있는 공간에 행복하고 성장하는 모습을 자연스럽게 보여주세요.\n'
-                f'  4️⃣ **접촉 자제** — 충동적인 연락은 상대에게 부담이 될 수 있어요. 최소 2~3개월은 기다린 뒤 행동하세요.\n'
-                f'  5️⃣ **준비된 재회** — 이별의 원인이 해소됐다는 확신이 생겼을 때 조심스럽게 접근하는 것이 가장 현명한 방법이에요.'
+                f'  ① **지금 당장은 기다리기** — 재회를 서두르면 오히려 상대가 더 멀어질 수 있어요. 운의 흐름이 바뀌는 시기를 기다리세요.\n'
+                f'  ② **자기 성장 집중** — 이 기간 동안 매력적인 사람으로 성장하는 것이 나중에 재회 가능성을 높이는 가장 현명한 전략이에요.\n'
+                f'  ③ **SNS 관리** — 상대방이 볼 수 있는 공간에 행복하고 성장하는 모습을 자연스럽게 보여주세요.\n'
+                f'  ④ **접촉 자제** — 충동적인 연락은 상대에게 부담이 될 수 있어요. 최소 2~3개월은 기다린 뒤 행동하세요.\n'
+                f'  ⑤ **준비된 재회** — 이별의 원인이 해소됐다는 확신이 생겼을 때 조심스럽게 접근하는 것이 가장 현명한 방법이에요.'
             )
         out.append('')
 
@@ -13791,7 +13993,9 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     ya_oh_val2 = get_yongshin(pa)[0]
     ya_nm2 = OHAENG_NAMES[ya_oh_val2]
     good_months = []
-    for mon in range(cur_month + 1, 13):
+    for _k in range(1, 7):   # 다음 달부터 6개월 (해가 바뀌면 내년 달까지)
+        mon = (cur_month - 1 + _k) % 12 + 1
+        _mon_lbl = KOR_MON[mon] if mon > cur_month else f'내년 {KOR_MON[mon]}'
         mj = MONTH_TO_JI_H[mon]
         mj_oh = OHAENG_J[mj]
         ss_m = get_sipseong(ia, OHAENG_IDX_J[mj], mj % 2)
@@ -13800,14 +14004,14 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         is_dohwa = any(frozenset([mj,bj]) in dohwa_set for bj in [pa[0][1], pa[2][1]])
         if is_yong or is_dohwa or ss_m in SPOUSE_SS_A:
             tag = '도화' if is_dohwa else ('용신달' if is_yong else ss_m)
-            good_months.append((mon, tag))
-    out.append(f'  **올해 마음이 편해지는 달:**')
+            good_months.append((_mon_lbl, tag))
+    out.append(f'  **앞으로 마음이 편해지는 달:**')
     if good_months:
         for mon, tag in good_months[:3]:
-            out.append(f'  • {KOR_MON[mon]} [{tag}] — 기운이 바뀌고 마음이 가벼워지는 달이에요')
-        out.append(f'  → {KOR_MON[good_months[0][0]]}부터 조금씩 나아지는 걸 느낄 수 있어요.')
+            out.append(f'  • {mon} [{tag}] — 기운이 바뀌고 마음이 가벼워지는 달이에요')
+        out.append(f'  → {good_months[0][0]}부터 조금씩 나아지는 걸 느낄 수 있어요.')
     else:
-        out.append(f'  → 올해 남은 기간은 감정을 충분히 소화하는 시간으로 삼으세요. 내년에 기운이 바뀌어요.')
+        out.append(f'  → 앞으로 반년은 감정을 충분히 소화하는 시간으로 삼으세요. 그 뒤에 기운이 바뀌어요.')
     out.append('')
 
     # 마음 내려놓는 방법 (용신 오행 기반)
@@ -13855,7 +14059,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
 def print_jaehoe(pa, pb, na, nb,
                  corr_a=None, dw_a=None, is_male_a=True,
                  corr_b=None, dw_b=None, is_male_b=False):
-    score, reasons, rel = 재회운_분석(pa, pb, na, nb)
+    score, reasons, rel = 재회운_분석(pa, pb, na, nb, is_male_a, is_male_b)
     cur_year = _now_kst().year
     grades = ['▽ 매우 어려움', '△ 낮음', '○ 보통', '◎ 가능성 있음', '★ 매우 높음']
     gi = min(4, score // 20)
@@ -13884,232 +14088,232 @@ _SW_DETAIL = {
     # {강약: (재물운, 직업·직장운, 연애·이성운, 건강운, 학업·자격증운)}
     '비견': {
         '신강': (
-            '신강 사주에 비견 운이 겹쳐 경쟁 심리가 극도로 고조되는 해이에요. 재물보다 자존심 싸움이 우선이 되어 동업·투자 분쟁에 말려들기 쉬우니 공동 재물 관계는 일절 피하세요. 수입이 생기면 즉시 별도 계좌로 이체해 충동 지출을 원천 차단하는 것이 최선이에요. 재물을 "벌기"보다 "지키기"에 모든 에너지를 집중해야 하는 해이에요. 경쟁자를 이기려는 욕심에 무리한 투자를 했다가 큰 손실을 입는 패턴을 각별히 경계하세요.',
-            '넘치는 에너지와 경쟁심이 직장에서 독선과 고집으로 표출되기 쉬운 해이에요. 능력은 분명히 있지만 "함께 일하기 어려운 사람"으로 평가받을 수 있으니 부드러운 소통을 의식적으로 연습하세요. 독립·창업 욕구가 매우 강해지며 준비가 충분하다면 타이밍은 좋습니다. 팀 프로젝트보다 개인 역량을 발휘하는 환경에서 훨씬 큰 성과를 냅니다. 라이벌과 정면 충돌하기보다 묵묵히 실력으로 증명하는 전략이 장기적으로 훨씬 유리해요.',
-            '자기 주장이 지나치게 강해져 상대방이 설 자리가 좁아지는 한 해이에요. 배우자·연인과의 사소한 충돌이 큰 다툼으로 번지기 쉬우니 먼저 양보하는 연습을 의식적으로 하세요. 비슷한 성향의 이성에게 끌리지만 두 강한 기운이 충돌해 짧고 강렬한 만남으로 끝날 수 있어요. 상대방의 말을 끊지 않고 끝까지 듣는 것이 이 해 가장 중요한 관계 기술이에요. 자기 사랑과 관계 사랑의 균형을 찾는 것이 이 해의 핵심 과제이에요.',
-            '넘치는 에너지가 두통·고혈압·화병으로 쏟아지기 쉬운 해이에요. 경쟁과 갈등으로 인한 아드레날린 과다가 심혈관에 지속적인 부담을 줘요. 격렬한 운동보다 수영·요가·명상 등 이완 중심 활동이 신체 균형을 잡는 데 훨씬 효과적이에요. 화를 참다가 한꺼번에 폭발하는 패턴을 반복하면 정신건강을 심각하게 해칩니다. 일주일에 하루는 완전히 비우는 회복의 날을 반드시 확보하세요.',
-            '승부욕이 집중력을 높이는 에너지원이 되지만 지나치면 번아웃이 오는 해이에요. 라이벌 의식을 공부의 원동력으로 활용하되 자신의 페이스를 지키는 것이 핵심이에요. 그룹 스터디보다 혼자 깊이 파고드는 방식이 이 시기에 훨씬 효율적이에요. 경쟁 시험보다 실기·실전형 자격증에서 더 빠른 성과가 나와요. 자신의 역량을 인정받을 기회가 오면 주저 없이 도전하세요.',
+            '신강 사주에 비견 운이 겹쳐 경쟁 심리가 극도로 고조되는 해예요. 재물보다 자존심 싸움이 우선이 되어 동업·투자 분쟁에 말려들기 쉬우니 공동 재물 관계는 일절 피하세요. 수입이 생기면 즉시 별도 계좌로 이체해 충동 지출을 원천 차단하는 것이 최선이에요. 재물을 "벌기"보다 "지키기"에 모든 에너지를 집중해야 하는 해예요. 경쟁자를 이기려는 욕심에 무리한 투자를 했다가 큰 손실을 입는 패턴을 각별히 경계하세요.',
+            '넘치는 에너지와 경쟁심이 직장에서 독선과 고집으로 표출되기 쉬운 해예요. 능력은 분명히 있지만 "함께 일하기 어려운 사람"으로 평가받을 수 있으니 부드러운 소통을 의식적으로 연습하세요. 독립·창업 욕구가 매우 강해지며 준비가 충분하다면 타이밍은 좋습니다. 팀 프로젝트보다 개인 역량을 발휘하는 환경에서 훨씬 큰 성과를 냅니다. 라이벌과 정면 충돌하기보다 묵묵히 실력으로 증명하는 전략이 장기적으로 훨씬 유리해요.',
+            '자기 주장이 지나치게 강해져 상대방이 설 자리가 좁아지는 한 해예요. 배우자·연인과의 사소한 충돌이 큰 다툼으로 번지기 쉬우니 먼저 양보하는 연습을 의식적으로 하세요. 비슷한 성향의 이성에게 끌리지만 두 강한 기운이 충돌해 짧고 강렬한 만남으로 끝날 수 있어요. 상대방의 말을 끊지 않고 끝까지 듣는 것이 이 해 가장 중요한 관계 기술이에요. 자기 사랑과 관계 사랑의 균형을 찾는 것이 이 해의 핵심 과제예요.',
+            '넘치는 에너지가 두통·고혈압·화병으로 쏟아지기 쉬운 해예요. 경쟁과 갈등으로 인한 아드레날린 과다가 심혈관에 지속적인 부담을 줘요. 격렬한 운동보다 수영·요가·명상 등 이완 중심 활동이 신체 균형을 잡는 데 훨씬 효과적이에요. 화를 참다가 한꺼번에 폭발하는 패턴을 반복하면 정신건강을 심각하게 해칩니다. 일주일에 하루는 완전히 비우는 회복의 날을 반드시 확보하세요.',
+            '승부욕이 집중력을 높이는 에너지원이 되지만 지나치면 번아웃이 오는 해예요. 라이벌 의식을 공부의 원동력으로 활용하되 자신의 페이스를 지키는 것이 핵심이에요. 그룹 스터디보다 혼자 깊이 파고드는 방식이 이 시기에 훨씬 효율적이에요. 경쟁 시험보다 실기·실전형 자격증에서 더 빠른 성과가 나와요. 자신의 역량을 인정받을 기회가 오면 주저 없이 도전하세요.',
         ),
         '신약': (
-            '신약한 사주에 비견이 들어와 든든한 지원군이 나타나는 해이에요. 혼자 감당하기 어려웠던 재물 부담을 형제·동료·친구의 도움으로 나눌 수 있어요. 신뢰할 수 있는 사람과의 협력이 재물에 긍정적인 영향을 주지만, 공동 투자는 여전히 신중하게 접근해야 해요. 빌린 것은 반드시 약속한 기간에 갚아 신뢰를 유지하는 것이 장기적으로 더 큰 도움으로 돌아와요. 혼자 무리한 재물 목표를 세우기보다 함께하는 구조로 부담을 분산하는 것이 현실적이에요.',
-            '혼자 감당하기 힘든 업무에서 동료·팀의 협력으로 위기를 넘기는 시기이에요. 팀워크와 협업을 통해 더 큰 성과를 낼 수 있으며 함께하는 프로젝트에서 의외의 좋은 결과가 나와요. 경쟁보다 연대가 유리한 해이므로 팀 기여도를 높이는 방향으로 에너지를 집중하세요. 독립이나 창업은 에너지가 더 충전된 다음 해로 미루는 것이 현명해요. 비슷한 처지의 동년배 동료가 이 해에 가장 큰 지지대가 돼요.',
-            '나를 이해해주고 옆에 있어주는 따뜻한 존재가 간절해지는 해이에요. 비슷한 상황에 처한 사람과의 공감 기반 인연이 빠르게 깊어집니다. 혼자보다 함께일 때 에너지가 회복되는 시기이므로 외로움을 느낀다면 적극적으로 인연을 만들어가세요. 기존 연인이 있다면 서로 힘이 되어주는 동반자 관계를 더욱 다지는 시기이에요. 자신의 불안한 감정을 상대방에게 솔직하게 공유하면 관계가 한층 깊어집니다.',
-            '기운이 조금씩 보충되는 시기이므로 적극적인 운동과 건강 관리를 시작하기 좋은 해이에요. 혼자 무리하기보다 운동 파트너나 건강 모임에 참여하면 꾸준히 지속하기 쉽습니다. 과로를 피하고 에너지를 효율적으로 사용하는 것이 이 해 건강의 핵심이에요. 충전이 되는 시기이지만 체력 한도를 인식하며 페이스를 조절하는 것이 중요해요. 가족·친구와 함께하는 야외 활동이 심신 모두에 활력을 줘요.',
-            '혼자 공부할 때보다 스터디 그룹이나 학습 공동체에서 훨씬 효율이 올라가는 시기이에요. 경쟁보다 서로 도와가며 성장하는 방식이 이 해의 학습 에너지와 잘 맞습니다. 비슷한 목표를 가진 동료와 함께하면 의지와 정보를 동시에 얻을 수 있어요. 지치거나 포기하고 싶을 때 동료의 격려가 큰 힘이 되는 시기이므로 좋은 학습 공동체를 찾는 것이 중요해요. 경쟁 시험보다 협업형 과제나 팀 프로젝트에서 더 좋은 결과가 나와요.',
+            '신약한 사주에 비견이 들어와 든든한 지원군이 나타나는 해예요. 혼자 감당하기 어려웠던 재물 부담을 형제·동료·친구의 도움으로 나눌 수 있어요. 신뢰할 수 있는 사람과의 협력이 재물에 긍정적인 영향을 주지만, 공동 투자는 여전히 신중하게 접근해야 해요. 빌린 것은 반드시 약속한 기간에 갚아 신뢰를 유지하는 것이 장기적으로 더 큰 도움으로 돌아와요. 혼자 무리한 재물 목표를 세우기보다 함께하는 구조로 부담을 분산하는 것이 현실적이에요.',
+            '혼자 감당하기 힘든 업무에서 동료·팀의 협력으로 위기를 넘기는 시기예요. 팀워크와 협업을 통해 더 큰 성과를 낼 수 있으며 함께하는 프로젝트에서 의외의 좋은 결과가 나와요. 경쟁보다 연대가 유리한 해이므로 팀 기여도를 높이는 방향으로 에너지를 집중하세요. 독립이나 창업은 에너지가 더 충전된 다음 해로 미루는 것이 현명해요. 비슷한 처지의 동년배 동료가 이 해에 가장 큰 지지대가 돼요.',
+            '나를 이해해주고 옆에 있어주는 따뜻한 존재가 간절해지는 해예요. 비슷한 상황에 처한 사람과의 공감 기반 인연이 빠르게 깊어집니다. 혼자보다 함께일 때 에너지가 회복되는 시기이므로 외로움을 느낀다면 적극적으로 인연을 만들어가세요. 기존 연인이 있다면 서로 힘이 되어주는 동반자 관계를 더욱 다지는 시기예요. 자신의 불안한 감정을 상대방에게 솔직하게 공유하면 관계가 한층 깊어집니다.',
+            '기운이 조금씩 보충되는 시기이므로 적극적인 운동과 건강 관리를 시작하기 좋은 해예요. 혼자 무리하기보다 운동 파트너나 건강 모임에 참여하면 꾸준히 지속하기 쉽습니다. 과로를 피하고 에너지를 효율적으로 사용하는 것이 이 해 건강의 핵심이에요. 충전이 되는 시기이지만 체력 한도를 인식하며 페이스를 조절하는 것이 중요해요. 가족·친구와 함께하는 야외 활동이 심신 모두에 활력을 줘요.',
+            '혼자 공부할 때보다 스터디 그룹이나 학습 공동체에서 훨씬 효율이 올라가는 시기예요. 경쟁보다 서로 도와가며 성장하는 방식이 이 해의 학습 에너지와 잘 맞습니다. 비슷한 목표를 가진 동료와 함께하면 의지와 정보를 동시에 얻을 수 있어요. 지치거나 포기하고 싶을 때 동료의 격려가 큰 힘이 되는 시기이므로 좋은 학습 공동체를 찾는 것이 중요해요. 경쟁 시험보다 협업형 과제나 팀 프로젝트에서 더 좋은 결과가 나와요.',
         ),
         '중화': (
-            '경쟁자와 재물을 나눠야 하는 구조가 형성되는 해이에요. 동업·공동투자·보증은 절대적으로 피해야 하며, 타인의 부탁으로 금전이 빠져나가는 상황이 자주 생깁니다. 친한 지인과의 금전 거래가 관계를 망칠 수 있으니 "돈과 사람은 분리"하는 원칙을 철저히 지키세요. 독자적인 수입 구조를 강화하고 절약과 현금 보유를 우선시하는 것이 최선의 전략이에요. 자칫 경쟁 심리로 무리한 투자를 시도하다 손실을 입을 수 있으니 냉정하게 판단하는 것이 중요해요.',
-            '독립심과 자존감이 강해지며 현직장에 경쟁자나 라이벌이 나타나는 해이에요. 팀 협업보다 개인 역량을 발휘하는 환경에서 두각을 나타내며, 독립·창업·부업에 대한 욕구가 강하게 생깁니다. 다만 충분한 준비 없이 충동적으로 독립을 선언하면 실패할 수 있으니 최소 6개월 이상의 준비 기간을 두세요. 직장 내에서는 동료와의 갈등보다 실력으로 승부하는 자세가 결과적으로 더 유리해요. 자신의 역량을 인정받을 기회가 오면 적극적으로 도전하세요.',
-            '자기 중심적 성향이 강해져 상대방에게 배려보다 주장이 앞서는 시기이에요. 새로운 이성 인연이 생기더라도 서로 비슷한 성향이어서 주도권 다툼으로 인한 갈등이 생기기 쉽습니다. 기존 연인이 있다면 사소한 의견 충돌이 큰 다툼으로 번지지 않도록 먼저 양보하는 연습이 필요해요. 상대방의 말을 끝까지 듣고 공감하는 태도가 관계를 안정적으로 유지하는 핵심이에요. 혼자 있는 시간이 늘어나도 자기 개발에 투자하면 오히려 더 좋은 인연을 끌어당기게 돼요.',
-            '전반적인 체력은 유지되나 경쟁과 스트레스로 인한 과로가 누적되기 쉬운 해이에요. 두통·불면·어깨 결림 등 긴장성 질환에 주의하고, 감정을 억누르다 화병으로 발전하지 않도록 적절히 발산하세요. 규칙적인 생활 리듬을 유지하고 충분한 수면을 확보하는 것이 이 해 건강의 핵심이에요. 격렬한 운동보다 산책·스트레칭·명상 등 몸과 마음을 동시에 이완시키는 활동이 효과적이에요. 경쟁 심리가 건강을 해치지 않도록 자신의 페이스를 지키는 것이 중요해요.',
-            '경쟁이 치열한 환경에서 자신을 더욱 채찍질하게 되는 해이에요. 라이벌의 존재가 오히려 동기부여가 되어 실력이 빠르게 향상될 수 있어요. 단 경쟁 심리가 지나쳐 무리하게 과부하를 걸면 번아웃이 올 수 있으니 자신의 페이스를 지키는 것이 중요해요. 그룹 스터디보다 개인 학습에서 집중력이 더 잘 발휘되는 시기이므로 혼자 깊이 파고드는 방식이 효과적이에요. 경쟁 시험보다 실기·실전형 자격증에서 더 좋은 결과를 얻을 수 있어요.',
+            '경쟁자와 재물을 나눠야 하는 구조가 형성되는 해예요. 동업·공동투자·보증은 절대적으로 피해야 하며, 타인의 부탁으로 금전이 빠져나가는 상황이 자주 생깁니다. 친한 지인과의 금전 거래가 관계를 망칠 수 있으니 "돈과 사람은 분리"하는 원칙을 철저히 지키세요. 독자적인 수입 구조를 강화하고 절약과 현금 보유를 우선시하는 것이 최선의 전략이에요. 자칫 경쟁 심리로 무리한 투자를 시도하다 손실을 입을 수 있으니 냉정하게 판단하는 것이 중요해요.',
+            '독립심과 자존감이 강해지며 현직장에 경쟁자나 라이벌이 나타나는 해예요. 팀 협업보다 개인 역량을 발휘하는 환경에서 두각을 나타내며, 독립·창업·부업에 대한 욕구가 강하게 생깁니다. 다만 충분한 준비 없이 충동적으로 독립을 선언하면 실패할 수 있으니 최소 6개월 이상의 준비 기간을 두세요. 직장 내에서는 동료와의 갈등보다 실력으로 승부하는 자세가 결과적으로 더 유리해요. 자신의 역량을 인정받을 기회가 오면 적극적으로 도전하세요.',
+            '자기 중심적 성향이 강해져 상대방에게 배려보다 주장이 앞서는 시기예요. 새로운 이성 인연이 생기더라도 서로 비슷한 성향이어서 주도권 다툼으로 인한 갈등이 생기기 쉽습니다. 기존 연인이 있다면 사소한 의견 충돌이 큰 다툼으로 번지지 않도록 먼저 양보하는 연습이 필요해요. 상대방의 말을 끝까지 듣고 공감하는 태도가 관계를 안정적으로 유지하는 핵심이에요. 혼자 있는 시간이 늘어나도 자기 개발에 투자하면 오히려 더 좋은 인연을 끌어당기게 돼요.',
+            '전반적인 체력은 유지되나 경쟁과 스트레스로 인한 과로가 누적되기 쉬운 해예요. 두통·불면·어깨 결림 등 긴장성 질환에 주의하고, 감정을 억누르다 화병으로 발전하지 않도록 적절히 발산하세요. 규칙적인 생활 리듬을 유지하고 충분한 수면을 확보하는 것이 이 해 건강의 핵심이에요. 격렬한 운동보다 산책·스트레칭·명상 등 몸과 마음을 동시에 이완시키는 활동이 효과적이에요. 경쟁 심리가 건강을 해치지 않도록 자신의 페이스를 지키는 것이 중요해요.',
+            '경쟁이 치열한 환경에서 자신을 더욱 채찍질하게 되는 해예요. 라이벌의 존재가 오히려 동기부여가 되어 실력이 빠르게 향상될 수 있어요. 단 경쟁 심리가 지나쳐 무리하게 과부하를 걸면 번아웃이 올 수 있으니 자신의 페이스를 지키는 것이 중요해요. 그룹 스터디보다 개인 학습에서 집중력이 더 잘 발휘되는 시기이므로 혼자 깊이 파고드는 방식이 효과적이에요. 경쟁 시험보다 실기·실전형 자격증에서 더 좋은 결과를 얻을 수 있어요.',
         ),
     },
     '겁재': {
         '신강': (
             '신강 사주에 겁재 운이 더해져 재물 손실 위험이 이 해 최고 수준에 달해요. 충동적 지출·도박성 투자·타인 보증이 한꺼번에 터질 수 있는 가장 위험한 재물 구간이에요. 수입이 들어오는 즉시 고정 저축으로 자동 이체하는 구조를 만들어 충동 지출을 원천 차단하세요. 어떤 투자 권유도 단 한 건도 응하지 않는 철칙을 세우는 것이 이 해 재물 보호의 핵심이에요. "벌기"보다 "잃지 않기"가 이 해의 최우선 전략이에요.',
-            '강한 에너지가 충동적으로 분출되어 직장 내 갈등과 배신이 극심해지는 시기이에요. 중요한 업무는 혼자 진행하되 성과를 반드시 문서로 기록해 자신을 보호하세요. 이직·창업 충동이 강하게 올 수 있지만 신강+겁재 상태에서의 충동적 결정은 매우 위험해요. 경쟁자와 정면으로 맞서기보다 실력으로 조용히 증명하는 방식이 현명해요. 법적·윤리적 위반 유혹이 생기는 순간 즉시 멈추고 원칙으로 돌아가세요.',
-            '과도한 자기중심성과 감정 폭발로 관계에 심각한 균열이 생기기 쉬운 해이에요. 감정이 격해질 때 감정 일기나 글쓰기로 먼저 정리한 후 대화하는 습관이 관계를 지킵니다. 집착과 질투가 극대화되는 시기이므로 상대방의 개인 공간을 존중하는 연습이 필수이에요. 새로운 만남은 자제하고 기존 관계를 안정화하는 데 에너지를 집중하세요. 이 해에 인연이 끊기는 경험을 하더라도 그것이 성장을 위한 과정임을 기억하세요.',
-            '극심한 스트레스와 감정 소모로 신경계·심혈관·소화기 모두 위험한 해이에요. 분노·좌절·억울함이 신체 증상으로 나타나는 심신상관 반응을 특히 주의하세요. 음주·자극적 음식·수면 부족의 삼중 악재가 겹치기 쉬우니 생활 리듬을 엄격하게 관리하세요. 격렬한 운동보다 수영·요가·명상 등 이완 중심의 활동이 이 해에 훨씬 효과적이에요. 심리적 압박이 심할 경우 전문 상담을 주저 없이 활용하세요.',
-            '집중력이 분산되고 외부 유혹에 쉽게 흔들리는 해이에요. 학습 환경을 극단적으로 단순화하고(스마트폰 차단, 도서관 활용) 한 가지 목표에만 집중하세요. 감정 기복이 공부 의지에 직접 영향을 미치므로 정신 건강 관리가 학업 성취의 전제조건이에요. 중요한 시험은 가급적 이 해를 피하고 다음 해로 미루는 것도 전략이에요. 이 해는 기초를 다지고 잘못된 학습 습관을 교정하는 시기로 활용하는 것이 현명해요.',
+            '강한 에너지가 충동적으로 분출되어 직장 내 갈등과 배신이 극심해지는 시기예요. 중요한 업무는 혼자 진행하되 성과를 반드시 문서로 기록해 자신을 보호하세요. 이직·창업 충동이 강하게 올 수 있지만 신강+겁재 상태에서의 충동적 결정은 매우 위험해요. 경쟁자와 정면으로 맞서기보다 실력으로 조용히 증명하는 방식이 현명해요. 법적·윤리적 위반 유혹이 생기는 순간 즉시 멈추고 원칙으로 돌아가세요.',
+            '과도한 자기중심성과 감정 폭발로 관계에 심각한 균열이 생기기 쉬운 해예요. 감정이 격해질 때 감정 일기나 글쓰기로 먼저 정리한 후 대화하는 습관이 관계를 지킵니다. 집착과 질투가 극대화되는 시기이므로 상대방의 개인 공간을 존중하는 연습이 필수예요. 새로운 만남은 자제하고 기존 관계를 안정화하는 데 에너지를 집중하세요. 이 해에 인연이 끊기는 경험을 하더라도 그것이 성장을 위한 과정임을 기억하세요.',
+            '극심한 스트레스와 감정 소모로 신경계·심혈관·소화기 모두 위험한 해예요. 분노·좌절·억울함이 신체 증상으로 나타나는 심신상관 반응을 특히 주의하세요. 음주·자극적 음식·수면 부족의 삼중 악재가 겹치기 쉬우니 생활 리듬을 엄격하게 관리하세요. 격렬한 운동보다 수영·요가·명상 등 이완 중심의 활동이 이 해에 훨씬 효과적이에요. 심리적 압박이 심할 경우 전문 상담을 주저 없이 활용하세요.',
+            '집중력이 분산되고 외부 유혹에 쉽게 흔들리는 해예요. 학습 환경을 극단적으로 단순화하고(스마트폰 차단, 도서관 활용) 한 가지 목표에만 집중하세요. 감정 기복이 공부 의지에 직접 영향을 미치므로 정신 건강 관리가 학업 성취의 전제조건이에요. 중요한 시험은 가급적 이 해를 피하고 다음 해로 미루는 것도 전략이에요. 이 해는 기초를 다지고 잘못된 학습 습관을 교정하는 시기로 활용하는 것이 현명해요.',
         ),
         '신약': (
             '신약한 사주에 겁재가 더해져 재물이 들어오는 족족 빠져나가는 구조가 형성돼요. 타인의 요청으로 인한 손실(보증·대여)이 크게 발생할 수 있으니 단호하게 거절하는 연습이 필요해요. 수입 자체가 줄어드는 경험도 할 수 있으므로 지출을 최소화하고 생활비를 먼저 확보하세요. 이 해에는 어떤 투자도 자제하고 현금 유동성 확보를 최우선으로 두세요. 재물 손실이 생겼더라도 자책보다 다음 단계를 준비하는 마음가짐이 회복을 빠르게 해요.',
             '신약한 상태에서 경쟁 환경에 처해 매우 힘든 시기를 보낼 수 있어요. 직장 내 배신이나 경쟁자의 방해가 생길 수 있으니 중요한 업무 기록을 철저히 남기세요. 힘든 환경이지만 이 해를 버티고 나면 더 강해지는 단련의 시기라 여기는 마음가짐이 중요해요. 이직·창업은 이 해에 시작하기보다 준비만 하고 실행은 다음 해로 미루는 것이 안전해요. 혼자 감당하기 어려우면 멘토나 윗사람의 조언을 적극적으로 구하세요.',
-            '감정 소모가 극심한 해이에요. 상대방에게 지나치게 의존하거나 집착하는 패턴이 나타나기 쉬우니 주의하세요. 이 해에는 새로운 인연을 만들기보다 현재 관계의 안정을 유지하는 데 집중하는 것이 유리해요. 감정이 격해질 때 즉각 반응하지 말고 하루를 두고 대화하는 방식이 관계를 지킵니다. 파트너에게 자신의 불안한 감정을 솔직하게 공유하는 것이 관계를 더 깊게 만드는 계기가 돼요.',
-            '신약한 상태에 겁재가 더해지면 면역력이 가장 약해지는 시기이에요. 과로·수면 부족·영양 불균형이 겹치면 감기가 잦아지고 만성 질환이 악화될 수 있어요. 이 해에는 무리한 활동보다 충분한 휴식과 규칙적인 영양 섭취가 건강의 핵심이에요. 소화기·신경계 이상 신호를 무시하지 말고 초기에 전문의를 찾으세요. 수면 시간을 하루 7~8시간 이상 확보하는 것이 이 해 최고의 건강 투자이에요.',
-            '집중력과 의지력 모두 약해지는 이중 어려움이 있는 해이에요. 공부에 대한 의욕이 떨어질 때 주변 환경의 도움(스터디, 학원, 파트너)이 반드시 필요해요. 중요한 시험은 가급적 내년으로 미루고 올해는 기초를 쌓는 시기로 활용하세요. 자책하지 말고 작은 성취라도 칭찬하는 긍정적 자기 대화가 학습 지속성을 높여요. 학습 환경을 집 외부로 옮기는 것만으로도 집중도가 달라집니다.',
+            '감정 소모가 극심한 해예요. 상대방에게 지나치게 의존하거나 집착하는 패턴이 나타나기 쉬우니 주의하세요. 이 해에는 새로운 인연을 만들기보다 현재 관계의 안정을 유지하는 데 집중하는 것이 유리해요. 감정이 격해질 때 즉각 반응하지 말고 하루를 두고 대화하는 방식이 관계를 지킵니다. 파트너에게 자신의 불안한 감정을 솔직하게 공유하는 것이 관계를 더 깊게 만드는 계기가 돼요.',
+            '신약한 상태에 겁재가 더해지면 면역력이 가장 약해지는 시기예요. 과로·수면 부족·영양 불균형이 겹치면 감기가 잦아지고 만성 질환이 악화될 수 있어요. 이 해에는 무리한 활동보다 충분한 휴식과 규칙적인 영양 섭취가 건강의 핵심이에요. 소화기·신경계 이상 신호를 무시하지 말고 초기에 전문의를 찾으세요. 수면 시간을 하루 7~8시간 이상 확보하는 것이 이 해 최고의 건강 투자예요.',
+            '집중력과 의지력 모두 약해지는 이중 어려움이 있는 해예요. 공부에 대한 의욕이 떨어질 때 주변 환경의 도움(스터디, 학원, 파트너)이 반드시 필요해요. 중요한 시험은 가급적 내년으로 미루고 올해는 기초를 쌓는 시기로 활용하세요. 자책하지 말고 작은 성취라도 칭찬하는 긍정적 자기 대화가 학습 지속성을 높여요. 학습 환경을 집 외부로 옮기는 것만으로도 집중도가 달라집니다.',
         ),
         '중화': (
-            '재물 손실 위험이 1년 중 가장 높은 해이에요. 충동적 지출·도박성 투자·타인의 보증 요청을 단호히 거절해야 해요. 친하다고 믿었던 지인이나 가족으로 인한 재물 손실이 생기는 경우가 많으며, 공동 사업이나 계·조합·투자 모임에서 피해를 입을 수 있어요. 수입이 생기면 즉시 고정 저축으로 이체하는 자동화 구조를 만들어 충동 지출을 원천 차단하세요. 고수익·단기·비공개 투자를 권유받으면 무조건 경계하고 피하는 것이 안전해요.',
-            '직장 내 갈등과 경쟁이 심화되며 배신이나 모함을 당할 수 있는 해이에요. 동료에게 너무 많은 정보를 공유하는 것을 자제하고, 중요한 업무 성과는 반드시 문서로 기록해 두세요. 이직이나 창업 욕구가 강하게 생기지만 충동적인 결정은 더 불안정한 상황을 만들 수 있으니 최소 1년의 준비 기간을 두고 결정하세요. 현 직장을 유지하면서 부업이나 스킬 개발로 다음 단계를 준비하는 것이 현명해요. 윗사람과의 관계에서 감정이 앞서면 불이익을 당할 수 있으니 언행을 각별히 조심하세요.',
-            '감정 기복이 심해지고 이성 관계에서 집착·질투·의심이 강해질 수 있는 해이에요. 상대방을 소유하려는 마음이 강해지면 관계가 오히려 멀어지므로 적당한 거리와 신뢰가 핵심이에요. 새로운 이성 인연은 처음에 화려해 보이지만 시간이 지나면서 실망을 줄 수 있으니 성급한 감정 투자를 자제하세요. 기존 파트너와는 사소한 오해가 큰 다툼으로 번지기 쉬운 시기이므로, 감정이 격해질 때 즉각 반응하지 말고 하루 정도 시간을 두고 대화하는 습관을 들이세요. 혼자인 분은 이 해에는 새로운 만남보다 자기 자신을 돌보는 시간을 갖는 것이 더 유익해요.',
-            '스트레스성 질환과 신경계 이상에 각별히 주의해야 하는 해이에요. 소화 장애·불면증·자율신경 실조증이 나타나기 쉬우며, 감정적 충격이 신체 증상으로 이어지는 심신상관 반응에 주의하세요. 알코올이나 자극적인 음식에 의존해 스트레스를 해소하려는 경향이 있는데 이는 상황을 악화시켜요. 정기적인 유산소 운동과 충분한 수면이 이 해 건강을 지키는 가장 중요한 방어막이에요. 정신적 압박이 심할 경우 전문 상담을 받는 것도 적극 권장해요.',
-            '노력에 비해 결과가 기대에 미치지 못하고, 예상치 못한 방해 요소가 집중을 흩트리는 해이에요. 중요한 시험이나 자격증 도전은 이 해를 피하는 것이 유리하며, 무리한 새 도전보다 기초를 탄탄히 다지는 시기로 활용하세요. 학습 의욕이 떨어지는 시기이므로 최소한의 루틴이라도 꾸준히 유지하는 것이 중요해요. 혼자 공부하다 지칠 수 있으니 신뢰할 수 있는 학습 파트너나 스터디 그룹이 도움이 돼요. 이 해는 결과보다 과정을 쌓는 시기라고 생각하고 장기적 관점으로 접근하세요.',
+            '재물 손실 위험이 1년 중 가장 높은 해예요. 충동적 지출·도박성 투자·타인의 보증 요청을 단호히 거절해야 해요. 친하다고 믿었던 지인이나 가족으로 인한 재물 손실이 생기는 경우가 많으며, 공동 사업이나 계·조합·투자 모임에서 피해를 입을 수 있어요. 수입이 생기면 즉시 고정 저축으로 이체하는 자동화 구조를 만들어 충동 지출을 원천 차단하세요. 고수익·단기·비공개 투자를 권유받으면 무조건 경계하고 피하는 것이 안전해요.',
+            '직장 내 갈등과 경쟁이 심화되며 배신이나 모함을 당할 수 있는 해예요. 동료에게 너무 많은 정보를 공유하는 것을 자제하고, 중요한 업무 성과는 반드시 문서로 기록해 두세요. 이직이나 창업 욕구가 강하게 생기지만 충동적인 결정은 더 불안정한 상황을 만들 수 있으니 최소 1년의 준비 기간을 두고 결정하세요. 현 직장을 유지하면서 부업이나 스킬 개발로 다음 단계를 준비하는 것이 현명해요. 윗사람과의 관계에서 감정이 앞서면 불이익을 당할 수 있으니 언행을 각별히 조심하세요.',
+            '감정 기복이 심해지고 이성 관계에서 집착·질투·의심이 강해질 수 있는 해예요. 상대방을 소유하려는 마음이 강해지면 관계가 오히려 멀어지므로 적당한 거리와 신뢰가 핵심이에요. 새로운 이성 인연은 처음에 화려해 보이지만 시간이 지나면서 실망을 줄 수 있으니 성급한 감정 투자를 자제하세요. 기존 파트너와는 사소한 오해가 큰 다툼으로 번지기 쉬운 시기이므로, 감정이 격해질 때 즉각 반응하지 말고 하루 정도 시간을 두고 대화하는 습관을 들이세요. 혼자인 분은 이 해에는 새로운 만남보다 자기 자신을 돌보는 시간을 갖는 것이 더 유익해요.',
+            '스트레스성 질환과 신경계 이상에 각별히 주의해야 하는 해예요. 소화 장애·불면증·자율신경 실조증이 나타나기 쉬우며, 감정적 충격이 신체 증상으로 이어지는 심신상관 반응에 주의하세요. 알코올이나 자극적인 음식에 의존해 스트레스를 해소하려는 경향이 있는데 이는 상황을 악화시켜요. 정기적인 유산소 운동과 충분한 수면이 이 해 건강을 지키는 가장 중요한 방어막이에요. 정신적 압박이 심할 경우 전문 상담을 받는 것도 적극 권장해요.',
+            '노력에 비해 결과가 기대에 미치지 못하고, 예상치 못한 방해 요소가 집중을 흩트리는 해예요. 중요한 시험이나 자격증 도전은 이 해를 피하는 것이 유리하며, 무리한 새 도전보다 기초를 탄탄히 다지는 시기로 활용하세요. 학습 의욕이 떨어지는 시기이므로 최소한의 루틴이라도 꾸준히 유지하는 것이 중요해요. 혼자 공부하다 지칠 수 있으니 신뢰할 수 있는 학습 파트너나 스터디 그룹이 도움이 돼요. 이 해는 결과보다 과정을 쌓는 시기라고 생각하고 장기적 관점으로 접근하세요.',
         ),
     },
     '식신': {
         '신강': (
-            '신강 사주가 식신 운을 만난 최고의 조합이에요. 넘치는 에너지가 창의적 활동과 수익으로 자연스럽게 전환되어 식복·재물복이 동시에 터지는 해이에요. 재능을 수익화하는 새로운 채널을 개척하거나 부업·사이드 프로젝트가 큰 결실을 맺기에 최적의 시기이에요. 투자보다 활동으로 버는 수입이 더 안정적이므로 자신의 능력을 최대한 발휘하는 방향으로 에너지를 집중하세요. 이 해의 재물 운은 향후 2~3년의 경제적 기반이 될 수 있어요.',
-            '창의적 역량과 기획력이 폭발적으로 발휘되는 해이에요. 억지로 규율을 따르기보다 자유롭게 아이디어를 펼칠 수 있는 환경에서 최고의 성과가 나와요. 자영업자라면 새로운 사업 아이디어가 실제 수익으로 이어지는 시기이며, 직장인이라면 창의적 프로젝트에서 스타가 되는 기회가 찾아와요. 에너지가 넘치므로 여러 프로젝트를 동시에 잘 소화할 수 있지만, 집중 분야를 좁혀 깊이 파는 전략이 더 큰 성과를 냅니다. 이 해에 잡은 기회가 향후 커리어의 전환점이 될 수 있어요.',
-            '여유롭고 매력적인 에너지가 주변을 끌어당기는 최고의 연애 운 중 하나이에요. 억지로 노력하지 않아도 좋은 사람이 자연스럽게 모여드는 해이에요. 기존 연인과의 관계는 풍요롭고 행복한 시간으로 가득 차며 관계가 더욱 깊어집니다. 취미·모임 등 일상적인 활동 속에서 진짜 인연이 찾아오는 경우가 많으니 다양한 활동에 활발하게 참여하세요. 결혼을 생각하고 있다면 이 해가 관계를 한 단계 더 구체화하기에 좋은 시기이에요.',
-            '체력이 넘치고 활기찬 최고의 건강 운 해이에요. 식욕이 왕성해지고 회복력이 높아져 웬만한 피로는 금방 사라집니다. 단 넘치는 에너지로 과식·과음에 빠지기 쉬우니 절제의 미덕을 잊지 마세요. 즐거운 운동과 취미 활동을 병행하면 몸과 마음 모두 최상의 컨디션을 유지할 수 있어요. 이 해에 건강한 생활 습관을 만들어두면 이후 몇 년이 든든해집니다.',
-            '학습에 대한 열정과 흥미가 최고조에 달하는 해이에요. 흥미 있는 분야를 자발적으로 탐구하는 방식이 억지 공부보다 훨씬 효율적이에요. 창의적 사고가 필요한 논술·기획·실기 분야에서 특히 탁월한 성과를 냅니다. 새로운 언어·기술·예술을 배우기에 최적의 시기이며 배운 것이 빠르게 체화돼요. 자격증보다 실질적인 경험과 포트폴리오 구축에 집중하면 이 해에 더 큰 성과를 냅니다.',
+            '신강 사주가 식신 운을 만난 최고의 조합이에요. 넘치는 에너지가 창의적 활동과 수익으로 자연스럽게 전환되어 식복·재물복이 동시에 터지는 해예요. 재능을 수익화하는 새로운 채널을 개척하거나 부업·사이드 프로젝트가 큰 결실을 맺기에 최적의 시기예요. 투자보다 활동으로 버는 수입이 더 안정적이므로 자신의 능력을 최대한 발휘하는 방향으로 에너지를 집중하세요. 이 해의 재물 운은 향후 2~3년의 경제적 기반이 될 수 있어요.',
+            '창의적 역량과 기획력이 폭발적으로 발휘되는 해예요. 억지로 규율을 따르기보다 자유롭게 아이디어를 펼칠 수 있는 환경에서 최고의 성과가 나와요. 자영업자라면 새로운 사업 아이디어가 실제 수익으로 이어지는 시기이며, 직장인이라면 창의적 프로젝트에서 스타가 되는 기회가 찾아와요. 에너지가 넘치므로 여러 프로젝트를 동시에 잘 소화할 수 있지만, 집중 분야를 좁혀 깊이 파는 전략이 더 큰 성과를 냅니다. 이 해에 잡은 기회가 향후 커리어의 전환점이 될 수 있어요.',
+            '여유롭고 매력적인 에너지가 주변을 끌어당기는 최고의 연애 운 중 하나예요. 억지로 노력하지 않아도 좋은 사람이 자연스럽게 모여드는 해예요. 기존 연인과의 관계는 풍요롭고 행복한 시간으로 가득 차며 관계가 더욱 깊어집니다. 취미·모임 등 일상적인 활동 속에서 진짜 인연이 찾아오는 경우가 많으니 다양한 활동에 활발하게 참여하세요. 결혼을 생각하고 있다면 이 해가 관계를 한 단계 더 구체화하기에 좋은 시기예요.',
+            '체력이 넘치고 활기찬 최고의 건강 운 해예요. 식욕이 왕성해지고 회복력이 높아져 웬만한 피로는 금방 사라집니다. 단 넘치는 에너지로 과식·과음에 빠지기 쉬우니 절제의 미덕을 잊지 마세요. 즐거운 운동과 취미 활동을 병행하면 몸과 마음 모두 최상의 컨디션을 유지할 수 있어요. 이 해에 건강한 생활 습관을 만들어두면 이후 몇 년이 든든해집니다.',
+            '학습에 대한 열정과 흥미가 최고조에 달하는 해예요. 흥미 있는 분야를 자발적으로 탐구하는 방식이 억지 공부보다 훨씬 효율적이에요. 창의적 사고가 필요한 논술·기획·실기 분야에서 특히 탁월한 성과를 냅니다. 새로운 언어·기술·예술을 배우기에 최적의 시기이며 배운 것이 빠르게 체화돼요. 자격증보다 실질적인 경험과 포트폴리오 구축에 집중하면 이 해에 더 큰 성과를 냅니다.',
         ),
         '신약': (
             '식신 운이 신약한 기운을 소모하는 방향으로 작용해 주의가 필요해요. 재물 기회는 있지만 체력과 에너지가 뒷받침되지 않아 기회를 온전히 취하기 어렵습니다. 자신의 재능을 너무 아낌없이 쏟아내다 정작 수익으로 연결되지 않는 상황을 경계하세요. 부업이나 추가 수입원보다 현재 안정적인 수입을 지키는 데 집중하는 것이 더 현명해요. 지출을 줄이고 에너지를 회복하는 데 우선순위를 두면 이후 더 큰 기회를 잡을 수 있어요.',
             '창의적 아이디어는 넘치지만 실행할 에너지가 부족해 시작만 많고 마무리가 없는 해가 되기 쉽습니다. 새로운 프로젝트를 벌이기보다 현재 진행 중인 일을 완성하는 데 에너지를 집중하세요. 주변 사람들에게 자신의 아이디어를 너무 많이 베풀다가 정작 본인이 소진되는 패턴을 주의하세요. 무리한 야근이나 추가 업무 수락은 자제하고 현재 역할에 충실히 하는 것이 장기적으로 유리해요. 재택근무·유연 근무 등 에너지 소모를 줄이는 업무 환경을 적극 요청하세요.',
             '따뜻하고 매력적인 에너지는 있지만 상대방에게 지나치게 베풀다 정작 자신이 소진되는 패턴을 주의하세요. 새로운 만남에 지나치게 에너지를 쏟기보다 기존 소중한 관계에 집중하는 것이 이 해에 더 유리해요. 기존 연인이 있다면 함께하는 시간의 질을 높이되 자신의 에너지 한계를 솔직하게 표현하세요. 베풂과 받음의 균형을 의식적으로 점검하고 일방적인 희생 구조가 생기지 않도록 하세요. 이 해에는 깊이 있는 소수의 관계에 집중하는 것이 더 건강해요.',
-            '기운이 소모되기 쉬운 해이므로 건강 관리에 특별한 주의가 필요해요. 소화기 계통이 약해질 수 있으며, 과식보다 적게 자주 먹는 방식이 소화기 건강에 유리해요. 체력이 예상보다 빨리 바닥나는 경험을 할 수 있으니 충분한 수면과 영양 보충을 최우선으로 두세요. 타인을 위한 활동에 에너지를 과도하게 쓰기보다 자기 건강을 먼저 챙기는 것이 허용된 시기이에요. 정기 건강검진을 받고 이상 신호가 있으면 즉시 초기 대응하세요.',
-            '아이디어가 풍부하지만 집중력과 지구력이 약해지는 해이에요. 흥미로운 분야가 너무 많아 어디에 집중해야 할지 헷갈리는 상황이 자주 발생해요. 학습 목표를 하나로 좁히고 그것에만 집중하는 전략이 이 해에 가장 효과적이에요. 중요한 시험이나 자격증이 있다면 체력 관리를 병행하며 무리하지 않게 페이스를 조절하세요. 억지로 공부하기보다 흥미를 잃지 않는 방식으로 접근하면 꾸준히 지속할 수 있어요.',
+            '기운이 소모되기 쉬운 해이므로 건강 관리에 특별한 주의가 필요해요. 소화기 계통이 약해질 수 있으며, 과식보다 적게 자주 먹는 방식이 소화기 건강에 유리해요. 체력이 예상보다 빨리 바닥나는 경험을 할 수 있으니 충분한 수면과 영양 보충을 최우선으로 두세요. 타인을 위한 활동에 에너지를 과도하게 쓰기보다 자기 건강을 먼저 챙기는 것이 허용된 시기예요. 정기 건강검진을 받고 이상 신호가 있으면 즉시 초기 대응하세요.',
+            '아이디어가 풍부하지만 집중력과 지구력이 약해지는 해예요. 흥미로운 분야가 너무 많아 어디에 집중해야 할지 헷갈리는 상황이 자주 발생해요. 학습 목표를 하나로 좁히고 그것에만 집중하는 전략이 이 해에 가장 효과적이에요. 중요한 시험이나 자격증이 있다면 체력 관리를 병행하며 무리하지 않게 페이스를 조절하세요. 억지로 공부하기보다 흥미를 잃지 않는 방식으로 접근하면 꾸준히 지속할 수 있어요.',
         ),
         '중화': (
-            '먹는 복, 즐기는 복, 재물복이 자연스럽게 따라오는 길한 해이에요. 재물이 억지로 끌어당기지 않아도 활동하는 만큼 자연스럽게 따라오는 구조가 형성돼요. 새로운 수익 창출 아이디어가 현실화되기 좋은 시기이며, 부업·사이드 프로젝트를 시작하기에 최적이에요. 투자보다는 재능과 활동으로 버는 수입이 더 안정적이며, 소비는 자신의 성장과 경험에 투자하는 방향이 나중에 큰 재물로 돌아와요. 사치스러운 소비보다 여유롭게 즐기는 소비는 괜찮으나 과도한 식음료·유흥비는 조절이 필요해요.',
-            '창의적 역량과 기획력이 빛을 발하는 최고의 직업 운 중 하나이에요. 상사와 동료에게 아이디어와 실력을 인정받는 기회가 자주 생기며, 즐기면서 일할 수 있는 환경이 마련돼요. 자영업자라면 사업 아이디어가 결실을 맺는 시기이고, 직장인이라면 창의적 프로젝트에서 두각을 나타냅니다. 억압적이거나 규율이 강한 조직보다 자유롭고 창의적인 환경에서 성과가 극대화돼요. 새로운 역할이나 프로젝트를 맡게 되면 적극적으로 수락하세요.',
-            '여유롭고 따뜻한 에너지가 자연스럽게 이성을 끌어당기는 해이에요. 억지로 노력하지 않아도 좋은 사람이 주변에 나타나며, 자신이 즐겁고 행복한 모습 자체가 최고의 매력이 돼요. 기존 연인이 있다면 함께하는 시간이 풍요롭고 행복하며, 일상의 소소한 행복을 나누는 관계가 더욱 깊어집니다. 자연스러운 만남(취미·모임·일상)에서 좋은 인연이 찾아오는 경우가 많으니 다양한 활동에 참여하세요. 결혼을 생각하고 있다면 이 해는 서로의 관계를 더욱 구체화하기 좋은 시기이에요.',
-            '건강 상태가 전반적으로 양호하고 활기찬 한 해이에요. 식욕이 좋아지고 몸의 회복력이 높아져 웬만한 피로는 금방 회복돼요. 단 식복이 강한 해인 만큼 과식·과음·미식에 빠지지 않도록 절제가 필요하며, 체중 증가나 소화기 계통 문제에 주의하세요. 즐거운 활동과 운동을 병행하면 몸과 마음 모두 최상의 컨디션을 유지할 수 있어요. 스트레스를 즐거운 활동으로 해소하는 것은 좋으나 과도한 의존은 생활습관병으로 이어질 수 있으니 균형을 잡으세요.',
-            '학습에 대한 즐거움과 흥미가 높아지는 최적의 학습 환경이 만들어지는 해이에요. 억지로 공부하는 것보다 흥미 있는 분야를 자발적으로 탐구하는 방식이 훨씬 효과적이에요. 창의적 사고가 필요한 논술·기획·실기 분야의 시험에서 특히 좋은 성과를 냅니다. 새로운 언어·기술·취미를 배우기에 최적의 시기이며, 배운 것이 빠르게 몸에 익는 흡수력이 뛰어난 해이에요. 자격증보다는 실질적인 경험과 포트폴리오를 쌓는 방향이 이 해에 더 큰 성과로 이어집니다.',
+            '먹는 복, 즐기는 복, 재물복이 자연스럽게 따라오는 길한 해예요. 재물이 억지로 끌어당기지 않아도 활동하는 만큼 자연스럽게 따라오는 구조가 형성돼요. 새로운 수익 창출 아이디어가 현실화되기 좋은 시기이며, 부업·사이드 프로젝트를 시작하기에 최적이에요. 투자보다는 재능과 활동으로 버는 수입이 더 안정적이며, 소비는 자신의 성장과 경험에 투자하는 방향이 나중에 큰 재물로 돌아와요. 사치스러운 소비보다 여유롭게 즐기는 소비는 괜찮으나 과도한 식음료·유흥비는 조절이 필요해요.',
+            '창의적 역량과 기획력이 빛을 발하는 최고의 직업 운 중 하나예요. 상사와 동료에게 아이디어와 실력을 인정받는 기회가 자주 생기며, 즐기면서 일할 수 있는 환경이 마련돼요. 자영업자라면 사업 아이디어가 결실을 맺는 시기이고, 직장인이라면 창의적 프로젝트에서 두각을 나타냅니다. 억압적이거나 규율이 강한 조직보다 자유롭고 창의적인 환경에서 성과가 극대화돼요. 새로운 역할이나 프로젝트를 맡게 되면 적극적으로 수락하세요.',
+            '여유롭고 따뜻한 에너지가 자연스럽게 이성을 끌어당기는 해예요. 억지로 노력하지 않아도 좋은 사람이 주변에 나타나며, 자신이 즐겁고 행복한 모습 자체가 최고의 매력이 돼요. 기존 연인이 있다면 함께하는 시간이 풍요롭고 행복하며, 일상의 소소한 행복을 나누는 관계가 더욱 깊어집니다. 자연스러운 만남(취미·모임·일상)에서 좋은 인연이 찾아오는 경우가 많으니 다양한 활동에 참여하세요. 결혼을 생각하고 있다면 이 해는 서로의 관계를 더욱 구체화하기 좋은 시기예요.',
+            '건강 상태가 전반적으로 양호하고 활기찬 한 해예요. 식욕이 좋아지고 몸의 회복력이 높아져 웬만한 피로는 금방 회복돼요. 단 식복이 강한 해인 만큼 과식·과음·미식에 빠지지 않도록 절제가 필요하며, 체중 증가나 소화기 계통 문제에 주의하세요. 즐거운 활동과 운동을 병행하면 몸과 마음 모두 최상의 컨디션을 유지할 수 있어요. 스트레스를 즐거운 활동으로 해소하는 것은 좋으나 과도한 의존은 생활습관병으로 이어질 수 있으니 균형을 잡으세요.',
+            '학습에 대한 즐거움과 흥미가 높아지는 최적의 학습 환경이 만들어지는 해예요. 억지로 공부하는 것보다 흥미 있는 분야를 자발적으로 탐구하는 방식이 훨씬 효과적이에요. 창의적 사고가 필요한 논술·기획·실기 분야의 시험에서 특히 좋은 성과를 냅니다. 새로운 언어·기술·취미를 배우기에 최적의 시기이며, 배운 것이 빠르게 몸에 익는 흡수력이 뛰어난 해예요. 자격증보다는 실질적인 경험과 포트폴리오를 쌓는 방향이 이 해에 더 큰 성과로 이어집니다.',
         ),
     },
     '상관': {
         '신강': (
-            '넘치는 에너지가 상관 운과 만나 창의력·표현력·반항심이 극대화되는 해이에요. 재물 기회는 분명히 있지만 언행으로 인한 구설이 기회를 날려버리는 리스크가 매우 높습니다. 계약·합의는 반드시 서면으로만 확정하고 구두 약속은 믿지 마세요. 재물이 들어오는 속도만큼 나가는 속도도 빨라지므로 수입의 30%는 즉시 저축으로 격리하는 원칙을 세우세요. 독창적인 아이디어를 수익화하는 데 집중하되 과욕은 반드시 손해로 이어짐을 기억하세요.',
-            '규율과 상사에 대한 반발심이 폭발하여 이직·창업·전직 충동이 극도로 강해지는 해이에요. 신강한 에너지가 상관을 만나면 기존 틀을 완전히 박차고 나가고 싶은 욕구가 최고조에 달해요. 그 욕구 자체는 방향이 옳지만 충동적 실행은 위험하므로 씨앗만 심고 실행은 1~2년 준비 후에 하세요. 직장에서는 창의적 아이디어를 공식 채널로 제안하는 방식으로 에너지를 건강하게 발산하세요. 자유롭고 창의적인 환경에서 이 해 잠재력이 폭발적으로 발휘돼요.',
-            '매력과 표현력이 극대화되어 이성에게 강렬한 인상을 주는 해이에요. 단 감정 기복이 심하고 충동적인 언행이 관계를 불안정하게 만들 위험이 큽니다. 설레는 만남이 생기더라도 감정을 너무 빨리 쏟아내면 관계가 오래가지 않으니 속도를 조절하세요. 기존 연인에게 잔소리·비판이 강해지는 시기이므로 상대를 변화시키려 하기보다 자신이 먼저 달라지는 자세가 필요해요. 충동적인 이별 결정보다 진지한 대화로 문제를 해결하는 것을 권장해요.',
-            '과도한 에너지 분출로 신경계 과부하·호흡기 문제가 생기기 쉬운 해이에요. 감정을 억누르다 폭발하는 패턴이 반복되면 심신이 동시에 무너집니다. 갑상선·폐·기관지 건강에 주의하고 흡연자라면 이 해를 금연의 기회로 삼으세요. 창의적 취미(그림·음악·글쓰기)를 통해 에너지를 건강하게 발산하는 것이 이 해 건강의 핵심이에요. 수면 전 스마트폰 사용을 줄이고 규칙적인 취침 시간을 확보하세요.',
-            '독창적이고 창의적인 아이디어가 폭발하여 특수·예술·창작 분야에서 두각을 나타냅니다. 정규 과목보다 창의·예술·발표 분야의 시험이나 대회에서 특히 좋은 성과를 냅니다. 기본기를 무시하고 혼자만의 방법으로 돌진하다 실수할 수 있으니 창의성과 기본기의 균형을 유지하세요. 집중력이 짧고 지루함을 빨리 느끼므로 학습 방법을 자주 다양하게 바꾸는 것이 효과적이에요. 어학·글쓰기·발표·창작 역량을 키우기에 매우 좋은 해이에요.',
+            '넘치는 에너지가 상관 운과 만나 창의력·표현력·반항심이 극대화되는 해예요. 재물 기회는 분명히 있지만 언행으로 인한 구설이 기회를 날려버리는 리스크가 매우 높습니다. 계약·합의는 반드시 서면으로만 확정하고 구두 약속은 믿지 마세요. 재물이 들어오는 속도만큼 나가는 속도도 빨라지므로 수입의 30%는 즉시 저축으로 격리하는 원칙을 세우세요. 독창적인 아이디어를 수익화하는 데 집중하되 과욕은 반드시 손해로 이어짐을 기억하세요.',
+            '규율과 상사에 대한 반발심이 폭발하여 이직·창업·전직 충동이 극도로 강해지는 해예요. 신강한 에너지가 상관을 만나면 기존 틀을 완전히 박차고 나가고 싶은 욕구가 최고조에 달해요. 그 욕구 자체는 방향이 옳지만 충동적 실행은 위험하므로 씨앗만 심고 실행은 1~2년 준비 후에 하세요. 직장에서는 창의적 아이디어를 공식 채널로 제안하는 방식으로 에너지를 건강하게 발산하세요. 자유롭고 창의적인 환경에서 이 해 잠재력이 폭발적으로 발휘돼요.',
+            '매력과 표현력이 극대화되어 이성에게 강렬한 인상을 주는 해예요. 단 감정 기복이 심하고 충동적인 언행이 관계를 불안정하게 만들 위험이 큽니다. 설레는 만남이 생기더라도 감정을 너무 빨리 쏟아내면 관계가 오래가지 않으니 속도를 조절하세요. 기존 연인에게 잔소리·비판이 강해지는 시기이므로 상대를 변화시키려 하기보다 자신이 먼저 달라지는 자세가 필요해요. 충동적인 이별 결정보다 진지한 대화로 문제를 해결하는 것을 권장해요.',
+            '과도한 에너지 분출로 신경계 과부하·호흡기 문제가 생기기 쉬운 해예요. 감정을 억누르다 폭발하는 패턴이 반복되면 심신이 동시에 무너집니다. 갑상선·폐·기관지 건강에 주의하고 흡연자라면 이 해를 금연의 기회로 삼으세요. 창의적 취미(그림·음악·글쓰기)를 통해 에너지를 건강하게 발산하는 것이 이 해 건강의 핵심이에요. 수면 전 스마트폰 사용을 줄이고 규칙적인 취침 시간을 확보하세요.',
+            '독창적이고 창의적인 아이디어가 폭발하여 특수·예술·창작 분야에서 두각을 나타냅니다. 정규 과목보다 창의·예술·발표 분야의 시험이나 대회에서 특히 좋은 성과를 냅니다. 기본기를 무시하고 혼자만의 방법으로 돌진하다 실수할 수 있으니 창의성과 기본기의 균형을 유지하세요. 집중력이 짧고 지루함을 빨리 느끼므로 학습 방법을 자주 다양하게 바꾸는 것이 효과적이에요. 어학·글쓰기·발표·창작 역량을 키우기에 매우 좋은 해예요.',
         ),
         '신약': (
-            '신약한 기운이 상관 운으로 더 소모되어 재물 판단력이 흐려지기 쉬운 해이에요. 말실수로 인한 신뢰 손상이 재물 손실로 이어지는 패턴을 가장 조심해야 해요. 계약서를 꼼꼼히 검토하고 구두 약속을 절대 믿지 않는 원칙을 철저히 지키세요. 새로운 수익 시도보다 기존 수입원을 지키는 데 집중하는 것이 이 해에 더 현명해요. 충동적 소비를 자제하고 비상금을 충분히 확보해두는 것이 최우선이에요.',
-            '에너지가 부족한 상태에서 불만과 반발심이 커져 직장 환경이 더욱 힘들게 느껴지는 해이에요. 이직이나 창업 욕구가 생겨도 지금은 에너지가 충분하지 않으므로 실행을 미루고 준비에만 집중하세요. 상사와의 갈등에서 감정적으로 반응하면 손해를 보는 쪽은 항상 자신이라는 점을 기억하세요. 현재 직장에서 최대한 에너지 소모를 줄이는 방향으로 업무를 조율하세요. 구설수가 생기기 쉬운 시기이므로 언행을 각별히 조심하세요.',
-            '매력은 있지만 감정 소모가 심해 관계에서 지치기 쉬운 해이에요. 새로운 만남보다 현재 소중한 관계를 유지하고 돌보는 데 에너지를 집중하세요. 충동적인 말이나 행동으로 관계에 금이 가는 상황을 막으려면 감정이 격해질 때 일단 멈추는 습관이 필수이에요. 기존 연인이 있다면 서로 에너지를 아끼며 조용히 함께하는 시간이 관계를 더 깊게 만듭니다. 깊이 있는 대화 한 번이 여러 번의 화려한 만남보다 이 해에는 더 가치 있어요.',
-            '신약한 기운에 상관이 더해져 신경계와 호흡기가 동시에 부담을 받는 해이에요. 과도한 말하기·표현·감정 소모가 기력을 빠르게 고갈시키니 에너지 사용을 의식적으로 절약하세요. 충분한 수면과 규칙적인 식사가 이 해 건강 유지의 가장 중요한 기반이에요. 폐·기관지·갑상선 이상 신호가 있으면 즉시 전문의를 찾으세요. 혼자만의 조용한 회복 시간을 하루에 최소 1시간 이상 의식적으로 확보하세요.',
-            '아이디어는 풍부하지만 집중력과 체력이 부족해 결과를 내기 어려운 해이에요. 중요한 시험이나 자격증 도전은 체력이 회복된 다음 해로 미루는 것이 현실적이에요. 공부를 하더라도 짧게 자주 하는 방식이 긴 시간 집중하는 것보다 효율적이에요. 창의적 접근 방식을 유지하되 기본기를 반드시 병행하는 것이 이 해에 중요해요. 자신을 너무 채찍질하기보다 할 수 있는 만큼 꾸준히 유지하는 것만으로도 충분히 의미 있는 해이에요.',
+            '신약한 기운이 상관 운으로 더 소모되어 재물 판단력이 흐려지기 쉬운 해예요. 말실수로 인한 신뢰 손상이 재물 손실로 이어지는 패턴을 가장 조심해야 해요. 계약서를 꼼꼼히 검토하고 구두 약속을 절대 믿지 않는 원칙을 철저히 지키세요. 새로운 수익 시도보다 기존 수입원을 지키는 데 집중하는 것이 이 해에 더 현명해요. 충동적 소비를 자제하고 비상금을 충분히 확보해두는 것이 최우선이에요.',
+            '에너지가 부족한 상태에서 불만과 반발심이 커져 직장 환경이 더욱 힘들게 느껴지는 해예요. 이직이나 창업 욕구가 생겨도 지금은 에너지가 충분하지 않으므로 실행을 미루고 준비에만 집중하세요. 상사와의 갈등에서 감정적으로 반응하면 손해를 보는 쪽은 항상 자신이라는 점을 기억하세요. 현재 직장에서 최대한 에너지 소모를 줄이는 방향으로 업무를 조율하세요. 구설수가 생기기 쉬운 시기이므로 언행을 각별히 조심하세요.',
+            '매력은 있지만 감정 소모가 심해 관계에서 지치기 쉬운 해예요. 새로운 만남보다 현재 소중한 관계를 유지하고 돌보는 데 에너지를 집중하세요. 충동적인 말이나 행동으로 관계에 금이 가는 상황을 막으려면 감정이 격해질 때 일단 멈추는 습관이 필수예요. 기존 연인이 있다면 서로 에너지를 아끼며 조용히 함께하는 시간이 관계를 더 깊게 만듭니다. 깊이 있는 대화 한 번이 여러 번의 화려한 만남보다 이 해에는 더 가치 있어요.',
+            '신약한 기운에 상관이 더해져 신경계와 호흡기가 동시에 부담을 받는 해예요. 과도한 말하기·표현·감정 소모가 기력을 빠르게 고갈시키니 에너지 사용을 의식적으로 절약하세요. 충분한 수면과 규칙적인 식사가 이 해 건강 유지의 가장 중요한 기반이에요. 폐·기관지·갑상선 이상 신호가 있으면 즉시 전문의를 찾으세요. 혼자만의 조용한 회복 시간을 하루에 최소 1시간 이상 의식적으로 확보하세요.',
+            '아이디어는 풍부하지만 집중력과 체력이 부족해 결과를 내기 어려운 해예요. 중요한 시험이나 자격증 도전은 체력이 회복된 다음 해로 미루는 것이 현실적이에요. 공부를 하더라도 짧게 자주 하는 방식이 긴 시간 집중하는 것보다 효율적이에요. 창의적 접근 방식을 유지하되 기본기를 반드시 병행하는 것이 이 해에 중요해요. 자신을 너무 채찍질하기보다 할 수 있는 만큼 꾸준히 유지하는 것만으로도 충분히 의미 있는 해예요.',
         ),
         '중화': (
-            '재물 기회는 분명히 있으나 언행 문제와 구설로 인해 기회를 날려버리기 쉬운 해이에요. 계약·합의 시 구두 약속을 믿지 말고 반드시 서면으로 확정하세요. 창의적 아이디어나 새로운 비즈니스 모델로 수익을 내는 구조는 좋지만, 과도한 욕심이 앞서면 오히려 손해를 봅니다. 재물이 들어오는 속도만큼 나가는 속도도 빨라지는 해이므로 저축보다 고정 지출 통제가 더 중요해요. 특히 언행으로 인한 신뢰 손상이 재물 손실로 이어지는 사례가 많으니 입을 조심하세요.',
-            '현 직장이나 상황에 대한 불만이 커지고 이직·전업·창업 충동이 매우 강해지는 해이에요. 상사나 조직의 규칙에 반발심이 생기며 자신만의 길을 가고 싶은 욕구가 폭발해요. 프리랜서·창업·전직을 생각한다면 이 해에 씨앗을 심고 실제 실행은 1~2년의 충분한 준비 후에 하는 것이 안전해요. 지금 직장에서는 직속 상사와의 갈등이 커질 수 있으니 불만을 직접 표현하기보다 결과로 보여주는 방식을 택하세요. 창의적이고 자유로운 업무 환경에서 이 해 잠재력이 폭발적으로 발휘돼요.',
-            '감성과 매력이 넘치고 표현력이 극대화되어 이성에게 매력적으로 보이는 해이에요. 단 감정 기복이 심하고 즉흥적인 언행이 관계를 불안정하게 만들 수 있어요. 설레는 만남이 생기더라도 너무 빨리 감정을 쏟으면 관계가 오래가지 않으니 속도를 조절하세요. 기존 연인이 있다면 잔소리·비판·변화 요구가 강해져 갈등이 빈번해질 수 있으니, 상대방을 변화시키려 하기보다 자신이 먼저 달라지는 자세가 필요해요. 충동적인 이별 결정보다 진지한 대화를 통해 문제를 해결하는 것을 권장해요.',
-            '신경계 과부하와 호흡기 문제, 구설로 인한 정신적 피로가 쌓이기 쉬운 해이에요. 감정을 억누르다 폭발하거나 반대로 과도하게 표현하다 에너지가 소진되는 패턴을 조심하세요. 갑상선·폐·기관지 건강에 주의하고, 흡연자라면 이 해를 금연의 기회로 삼는 것이 좋습니다. 감정을 건강하게 해소하는 창의적 취미(그림·음악·글쓰기)를 꾸준히 갖는 것이 이 해 건강의 핵심이에요. 수면 전 스마트폰 사용을 줄이고 규칙적인 취침 시간을 확보하는 것이 중요해요.',
-            '기존의 틀에서 벗어나는 창의적 사고와 독창적인 아이디어가 풍부한 해이에요. 정규 과목보다 특수·창의·예술 분야의 시험이나 대회에서 두각을 나타냅니다. 기존 방식을 무시하고 혼자만의 방법으로 돌진하다 실수할 수 있으니 창의성과 기본기의 균형을 유지하는 것이 중요해요. 집중력이 짧고 지루함을 빨리 느끼는 시기이므로 학습 방법을 다양하게 변화시키는 것이 효과적이에요. 어학·글쓰기·발표·창작 관련 역량을 키우기에 매우 좋은 해이에요.',
+            '재물 기회는 분명히 있으나 언행 문제와 구설로 인해 기회를 날려버리기 쉬운 해예요. 계약·합의 시 구두 약속을 믿지 말고 반드시 서면으로 확정하세요. 창의적 아이디어나 새로운 비즈니스 모델로 수익을 내는 구조는 좋지만, 과도한 욕심이 앞서면 오히려 손해를 봅니다. 재물이 들어오는 속도만큼 나가는 속도도 빨라지는 해이므로 저축보다 고정 지출 통제가 더 중요해요. 특히 언행으로 인한 신뢰 손상이 재물 손실로 이어지는 사례가 많으니 입을 조심하세요.',
+            '현 직장이나 상황에 대한 불만이 커지고 이직·전업·창업 충동이 매우 강해지는 해예요. 상사나 조직의 규칙에 반발심이 생기며 자신만의 길을 가고 싶은 욕구가 폭발해요. 프리랜서·창업·전직을 생각한다면 이 해에 씨앗을 심고 실제 실행은 1~2년의 충분한 준비 후에 하는 것이 안전해요. 지금 직장에서는 직속 상사와의 갈등이 커질 수 있으니 불만을 직접 표현하기보다 결과로 보여주는 방식을 택하세요. 창의적이고 자유로운 업무 환경에서 이 해 잠재력이 폭발적으로 발휘돼요.',
+            '감성과 매력이 넘치고 표현력이 극대화되어 이성에게 매력적으로 보이는 해예요. 단 감정 기복이 심하고 즉흥적인 언행이 관계를 불안정하게 만들 수 있어요. 설레는 만남이 생기더라도 너무 빨리 감정을 쏟으면 관계가 오래가지 않으니 속도를 조절하세요. 기존 연인이 있다면 잔소리·비판·변화 요구가 강해져 갈등이 빈번해질 수 있으니, 상대방을 변화시키려 하기보다 자신이 먼저 달라지는 자세가 필요해요. 충동적인 이별 결정보다 진지한 대화를 통해 문제를 해결하는 것을 권장해요.',
+            '신경계 과부하와 호흡기 문제, 구설로 인한 정신적 피로가 쌓이기 쉬운 해예요. 감정을 억누르다 폭발하거나 반대로 과도하게 표현하다 에너지가 소진되는 패턴을 조심하세요. 갑상선·폐·기관지 건강에 주의하고, 흡연자라면 이 해를 금연의 기회로 삼는 것이 좋습니다. 감정을 건강하게 해소하는 창의적 취미(그림·음악·글쓰기)를 꾸준히 갖는 것이 이 해 건강의 핵심이에요. 수면 전 스마트폰 사용을 줄이고 규칙적인 취침 시간을 확보하는 것이 중요해요.',
+            '기존의 틀에서 벗어나는 창의적 사고와 독창적인 아이디어가 풍부한 해예요. 정규 과목보다 특수·창의·예술 분야의 시험이나 대회에서 두각을 나타냅니다. 기존 방식을 무시하고 혼자만의 방법으로 돌진하다 실수할 수 있으니 창의성과 기본기의 균형을 유지하는 것이 중요해요. 집중력이 짧고 지루함을 빨리 느끼는 시기이므로 학습 방법을 다양하게 변화시키는 것이 효과적이에요. 어학·글쓰기·발표·창작 관련 역량을 키우기에 매우 좋은 해예요.',
         ),
     },
     '편재': {
         '신강': (
             '신강 사주가 편재 운을 만난 최상의 재물 조합이에요. 강한 에너지가 재물을 적극적으로 취하는 구조가 완성되어 투자·사업·영업에서 큰 수익이 나올 수 있어요. 과감한 결단과 빠른 실행이 빛을 발하는 시기이지만 욕심을 70%로만 내는 원칙을 지키며 리스크를 분산하세요. 수익이 났을 때 일부는 반드시 현금화해 안전하게 보관하는 원칙도 중요해요. 이 해의 재물 운은 한 번에 큰 것보다 여러 기회 중 가장 확실한 것 하나에 집중할 때 극대화돼요.',
-            '넘치는 에너지가 외부 활동·네트워킹·영업에서 폭발적인 성과로 이어지는 해이에요. 사무실 안보다 밖에서 뛰어다닐 때 더 큰 성과가 나오므로 적극적으로 외부 미팅·출장·네트워킹을 늘리세요. 자영업자라면 사업 확장의 최적기이며, 직장인이라면 영업·마케팅·기획 분야에서 최고 성과를 냅니다. 강한 에너지 덕분에 여러 프로젝트를 동시에 진행할 수 있지만 내부 체계를 먼저 탄탄히 해야 지속 가능해요. 새로운 사업 파트너를 만날 가능성이 높지만 계약 전 상대방 검증을 철저히 하세요.',
-            '이성에게 매력적이고 다양한 인연이 찾아오는 화려한 연애 운의 해이에요. 강한 에너지가 다수의 이성에게 동시에 매력으로 발산되어 선택의 순간이 자주 와요. 재미와 설렘 위주의 만남이 진지한 관계로 발전하기 어려울 수 있으니 어떤 관계를 원하는지 명확히 하세요. 기존 파트너가 있다면 외부의 유혹이나 이성 관계에서 오해를 살 수 있는 상황을 피하는 것이 현명해요. 결혼보다 연애를 즐기는 에너지가 강한 해이므로 서두르지 말고 상대를 충분히 파악하세요.',
+            '넘치는 에너지가 외부 활동·네트워킹·영업에서 폭발적인 성과로 이어지는 해예요. 사무실 안보다 밖에서 뛰어다닐 때 더 큰 성과가 나오므로 적극적으로 외부 미팅·출장·네트워킹을 늘리세요. 자영업자라면 사업 확장의 최적기이며, 직장인이라면 영업·마케팅·기획 분야에서 최고 성과를 냅니다. 강한 에너지 덕분에 여러 프로젝트를 동시에 진행할 수 있지만 내부 체계를 먼저 탄탄히 해야 지속 가능해요. 새로운 사업 파트너를 만날 가능성이 높지만 계약 전 상대방 검증을 철저히 하세요.',
+            '이성에게 매력적이고 다양한 인연이 찾아오는 화려한 연애 운의 해예요. 강한 에너지가 다수의 이성에게 동시에 매력으로 발산되어 선택의 순간이 자주 와요. 재미와 설렘 위주의 만남이 진지한 관계로 발전하기 어려울 수 있으니 어떤 관계를 원하는지 명확히 하세요. 기존 파트너가 있다면 외부의 유혹이나 이성 관계에서 오해를 살 수 있는 상황을 피하는 것이 현명해요. 결혼보다 연애를 즐기는 에너지가 강한 해이므로 서두르지 말고 상대를 충분히 파악하세요.',
             '활동량이 극대화되는 해인 만큼 피로 누적과 과로가 주요 건강 위험이에요. 간·담낭 건강에 주의하고, 무리한 음주와 야식 습관이 간 기능 저하로 이어질 수 있어요. 사고·부상의 위험이 있는 해이므로 운전 시 특히 주의를 기울이고 레저 활동에서 안전장비를 착용하세요. 하루 최소 7시간 이상의 수면을 지키는 것이 이 해 건강의 필수 조건이에요. 정기 건강검진(특히 간 기능)을 이 해에 꼭 받아두세요.',
             '경영·재무·투자·마케팅 등 실용적인 분야의 학습에 관심이 높아지고 성과가 나요. 이론보다 현장 경험과 실전 적용에서 훨씬 빠르게 성장하는 시기이므로 인턴십·현장 실습을 적극 활용하세요. 집중력이 분산되기 쉽고 여러 분야에 관심이 쏠리므로 하나의 목표를 정하고 집중하는 것이 중요해요. 시험보다 자격증·대회·공모전 등 실전형 도전에서 더 좋은 결과가 나와요. 활발한 사람들과 함께하는 환경에서 학습 효율이 크게 올라갑니다.',
         ),
         '신약': (
-            '재물 기회는 오지만 신약한 에너지로는 감당하기 어려운 과부하가 걸리는 해이에요. 투자나 사업 확장에 욕심을 내면 부채와 스트레스만 늘어나는 결과로 이어질 수 있어요. 이 해에는 공격적인 재테크보다 안정적인 수입을 지키는 방어적 재물 관리가 훨씬 현명해요. 재물이 생기면 즉시 안전한 저축으로 옮기고 유혹적인 투자 기회는 모두 거절하세요. 에너지가 충분히 충전된 다음 해를 위해 이 해는 기반을 지키는 시기로 활용하세요.',
-            '활발한 외부 활동 욕구가 있지만 에너지가 뒷받침되지 않아 무리하면 탈이 나는 해이에요. 야근·추가 업무·출장 등 에너지 소모가 큰 활동은 최소화하고 현재 역할에 충실하세요. 사업 확장이나 이직은 에너지가 충전된 다음 시기를 기다리는 것이 현명해요. 직장에서는 내실을 다지고 핵심 역량을 강화하는 데 집중하세요. 지금 단계에서 기반을 탄탄히 하면 다음 해의 더 큰 기회를 제대로 활용할 수 있어요.',
-            '이성적 매력은 있지만 에너지가 부족해 관계에서 주도적으로 나서기 어려운 해이에요. 화려한 새로운 만남보다 이미 신뢰 관계가 형성된 사람과의 관계를 더욱 돈독히 하는 것이 유리해요. 새로운 연애를 시작하기보다 자신의 에너지 회복에 집중하는 것이 이 해에 더 현명해요. 기존 연인이 있다면 서로 에너지를 소중히 여기며 조용하고 깊이 있는 시간을 보내세요. 관계에서 지나치게 베풀다 지치는 패턴을 주의하고 자신도 충분히 받는 균형을 만드세요.',
-            '활동 욕구와 체력 사이의 불균형이 건강 문제의 주요 원인이 되는 해이에요. 하고 싶은 것은 많지만 체력이 따라주지 않아 과로와 탈진을 경험하기 쉽습니다. 운동 강도를 낮추고 충분한 회복 시간을 확보하는 것이 건강 유지의 핵심이에요. 간·소화기 건강에 주의하고 규칙적인 식사 시간을 지키는 것이 중요해요. 정기 건강검진을 받고 이상 신호를 초기에 대응하세요.',
-            '실용적인 분야에 관심이 있지만 에너지 부족으로 집중력을 오래 유지하기 어려운 해이에요. 짧은 시간 집중하고 충분히 쉬는 방식이 장시간 무리하는 것보다 훨씬 효율적이에요. 중요한 시험이나 자격증은 에너지가 충전된 다음 해로 미루는 것도 현명한 전략이에요. 학습 목표를 현실적으로 낮추고 꾸준히 유지하는 것에 집중하세요. 공부 환경을 체력 소모가 적은 방향으로 조성하면 지속성이 높아집니다.',
+            '재물 기회는 오지만 신약한 에너지로는 감당하기 어려운 과부하가 걸리는 해예요. 투자나 사업 확장에 욕심을 내면 부채와 스트레스만 늘어나는 결과로 이어질 수 있어요. 이 해에는 공격적인 재테크보다 안정적인 수입을 지키는 방어적 재물 관리가 훨씬 현명해요. 재물이 생기면 즉시 안전한 저축으로 옮기고 유혹적인 투자 기회는 모두 거절하세요. 에너지가 충분히 충전된 다음 해를 위해 이 해는 기반을 지키는 시기로 활용하세요.',
+            '활발한 외부 활동 욕구가 있지만 에너지가 뒷받침되지 않아 무리하면 탈이 나는 해예요. 야근·추가 업무·출장 등 에너지 소모가 큰 활동은 최소화하고 현재 역할에 충실하세요. 사업 확장이나 이직은 에너지가 충전된 다음 시기를 기다리는 것이 현명해요. 직장에서는 내실을 다지고 핵심 역량을 강화하는 데 집중하세요. 지금 단계에서 기반을 탄탄히 하면 다음 해의 더 큰 기회를 제대로 활용할 수 있어요.',
+            '이성적 매력은 있지만 에너지가 부족해 관계에서 주도적으로 나서기 어려운 해예요. 화려한 새로운 만남보다 이미 신뢰 관계가 형성된 사람과의 관계를 더욱 돈독히 하는 것이 유리해요. 새로운 연애를 시작하기보다 자신의 에너지 회복에 집중하는 것이 이 해에 더 현명해요. 기존 연인이 있다면 서로 에너지를 소중히 여기며 조용하고 깊이 있는 시간을 보내세요. 관계에서 지나치게 베풀다 지치는 패턴을 주의하고 자신도 충분히 받는 균형을 만드세요.',
+            '활동 욕구와 체력 사이의 불균형이 건강 문제의 주요 원인이 되는 해예요. 하고 싶은 것은 많지만 체력이 따라주지 않아 과로와 탈진을 경험하기 쉽습니다. 운동 강도를 낮추고 충분한 회복 시간을 확보하는 것이 건강 유지의 핵심이에요. 간·소화기 건강에 주의하고 규칙적인 식사 시간을 지키는 것이 중요해요. 정기 건강검진을 받고 이상 신호를 초기에 대응하세요.',
+            '실용적인 분야에 관심이 있지만 에너지 부족으로 집중력을 오래 유지하기 어려운 해예요. 짧은 시간 집중하고 충분히 쉬는 방식이 장시간 무리하는 것보다 훨씬 효율적이에요. 중요한 시험이나 자격증은 에너지가 충전된 다음 해로 미루는 것도 현명한 전략이에요. 학습 목표를 현실적으로 낮추고 꾸준히 유지하는 것에 집중하세요. 공부 환경을 체력 소모가 적은 방향으로 조성하면 지속성이 높아집니다.',
         ),
         '중화': (
-            '뜻밖의 횡재나 투자 기회가 찾아오는 활발한 재물 운의 해이에요. 주식·부동산·사업 투자에서 큰 수익이 나올 수 있지만, 그만큼 큰 손실의 위험도 공존해요. "욕심을 70%로만 내라"는 원칙을 지키며 분산 투자와 철저한 리스크 관리를 해야 해요. 한 번에 전 재산을 쏟아붓는 베팅은 절대 금물이며, 수익이 났을 때 일부는 반드시 현금화해 안전하게 보관하세요. 부동산·주식·창업 등 여러 방향으로 기회가 동시에 오는 경우 가장 자신 있는 분야 하나에만 집중하는 것이 더 큰 결과로 이어집니다.',
-            '사업 확장·외부 활동·대인 영업에서 기회가 풍성한 해이에요. 사무실 안보다 밖에서 뛰어다닐 때 더 큰 성과가 나오는 시기이므로, 적극적으로 외부 미팅·네트워킹·출장을 늘리세요. 단 무리한 사업 확장은 자금 부족과 인력 문제를 초래할 수 있으니, 규모를 키우기 전 내부 체계를 먼저 탄탄히 하세요. 직장인이라면 영업·마케팅·기획·해외 관련 부서에서 최고의 역량을 발휘해요. 새로운 수익 모델이나 사업 파트너를 만날 가능성이 높은 해이지만, 계약 전 반드시 상대방에 대한 충분한 검증이 필요해요.',
-            '이성에게 매력적이고 다양한 인연이 찾아오는 화려한 연애 운의 해이에요. 여러 이성에게 동시에 관심을 받는 상황이 생길 수 있어 선택의 순간이 와요. 단 재미와 설렘 위주의 만남이 진지한 관계로 발전하기 어려울 수 있으니, 어떤 관계를 원하는지 명확히 하고 방향을 잡으세요. 기존 파트너가 있다면 외부의 유혹이나 이성 관계에서 오해를 살 수 있는 상황을 피하는 것이 현명해요. 결혼보다 연애를 즐기는 에너지가 강한 해이므로, 결혼을 서두르기보다 신중하게 상대를 파악하는 시간을 가지세요.',
-            '활동량이 많아지고 외부 자극이 넘치는 해인 만큼 피로 누적과 과로에 주의해야 해요. 간·담낭 건강에 주의하고, 무리한 음주와 야식 습관이 간 기능 저하로 이어질 수 있어요. 사고·부상의 위험이 있는 해이므로 운전 시 주의를 기울이고, 레저·스포츠 활동에서 안전장비를 반드시 착용하세요. 여러 가지 일을 동시에 벌이다가 몸이 과부하 상태가 되기 쉬우니, 하루 최소 7시간 이상의 수면을 지키는 것이 필수이에요. 정기 건강검진(특히 간 기능 검사)을 이 해에 꼭 받아두는 것을 권장해요.',
-            '경영·재무·투자·마케팅 등 실용적이고 사회적 활동과 연결된 분야의 학습에 관심이 높아집니다. 이론보다 현장 경험과 실전 적용에서 훨씬 빠르게 성장하는 시기이므로, 인턴십·현장 실습·프로젝트 참여를 적극 활용하세요. 집중력이 분산되기 쉽고 여러 분야에 관심이 쏠리는 해이므로, 하나의 목표를 정하고 집중하는 것이 중요해요. 시험보다 자격증·대회·공모전 등 실전형 도전에서 더 좋은 결과가 나와요. 혼자 공부하기보다 활발한 사람들과 함께하는 환경에서 학습 효율이 올라가는 시기이에요.',
+            '뜻밖의 횡재나 투자 기회가 찾아오는 활발한 재물 운의 해예요. 주식·부동산·사업 투자에서 큰 수익이 나올 수 있지만, 그만큼 큰 손실의 위험도 공존해요. "욕심을 70%로만 내라"는 원칙을 지키며 분산 투자와 철저한 리스크 관리를 해야 해요. 한 번에 전 재산을 쏟아붓는 베팅은 절대 금물이며, 수익이 났을 때 일부는 반드시 현금화해 안전하게 보관하세요. 부동산·주식·창업 등 여러 방향으로 기회가 동시에 오는 경우 가장 자신 있는 분야 하나에만 집중하는 것이 더 큰 결과로 이어집니다.',
+            '사업 확장·외부 활동·대인 영업에서 기회가 풍성한 해예요. 사무실 안보다 밖에서 뛰어다닐 때 더 큰 성과가 나오는 시기이므로, 적극적으로 외부 미팅·네트워킹·출장을 늘리세요. 단 무리한 사업 확장은 자금 부족과 인력 문제를 초래할 수 있으니, 규모를 키우기 전 내부 체계를 먼저 탄탄히 하세요. 직장인이라면 영업·마케팅·기획·해외 관련 부서에서 최고의 역량을 발휘해요. 새로운 수익 모델이나 사업 파트너를 만날 가능성이 높은 해이지만, 계약 전 반드시 상대방에 대한 충분한 검증이 필요해요.',
+            '이성에게 매력적이고 다양한 인연이 찾아오는 화려한 연애 운의 해예요. 여러 이성에게 동시에 관심을 받는 상황이 생길 수 있어 선택의 순간이 와요. 단 재미와 설렘 위주의 만남이 진지한 관계로 발전하기 어려울 수 있으니, 어떤 관계를 원하는지 명확히 하고 방향을 잡으세요. 기존 파트너가 있다면 외부의 유혹이나 이성 관계에서 오해를 살 수 있는 상황을 피하는 것이 현명해요. 결혼보다 연애를 즐기는 에너지가 강한 해이므로, 결혼을 서두르기보다 신중하게 상대를 파악하는 시간을 가지세요.',
+            '활동량이 많아지고 외부 자극이 넘치는 해인 만큼 피로 누적과 과로에 주의해야 해요. 간·담낭 건강에 주의하고, 무리한 음주와 야식 습관이 간 기능 저하로 이어질 수 있어요. 사고·부상의 위험이 있는 해이므로 운전 시 주의를 기울이고, 레저·스포츠 활동에서 안전장비를 반드시 착용하세요. 여러 가지 일을 동시에 벌이다가 몸이 과부하 상태가 되기 쉬우니, 하루 최소 7시간 이상의 수면을 지키는 것이 필수예요. 정기 건강검진(특히 간 기능 검사)을 이 해에 꼭 받아두는 것을 권장해요.',
+            '경영·재무·투자·마케팅 등 실용적이고 사회적 활동과 연결된 분야의 학습에 관심이 높아집니다. 이론보다 현장 경험과 실전 적용에서 훨씬 빠르게 성장하는 시기이므로, 인턴십·현장 실습·프로젝트 참여를 적극 활용하세요. 집중력이 분산되기 쉽고 여러 분야에 관심이 쏠리는 해이므로, 하나의 목표를 정하고 집중하는 것이 중요해요. 시험보다 자격증·대회·공모전 등 실전형 도전에서 더 좋은 결과가 나와요. 혼자 공부하기보다 활발한 사람들과 함께하는 환경에서 학습 효율이 올라가는 시기예요.',
         ),
     },
     '정재': {
         '신강': (
-            '신강 사주가 정재 운을 만나 안정적인 수입이 꾸준하게 쌓이는 좋은 해이에요. 강한 에너지가 성실한 노력과 결합되어 가계부가 착착 채워지는 시기이에요. 적립식 저축·장기 투자·부동산 장기 보유 등 안정적인 재테크가 이 해에 가장 잘 맞습니다. 욕심을 내어 투기성 단기 거래에 손을 대면 이 해의 기운과 맞지 않아 오히려 손해를 봅니다. 연말에 상당한 재물이 쌓여 있는 뿌듯한 결실을 맞이할 수 있는 해이에요.',
-            '성실함과 신뢰로 직장 내 입지를 더욱 탄탄히 다지는 해이에요. 화려한 성과보다 꾸준하고 믿음직한 모습이 주변의 인정을 받으며 자연스럽게 승진 기회로 이어집니다. 맡은 업무를 충실히 수행하면 중요한 프로젝트 책임자로 발탁되는 기회가 찾아와요. 이직을 생각하고 있다면 충동적으로 결정하지 말고 확실한 조건이 보장될 때 움직이세요. 개인 사업자라면 신규 고객 유치보다 기존 고객 관계 강화에 집중하는 것이 장기적으로 훨씬 유리해요.',
-            '진지하고 안정적인 이성 인연을 만나기에 최적의 시기이에요. 화려하지 않아도 현실적이고 신뢰감 있는 사람이 오래가는 진짜 파트너가 된다는 것을 알게 되는 해이에요. 기존 연인과의 관계가 결혼·동거 등 구체적이고 실질적인 단계로 발전하기 좋은 시기이에요. 지인 소개·직장·학교 등 신뢰 기반의 만남에서 좋은 인연이 생기는 경우가 많아요. 외모보다 가치관과 경제력을 기준으로 상대를 평가하면 후회 없는 선택을 할 수 있어요.',
-            '전반적으로 안정적인 건강 상태를 유지하는 해이에요. 과로나 스트레스가 소화기계(위·장)에 영향을 주는 정도의 문제가 생길 수 있어요. 규칙적인 식사 시간을 지키고 폭식·굶기를 반복하지 않는 것이 소화기 건강의 핵심이에요. 성실하게 일하는 해인 만큼 충분한 휴식 시간을 의식적으로 확보해야 번아웃을 예방할 수 있어요. 소화기 관련 내시경 검사를 이 해에 받아두는 것을 권장해요.',
-            '성실하고 꾸준한 노력이 가장 빛을 발하는 시기이에요. 장기간 꾸준히 준비해온 사람에게 정직한 결과가 돌아오는 해이에요. 공인 자격증·국가시험·영어 공인 점수 등 공식 시험에서 특히 좋은 성과를 냅니다. 매일 같은 시간에 공부하는 일정한 루틴이 이 해에 가장 효과적인 학습 방법이에요. 좋은 선생님이나 멘토를 찾는 데 투자를 아끼지 마세요.',
+            '신강 사주가 정재 운을 만나 안정적인 수입이 꾸준하게 쌓이는 좋은 해예요. 강한 에너지가 성실한 노력과 결합되어 가계부가 착착 채워지는 시기예요. 적립식 저축·장기 투자·부동산 장기 보유 등 안정적인 재테크가 이 해에 가장 잘 맞습니다. 욕심을 내어 투기성 단기 거래에 손을 대면 이 해의 기운과 맞지 않아 오히려 손해를 봅니다. 연말에 상당한 재물이 쌓여 있는 뿌듯한 결실을 맞이할 수 있는 해예요.',
+            '성실함과 신뢰로 직장 내 입지를 더욱 탄탄히 다지는 해예요. 화려한 성과보다 꾸준하고 믿음직한 모습이 주변의 인정을 받으며 자연스럽게 승진 기회로 이어집니다. 맡은 업무를 충실히 수행하면 중요한 프로젝트 책임자로 발탁되는 기회가 찾아와요. 이직을 생각하고 있다면 충동적으로 결정하지 말고 확실한 조건이 보장될 때 움직이세요. 개인 사업자라면 신규 고객 유치보다 기존 고객 관계 강화에 집중하는 것이 장기적으로 훨씬 유리해요.',
+            '진지하고 안정적인 이성 인연을 만나기에 최적의 시기예요. 화려하지 않아도 현실적이고 신뢰감 있는 사람이 오래가는 진짜 파트너가 된다는 것을 알게 되는 해예요. 기존 연인과의 관계가 결혼·동거 등 구체적이고 실질적인 단계로 발전하기 좋은 시기예요. 지인 소개·직장·학교 등 신뢰 기반의 만남에서 좋은 인연이 생기는 경우가 많아요. 외모보다 가치관과 경제력을 기준으로 상대를 평가하면 후회 없는 선택을 할 수 있어요.',
+            '전반적으로 안정적인 건강 상태를 유지하는 해예요. 과로나 스트레스가 소화기계(위·장)에 영향을 주는 정도의 문제가 생길 수 있어요. 규칙적인 식사 시간을 지키고 폭식·굶기를 반복하지 않는 것이 소화기 건강의 핵심이에요. 성실하게 일하는 해인 만큼 충분한 휴식 시간을 의식적으로 확보해야 번아웃을 예방할 수 있어요. 소화기 관련 내시경 검사를 이 해에 받아두는 것을 권장해요.',
+            '성실하고 꾸준한 노력이 가장 빛을 발하는 시기예요. 장기간 꾸준히 준비해온 사람에게 정직한 결과가 돌아오는 해예요. 공인 자격증·국가시험·영어 공인 점수 등 공식 시험에서 특히 좋은 성과를 냅니다. 매일 같은 시간에 공부하는 일정한 루틴이 이 해에 가장 효과적인 학습 방법이에요. 좋은 선생님이나 멘토를 찾는 데 투자를 아끼지 마세요.',
         ),
         '신약': (
-            '신약한 사주에 정재가 들어와 안정을 추구하지만 에너지가 부족해 재물 축적이 생각보다 더딘 해이에요. 수입은 있지만 체력과 에너지 소모로 인한 지출이 함께 늘어나는 경향이 있어요. 이 해에는 화려한 재테크보다 고정 지출을 줄이고 안정적인 저축을 유지하는 것이 최선이에요. 새로운 수익원을 만들기보다 현재 수입을 지키고 절약하는 방향이 더 현실적이에요. 에너지가 충전될수록 재물도 자연스럽게 쌓이므로 건강 관리에 우선투자하세요.',
-            '성실하게 일하고 싶지만 체력이 따라주지 않아 효율이 떨어지는 해이에요. 야근이나 추가 업무를 최소화하고 한정된 에너지를 핵심 업무에 집중하는 전략이 필요해요. 직장에서는 조용히 성실하게 존재감을 드러내는 방식이 이 해에 유리해요. 이직이나 창업은 에너지가 회복된 다음 시기로 미루는 것이 현명해요. 상사나 동료와 불필요한 갈등을 피하고 규칙적인 생활을 유지하는 것이 직장 운을 지키는 방법이에요.',
-            '안정적인 관계를 원하지만 에너지 부족으로 충분히 표현하지 못하는 해이에요. 진지하고 현실적인 만남을 원하는 마음은 강하지만 적극적으로 나서기 어려운 시기이에요. 기존 연인이 있다면 화려한 데이트보다 조용히 함께하는 소소한 시간이 관계를 더 깊게 만듭니다. 새로운 만남보다 현재 소중한 관계를 돌보고 강화하는 데 집중하세요. 상대방에게 솔직하게 현재 자신의 상태를 공유하면 이해와 지지를 받을 수 있어요.',
-            '신약한 상태에 정재가 들어와 소화기 계통이 특히 약해지는 해이에요. 규칙적인 식사와 충분한 수면이 이 해 건강의 최우선 과제이에요. 과로와 스트레스가 소화기에 직접적인 영향을 주므로 업무량을 의식적으로 조절하세요. 위·장 관련 이상 신호가 있으면 초기에 전문의를 찾는 것이 중요해요. 체력 회복에 투자하면 다음 해에 더 큰 결실을 맺을 수 있어요.',
-            '성실하게 공부하고 싶지만 체력과 집중력이 뒷받침되지 않아 효율이 낮은 해이에요. 짧은 집중 공부와 충분한 휴식을 번갈아 하는 방식이 이 해에 가장 효율적이에요. 중요한 시험이 있다면 체력 관리를 학습 계획에 반드시 포함시키세요. 꾸준함을 유지하는 것만으로도 이 해에는 충분한 성취이에요. 에너지가 회복되면 다음 해에 더 큰 성과를 낼 수 있으므로 지금은 기초를 다지는 시기로 삼으세요.',
+            '신약한 사주에 정재가 들어와 안정을 추구하지만 에너지가 부족해 재물 축적이 생각보다 더딘 해예요. 수입은 있지만 체력과 에너지 소모로 인한 지출이 함께 늘어나는 경향이 있어요. 이 해에는 화려한 재테크보다 고정 지출을 줄이고 안정적인 저축을 유지하는 것이 최선이에요. 새로운 수익원을 만들기보다 현재 수입을 지키고 절약하는 방향이 더 현실적이에요. 에너지가 충전될수록 재물도 자연스럽게 쌓이므로 건강 관리에 우선투자하세요.',
+            '성실하게 일하고 싶지만 체력이 따라주지 않아 효율이 떨어지는 해예요. 야근이나 추가 업무를 최소화하고 한정된 에너지를 핵심 업무에 집중하는 전략이 필요해요. 직장에서는 조용히 성실하게 존재감을 드러내는 방식이 이 해에 유리해요. 이직이나 창업은 에너지가 회복된 다음 시기로 미루는 것이 현명해요. 상사나 동료와 불필요한 갈등을 피하고 규칙적인 생활을 유지하는 것이 직장 운을 지키는 방법이에요.',
+            '안정적인 관계를 원하지만 에너지 부족으로 충분히 표현하지 못하는 해예요. 진지하고 현실적인 만남을 원하는 마음은 강하지만 적극적으로 나서기 어려운 시기예요. 기존 연인이 있다면 화려한 데이트보다 조용히 함께하는 소소한 시간이 관계를 더 깊게 만듭니다. 새로운 만남보다 현재 소중한 관계를 돌보고 강화하는 데 집중하세요. 상대방에게 솔직하게 현재 자신의 상태를 공유하면 이해와 지지를 받을 수 있어요.',
+            '신약한 상태에 정재가 들어와 소화기 계통이 특히 약해지는 해예요. 규칙적인 식사와 충분한 수면이 이 해 건강의 최우선 과제예요. 과로와 스트레스가 소화기에 직접적인 영향을 주므로 업무량을 의식적으로 조절하세요. 위·장 관련 이상 신호가 있으면 초기에 전문의를 찾는 것이 중요해요. 체력 회복에 투자하면 다음 해에 더 큰 결실을 맺을 수 있어요.',
+            '성실하게 공부하고 싶지만 체력과 집중력이 뒷받침되지 않아 효율이 낮은 해예요. 짧은 집중 공부와 충분한 휴식을 번갈아 하는 방식이 이 해에 가장 효율적이에요. 중요한 시험이 있다면 체력 관리를 학습 계획에 반드시 포함시키세요. 꾸준함을 유지하는 것만으로도 이 해에는 충분한 성취예요. 에너지가 회복되면 다음 해에 더 큰 성과를 낼 수 있으므로 지금은 기초를 다지는 시기로 삼으세요.',
         ),
         '중화': (
-            '안정적인 수입이 꾸준히 들어오고 재물이 착실하게 쌓이는 길한 해이에요. 갑작스러운 횡재보다는 성실하게 일한 만큼 정직하게 들어오는 재물이 이 해의 특징이에요. 적립식 저축·장기 펀드·부동산 장기 투자 등 안정적인 재테크 방법이 이 해에 가장 잘 맞습니다. 투기성 투자나 빠른 수익을 노리는 단기 거래는 이 해의 기운과 맞지 않아 손해를 볼 수 있으니 자제하세요. 재물 관리에 있어 꼼꼼하게 가계부를 쓰고 지출을 계획적으로 통제한다면 연말에 상당한 재물이 쌓여 있을 것이에요.',
-            '현직장에서 성실함과 신뢰가 인정받으며 안정적인 위치를 다지는 해이에요. 화려한 성과보다는 꾸준하고 믿음직한 모습으로 주변의 신뢰를 쌓는 시기이에요. 직장에서 맡은 업무를 충실히 수행하면 자연스럽게 중요한 프로젝트나 역할이 주어지고, 이것이 승진이나 연봉 인상의 계기가 돼요. 이직을 생각하고 있다면 충동적으로 결정하지 말고 더 좋은 조건이 확실히 보장되었을 때 움직이세요. 개인 사업자라면 신규 고객 유치보다 기존 고객 관리와 관계 강화에 더 집중하는 것이 장기적으로 유리해요.',
-            '진지하고 안정적인 이성 인연을 만나기에 가장 좋은 시기이에요. 화려하지 않아도 현실적이고 신뢰감 있는 사람이 오래가는 좋은 파트너가 된다는 것을 알아가게 되는 해이에요. 기존 연인과의 관계가 결혼·동거 등 더 구체적이고 실질적인 단계로 발전하기 좋은 시기이며, 양가 부모님께 인사를 드리거나 함께 미래를 계획하는 대화가 자연스럽게 이루어집니다. 처음 만나는 자리보다 지인 소개·직장·학교 등 신뢰 기반의 만남에서 좋은 인연이 생기는 경우가 많아요. 외모보다 가치관·성품·경제력을 기준으로 상대를 평가하면 후회 없는 선택을 할 수 있어요.',
-            '건강 상태가 전반적으로 안정적인 해이에요. 큰 질환보다는 과로나 스트레스가 소화기계(위·장)에 영향을 주는 정도의 문제가 생길 수 있어요. 규칙적인 식사 시간을 지키고 폭식·굶기를 반복하지 않는 것이 소화기 건강의 핵심이에요. 성실하게 일하는 해인 만큼 충분한 휴식 시간을 의식적으로 확보해야 번아웃을 예방할 수 있어요. 정기 건강검진을 빠뜨리지 말고 소화기(위·장) 관련 내시경 검사를 이 해에 받아두는 것을 권장해요.',
-            '성실하고 꾸준한 노력이 가장 빛을 발하는 시기이에요. 단기간의 벼락치기보다 장기간 꾸준히 준비해온 사람에게 좋은 결과가 오는 해이에요. 공인 자격증·국가시험·영어 공인 점수 등 공식적인 시험에서 특히 좋은 성과를 냅니다. 학습 환경을 일정하게 유지하고 매일 같은 시간에 공부하는 루틴이 이 해에 가장 효과적인 방법이에요. 귀인의 도움(훌륭한 선생님·멘토·코치)이 학업 성취에 결정적인 역할을 할 수 있으니, 좋은 선생님을 찾는 데 투자를 아끼지 마세요.',
+            '안정적인 수입이 꾸준히 들어오고 재물이 착실하게 쌓이는 길한 해예요. 갑작스러운 횡재보다는 성실하게 일한 만큼 정직하게 들어오는 재물이 이 해의 특징이에요. 적립식 저축·장기 펀드·부동산 장기 투자 등 안정적인 재테크 방법이 이 해에 가장 잘 맞습니다. 투기성 투자나 빠른 수익을 노리는 단기 거래는 이 해의 기운과 맞지 않아 손해를 볼 수 있으니 자제하세요. 재물 관리에 있어 꼼꼼하게 가계부를 쓰고 지출을 계획적으로 통제한다면 연말에 상당한 재물이 쌓여 있을 것이에요.',
+            '현직장에서 성실함과 신뢰가 인정받으며 안정적인 위치를 다지는 해예요. 화려한 성과보다는 꾸준하고 믿음직한 모습으로 주변의 신뢰를 쌓는 시기예요. 직장에서 맡은 업무를 충실히 수행하면 자연스럽게 중요한 프로젝트나 역할이 주어지고, 이것이 승진이나 연봉 인상의 계기가 돼요. 이직을 생각하고 있다면 충동적으로 결정하지 말고 더 좋은 조건이 확실히 보장되었을 때 움직이세요. 개인 사업자라면 신규 고객 유치보다 기존 고객 관리와 관계 강화에 더 집중하는 것이 장기적으로 유리해요.',
+            '진지하고 안정적인 이성 인연을 만나기에 가장 좋은 시기예요. 화려하지 않아도 현실적이고 신뢰감 있는 사람이 오래가는 좋은 파트너가 된다는 것을 알아가게 되는 해예요. 기존 연인과의 관계가 결혼·동거 등 더 구체적이고 실질적인 단계로 발전하기 좋은 시기이며, 양가 부모님께 인사를 드리거나 함께 미래를 계획하는 대화가 자연스럽게 이루어집니다. 처음 만나는 자리보다 지인 소개·직장·학교 등 신뢰 기반의 만남에서 좋은 인연이 생기는 경우가 많아요. 외모보다 가치관·성품·경제력을 기준으로 상대를 평가하면 후회 없는 선택을 할 수 있어요.',
+            '건강 상태가 전반적으로 안정적인 해예요. 큰 질환보다는 과로나 스트레스가 소화기계(위·장)에 영향을 주는 정도의 문제가 생길 수 있어요. 규칙적인 식사 시간을 지키고 폭식·굶기를 반복하지 않는 것이 소화기 건강의 핵심이에요. 성실하게 일하는 해인 만큼 충분한 휴식 시간을 의식적으로 확보해야 번아웃을 예방할 수 있어요. 정기 건강검진을 빠뜨리지 말고 소화기(위·장) 관련 내시경 검사를 이 해에 받아두는 것을 권장해요.',
+            '성실하고 꾸준한 노력이 가장 빛을 발하는 시기예요. 단기간의 벼락치기보다 장기간 꾸준히 준비해온 사람에게 좋은 결과가 오는 해예요. 공인 자격증·국가시험·영어 공인 점수 등 공식적인 시험에서 특히 좋은 성과를 냅니다. 학습 환경을 일정하게 유지하고 매일 같은 시간에 공부하는 루틴이 이 해에 가장 효과적인 방법이에요. 귀인의 도움(훌륭한 선생님·멘토·코치)이 학업 성취에 결정적인 역할을 할 수 있으니, 좋은 선생님을 찾는 데 투자를 아끼지 마세요.',
         ),
     },
     '편관': {
         '신강': (
-            '신강 사주가 편관 운을 만나 강한 의지력과 책임감이 명예·도전·리더십으로 발현되는 해이에요. 어렵고 도전적인 역할을 맡게 되지만 강한 에너지로 충분히 감당할 수 있어요. 무리한 투자보다 명예와 능력에 투자하면 이후 더 큰 재물로 돌아오는 구조가 돼요. 비상금을 넉넉히 확보해두되 기존 대출 관리를 철저히 하는 것이 이 해 재물 관리의 핵심이에요. 직책이 높아질수록 책임도 커지므로 규칙과 원칙을 더욱 철저히 지키세요.',
-            '강한 의지력과 책임 완수 능력이 빛을 발하며 리더십을 인정받는 해이에요. 직책·직급 변화나 어려운 프로젝트의 총책임자로 발탁될 가능성이 높습니다. 군·경·법조·의료 등 책임과 규율이 강한 직종에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 강한 포지션으로 이동할 수 있는 좋은 시기이에요. 압박이 심할수록 끈기 있게 버티는 것이 이 해를 극복하는 핵심이며 그 인내가 커리어의 도약으로 이어집니다.',
-            '강한 기운이 이성 관계에서 긴장감과 매력으로 동시에 작용하는 해이에요. 카리스마 있는 이성에게 끌리지만 두 강한 기운이 만나면 평화롭기보다 자극적인 관계가 형성돼요. 기존 파트너와의 관계에서 권력 구조나 결정권을 두고 갈등이 생길 수 있으니 서로 존중하는 균형을 의식적으로 유지하세요. 감정을 억누르다 한꺼번에 터뜨리는 패턴을 피하고 평소에 솔직한 소통을 유지하는 것이 핵심이에요. 결혼을 고려한다면 상대방의 가치관과 성격을 충분히 파악한 후 신중하게 결정하세요.',
-            '넘치는 에너지 덕분에 기본 체력은 좋지만 과로와 부상 위험이 공존하는 해이에요. 신체적 도전과 극한 활동에 욕구가 생기는 시기이므로 안전 관리를 철저히 하세요. 신장·방광·관절 건강에 주의하고 무리한 운동이나 극단적인 식이요법은 자제하세요. 강한 에너지를 건강하게 발산하는 운동 루틴을 만들면 이 해를 최상의 건강 상태로 마무리할 수 있어요. 정기 건강검진을 빠뜨리지 마세요.',
-            '강한 압박감이 오히려 집중력을 극대화하는 해이에요. 어렵고 도전적인 시험에서 끈기와 집중력으로 좋은 결과를 낼 가능성이 높습니다. 완벽주의 성향이 강해지므로 완벽하지 않아도 일단 시작하는 것이 중요해요. 관료·법조·행정·군사 관련 자격증이나 시험에서 특히 좋은 성과가 나오는 해이에요. 학업 스트레스를 운동·수면·취미로 건강하게 해소하면서 지속적인 성취가 가능해요.',
+            '신강 사주가 편관 운을 만나 강한 의지력과 책임감이 명예·도전·리더십으로 발현되는 해예요. 어렵고 도전적인 역할을 맡게 되지만 강한 에너지로 충분히 감당할 수 있어요. 무리한 투자보다 명예와 능력에 투자하면 이후 더 큰 재물로 돌아오는 구조가 돼요. 비상금을 넉넉히 확보해두되 기존 대출 관리를 철저히 하는 것이 이 해 재물 관리의 핵심이에요. 직책이 높아질수록 책임도 커지므로 규칙과 원칙을 더욱 철저히 지키세요.',
+            '강한 의지력과 책임 완수 능력이 빛을 발하며 리더십을 인정받는 해예요. 직책·직급 변화나 어려운 프로젝트의 총책임자로 발탁될 가능성이 높습니다. 군·경·법조·의료 등 책임과 규율이 강한 직종에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 강한 포지션으로 이동할 수 있는 좋은 시기예요. 압박이 심할수록 끈기 있게 버티는 것이 이 해를 극복하는 핵심이며 그 인내가 커리어의 도약으로 이어집니다.',
+            '강한 기운이 이성 관계에서 긴장감과 매력으로 동시에 작용하는 해예요. 카리스마 있는 이성에게 끌리지만 두 강한 기운이 만나면 평화롭기보다 자극적인 관계가 형성돼요. 기존 파트너와의 관계에서 권력 구조나 결정권을 두고 갈등이 생길 수 있으니 서로 존중하는 균형을 의식적으로 유지하세요. 감정을 억누르다 한꺼번에 터뜨리는 패턴을 피하고 평소에 솔직한 소통을 유지하는 것이 핵심이에요. 결혼을 고려한다면 상대방의 가치관과 성격을 충분히 파악한 후 신중하게 결정하세요.',
+            '넘치는 에너지 덕분에 기본 체력은 좋지만 과로와 부상 위험이 공존하는 해예요. 신체적 도전과 극한 활동에 욕구가 생기는 시기이므로 안전 관리를 철저히 하세요. 신장·방광·관절 건강에 주의하고 무리한 운동이나 극단적인 식이요법은 자제하세요. 강한 에너지를 건강하게 발산하는 운동 루틴을 만들면 이 해를 최상의 건강 상태로 마무리할 수 있어요. 정기 건강검진을 빠뜨리지 마세요.',
+            '강한 압박감이 오히려 집중력을 극대화하는 해예요. 어렵고 도전적인 시험에서 끈기와 집중력으로 좋은 결과를 낼 가능성이 높습니다. 완벽주의 성향이 강해지므로 완벽하지 않아도 일단 시작하는 것이 중요해요. 관료·법조·행정·군사 관련 자격증이나 시험에서 특히 좋은 성과가 나오는 해예요. 학업 스트레스를 운동·수면·취미로 건강하게 해소하면서 지속적인 성취가 가능해요.',
         ),
         '신약': (
-            '신약한 사주에 편관이 더해져 압박과 부담이 이중으로 작용하는 가장 힘든 재물 구간 중 하나이에요. 의무적 지출(세금·의료비·법적 비용)이 예상치 못하게 발생할 수 있으니 비상금을 미리 충분히 확보하세요. 어떤 투자도 이 해에는 자제하고 현재 재물을 지키는 데만 집중하세요. 새로운 대출은 절대 피하고 기존 부채의 이자 관리에 집중하는 것이 현명해요. 능력과 명성을 높이는 데 집중하면 향후 재물이 자연스럽게 따라오는 구조가 돼요.',
-            '신약한 에너지에 관성의 압박이 겹쳐 직장 생활이 매우 힘들게 느껴지는 해이에요. 무리한 승진 도전이나 직위 확대보다 현재 위치를 안정적으로 유지하는 전략이 훨씬 유리해요. 상사·기관의 압박이 실제보다 훨씬 크게 느껴질 수 있으니 감정 소모를 최소화하세요. 이 시기에는 자신의 역량을 조용히 쌓는 것이 더 큰 미래를 보장해요. 신뢰할 수 있는 조력자나 멘토를 곁에 두어 부담을 나누는 것이 중요해요.',
-            '관성의 압박이 이성 관계에도 그대로 영향을 미쳐 관계에서 부담감을 느끼기 쉬운 해이에요. 상대방에 대한 기대가 스트레스로 전환되지 않도록 관계에서의 기대치를 현실적으로 조정하세요. 기존 파트너와의 관계에서 갈등이 생기면 과감하게 소통하여 해결하는 것이 억누르는 것보다 훨씬 낫습니다. 새로운 만남보다 현재 소중한 관계를 돌보는 데 에너지를 집중하는 것이 이 해에 더 건강해요. 혼자인 분은 이 해에 새로운 인연을 무리하게 찾기보다 자신을 돌보는 시간을 갖는 것이 더 유익해요.',
-            '신약한 기운에 편관 압박이 더해져 이 해가 건강 관리에 가장 중요한 해이에요. 과로·사고·수술 위험이 높아지므로 무리한 활동을 자제하고 충분한 수면을 최우선으로 두세요. 신장·방광·생식기 건강에 주의하고 피로감이 지속되면 즉시 혈액 검사를 받으세요. 정신적 압박이 극심해지면 전문 심리 상담을 적극적으로 활용하는 것이 최선이에요. 작은 이완 루틴(스트레칭, 명상, 산책)을 하루 일과에 반드시 포함시키세요.',
-            '에너지가 부족한 상태에서 압박감까지 더해져 공부에 집중하기 매우 어려운 해이에요. 완벽주의 성향이 생겨 공부 시작 자체를 미루는 습관이 생기기 쉬우니, 완벽하지 않아도 일단 시작하는 것이 중요해요. 중요한 시험이 있다면 체력 관리를 학습 계획에 반드시 포함시키고 무리하게 야간 학습을 지속하지 마세요. 공부량보다 공부의 질과 효율에 집중하는 방식이 이 해에 더 현명해요. 이 해에 버티며 쌓은 경험은 이후 더 강한 성취의 바탕이 돼요.',
+            '신약한 사주에 편관이 더해져 압박과 부담이 이중으로 작용하는 가장 힘든 재물 구간 중 하나예요. 의무적 지출(세금·의료비·법적 비용)이 예상치 못하게 발생할 수 있으니 비상금을 미리 충분히 확보하세요. 어떤 투자도 이 해에는 자제하고 현재 재물을 지키는 데만 집중하세요. 새로운 대출은 절대 피하고 기존 부채의 이자 관리에 집중하는 것이 현명해요. 능력과 명성을 높이는 데 집중하면 향후 재물이 자연스럽게 따라오는 구조가 돼요.',
+            '신약한 에너지에 관성의 압박이 겹쳐 직장 생활이 매우 힘들게 느껴지는 해예요. 무리한 승진 도전이나 직위 확대보다 현재 위치를 안정적으로 유지하는 전략이 훨씬 유리해요. 상사·기관의 압박이 실제보다 훨씬 크게 느껴질 수 있으니 감정 소모를 최소화하세요. 이 시기에는 자신의 역량을 조용히 쌓는 것이 더 큰 미래를 보장해요. 신뢰할 수 있는 조력자나 멘토를 곁에 두어 부담을 나누는 것이 중요해요.',
+            '관성의 압박이 이성 관계에도 그대로 영향을 미쳐 관계에서 부담감을 느끼기 쉬운 해예요. 상대방에 대한 기대가 스트레스로 전환되지 않도록 관계에서의 기대치를 현실적으로 조정하세요. 기존 파트너와의 관계에서 갈등이 생기면 과감하게 소통하여 해결하는 것이 억누르는 것보다 훨씬 낫습니다. 새로운 만남보다 현재 소중한 관계를 돌보는 데 에너지를 집중하는 것이 이 해에 더 건강해요. 혼자인 분은 이 해에 새로운 인연을 무리하게 찾기보다 자신을 돌보는 시간을 갖는 것이 더 유익해요.',
+            '신약한 기운에 편관 압박이 더해져 이 해가 건강 관리에 가장 중요한 해예요. 과로·사고·수술 위험이 높아지므로 무리한 활동을 자제하고 충분한 수면을 최우선으로 두세요. 신장·방광·생식기 건강에 주의하고 피로감이 지속되면 즉시 혈액 검사를 받으세요. 정신적 압박이 극심해지면 전문 심리 상담을 적극적으로 활용하는 것이 최선이에요. 작은 이완 루틴(스트레칭, 명상, 산책)을 하루 일과에 반드시 포함시키세요.',
+            '에너지가 부족한 상태에서 압박감까지 더해져 공부에 집중하기 매우 어려운 해예요. 완벽주의 성향이 생겨 공부 시작 자체를 미루는 습관이 생기기 쉬우니, 완벽하지 않아도 일단 시작하는 것이 중요해요. 중요한 시험이 있다면 체력 관리를 학습 계획에 반드시 포함시키고 무리하게 야간 학습을 지속하지 마세요. 공부량보다 공부의 질과 효율에 집중하는 방식이 이 해에 더 현명해요. 이 해에 버티며 쌓은 경험은 이후 더 강한 성취의 바탕이 돼요.',
         ),
         '중화': (
-            '재물보다 명예와 의무가 우선시되며 금전적 압박이 생기는 해이에요. 생각지 못한 지출(의료비·법적 비용·세금)이 발생할 수 있으므로 비상금을 넉넉히 확보해두는 것이 중요해요. 무리한 투자나 사업 확장은 이 해에 큰 부담이 될 수 있으니 수익성보다 안정성을 최우선으로 두는 재물 관리가 필요해요. 부채가 있다면 이 해에 원금 상환보다 이자 관리를 철저히 하고, 새로운 대출은 최대한 자제하세요. 재물보다 자신의 능력과 명성을 높이는 데 투자하면 이후 더 큰 재물로 돌아오는 구조가 돼요.',
+            '재물보다 명예와 의무가 우선시되며 금전적 압박이 생기는 해예요. 생각지 못한 지출(의료비·법적 비용·세금)이 발생할 수 있으므로 비상금을 넉넉히 확보해두는 것이 중요해요. 무리한 투자나 사업 확장은 이 해에 큰 부담이 될 수 있으니 수익성보다 안정성을 최우선으로 두는 재물 관리가 필요해요. 부채가 있다면 이 해에 원금 상환보다 이자 관리를 철저히 하고, 새로운 대출은 최대한 자제하세요. 재물보다 자신의 능력과 명성을 높이는 데 투자하면 이후 더 큰 재물로 돌아오는 구조가 돼요.',
             '강한 책임감과 압박이 따르는 해로 어렵고 도전적인 일을 맡게 되는 경우가 많아요. 직책·직급 변화(승진 또는 부서 이동)가 생길 수 있으며, 경우에 따라 관재구설이나 직장 내 조사에 연루될 수 있으니 규칙을 철저히 지키세요. 윗사람과의 관계가 매우 중요한 해이므로, 상사의 지시에는 따르되 자신의 의견을 적절히 어필하는 균형이 필요해요. 군·경·법조·의료 등 강한 책임과 규율이 있는 직종에 종사하는 분에게는 능력을 발휘하고 인정받는 좋은 해가 될 수 있어요. 압박이 심할수록 끈기 있게 버티는 것이 이 해를 극복하는 핵심이며, 포기하면 그동안의 노력이 모두 물거품이 돼요.',
-            '이성과의 관계에서 강한 끌림과 긴장감이 동시에 느껴지는 복잡한 한 해이에요. 처음에는 카리스마 있고 강렬한 이성에게 매력을 느끼지만, 시간이 지나면 그 강함이 속박이나 압박으로 느껴질 수 있어요. 기존 파트너와의 관계에서 일방적인 희생이나 권력 불균형이 생기면 과감하게 이야기를 꺼내야 관계가 건강하게 유지돼요. 감정을 억누르다 한꺼번에 터뜨리는 패턴을 피하고, 평소에 솔직한 소통을 유지하는 것이 핵심이에요. 결혼을 서두르기보다 상대방의 본질적인 성격과 가치관을 충분히 파악한 후 결정하는 것이 현명해요.',
-            '과로·사고·수술 위험이 높은 해이에요. 신체적 스트레스가 누적되기 쉬우며, 평소에 없던 통증이나 이상 증상이 나타나면 즉시 병원을 찾아야 해요. 무리한 운동이나 극단적인 다이어트는 이 해에 특히 위험하니 자제하세요. 신장·방광·생식기 건강에 주의하고, 피로감이 지속될 경우 혈액 검사와 정기 건강검진을 빠뜨리지 마세요. 정신적 압박이 극심해지면 전문 심리 상담을 적극적으로 활용하는 것이 이 해 건강을 지키는 가장 현명한 선택이에요.',
-            '강한 압박감이 오히려 집중력을 높이는 묘한 에너지가 있는 해이에요. 시험·자격증 도전에서 극심한 스트레스를 받지만, 그것이 동기부여가 되어 결국 좋은 결과로 이어지는 경우가 많아요. 완벽주의적 성향이 강해져 공부 시작 자체를 미루는 습관이 생길 수 있으니, 완벽하지 않아도 일단 시작하는 것이 중요해요. 관료·법조·행정·군사 관련 자격증이나 시험에 특히 좋은 성과가 나오는 해이에요. 학업 스트레스를 건강하게 해소하는 방법(운동·수면·취미)을 함께 관리해야 지속적인 성취가 가능해요.',
+            '이성과의 관계에서 강한 끌림과 긴장감이 동시에 느껴지는 복잡한 한 해예요. 처음에는 카리스마 있고 강렬한 이성에게 매력을 느끼지만, 시간이 지나면 그 강함이 속박이나 압박으로 느껴질 수 있어요. 기존 파트너와의 관계에서 일방적인 희생이나 권력 불균형이 생기면 과감하게 이야기를 꺼내야 관계가 건강하게 유지돼요. 감정을 억누르다 한꺼번에 터뜨리는 패턴을 피하고, 평소에 솔직한 소통을 유지하는 것이 핵심이에요. 결혼을 서두르기보다 상대방의 본질적인 성격과 가치관을 충분히 파악한 후 결정하는 것이 현명해요.',
+            '과로·사고·수술 위험이 높은 해예요. 신체적 스트레스가 누적되기 쉬우며, 평소에 없던 통증이나 이상 증상이 나타나면 즉시 병원을 찾아야 해요. 무리한 운동이나 극단적인 다이어트는 이 해에 특히 위험하니 자제하세요. 신장·방광·생식기 건강에 주의하고, 피로감이 지속될 경우 혈액 검사와 정기 건강검진을 빠뜨리지 마세요. 정신적 압박이 극심해지면 전문 심리 상담을 적극적으로 활용하는 것이 이 해 건강을 지키는 가장 현명한 선택이에요.',
+            '강한 압박감이 오히려 집중력을 높이는 묘한 에너지가 있는 해예요. 시험·자격증 도전에서 극심한 스트레스를 받지만, 그것이 동기부여가 되어 결국 좋은 결과로 이어지는 경우가 많아요. 완벽주의적 성향이 강해져 공부 시작 자체를 미루는 습관이 생길 수 있으니, 완벽하지 않아도 일단 시작하는 것이 중요해요. 관료·법조·행정·군사 관련 자격증이나 시험에 특히 좋은 성과가 나오는 해예요. 학업 스트레스를 건강하게 해소하는 방법(운동·수면·취미)을 함께 관리해야 지속적인 성취가 가능해요.',
         ),
     },
     '정관': {
         '신강': (
-            '신강 사주가 정관 운을 만나 사회적 책임과 명예가 현실적 재물 증가로 이어지는 해이에요. 직장과 사회적 활동을 통해 안정적인 수입이 들어오며 이렇게 번 재물은 오래 유지돼요. 재테크는 검증된 안정적 방법(예금·적금·우량주 장기투자)이 이 해에 가장 잘 맞습니다. 원칙을 지키는 것이 재물을 지키는 방법이므로 불법적이거나 편법적인 재물 취득을 절대 피하세요. 승진이나 사회적 인정이 재물 증가로 이어지는 구조이므로 능력을 키우는 데 우선 투자하세요.',
-            '강한 에너지가 정관의 규율과 결합되어 리더십·명예·승진이 극대화되는 해이에요. 조직 내에서 신뢰와 인정이 높아지고 중요한 역할이나 프로젝트의 책임자로 발탁될 가능성이 높습니다. 공무원·공기업·대기업 등 안정적이고 체계적인 조직에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 좋은 조건으로 이동할 수 있는 최적의 시기이에요. 법과 규칙을 철저히 지키고 윤리적으로 행동하는 것이 이 해 직업 운의 핵심이에요.',
-            '신뢰 있고 안정적인 이성 인연이 찾아오기 좋은 해이에요. 강한 에너지가 정관의 안정감과 결합되어 믿음직하고 듬직한 파트너십을 형성해요. 기존 연인이 있다면 두 사람의 관계가 결혼 약속이나 공식적인 단계로 발전할 가능성이 높습니다. 소개팅이나 결혼 관련 자리에 적극적으로 참여하면 좋은 인연을 만날 가능성이 높은 해이에요. 외모나 조건보다 서로의 가치관과 생활 방식이 얼마나 잘 맞는지를 먼저 확인하세요.',
-            '건강이 안정적으로 유지되며 규칙적인 생활이 자연스럽게 이루어지는 해이에요. 강한 에너지 덕분에 전반적으로 좋은 컨디션을 유지하며 회복력도 뛰어나요. 과도한 사회적 활동으로 심리적 피로가 쌓일 수 있으니 혼자만의 충전 시간을 의식적으로 확보하세요. 정기 건강검진을 꼭 받아두고 사소한 이상도 초기에 대처하는 습관이 중요해요. 규칙적인 운동 습관을 이 해에 시작하면 이후 몇 년간 지속할 수 있는 루틴으로 자리잡습니다.',
-            '강한 에너지가 학업에서 끈기와 집중력으로 발현되는 해이에요. 공식적인 시험·자격증·학위 취득에 가장 유리한 조건이 갖춰지는 시기이에요. 공무원 시험·국가 공인 자격에 도전한다면 이 해가 합격 가능성이 가장 높은 시기이에요. 체계적이고 공식적인 학습 환경을 활용하는 것이 이 해 학업 운을 최대화하는 방법이에요. 귀인이나 멘토의 도움이 결정적인 역할을 할 수 있으니 주변의 좋은 사람들에게 적극적으로 조언을 구하세요.',
+            '신강 사주가 정관 운을 만나 사회적 책임과 명예가 현실적 재물 증가로 이어지는 해예요. 직장과 사회적 활동을 통해 안정적인 수입이 들어오며 이렇게 번 재물은 오래 유지돼요. 재테크는 검증된 안정적 방법(예금·적금·우량주 장기투자)이 이 해에 가장 잘 맞습니다. 원칙을 지키는 것이 재물을 지키는 방법이므로 불법적이거나 편법적인 재물 취득을 절대 피하세요. 승진이나 사회적 인정이 재물 증가로 이어지는 구조이므로 능력을 키우는 데 우선 투자하세요.',
+            '강한 에너지가 정관의 규율과 결합되어 리더십·명예·승진이 극대화되는 해예요. 조직 내에서 신뢰와 인정이 높아지고 중요한 역할이나 프로젝트의 책임자로 발탁될 가능성이 높습니다. 공무원·공기업·대기업 등 안정적이고 체계적인 조직에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 좋은 조건으로 이동할 수 있는 최적의 시기예요. 법과 규칙을 철저히 지키고 윤리적으로 행동하는 것이 이 해 직업 운의 핵심이에요.',
+            '신뢰 있고 안정적인 이성 인연이 찾아오기 좋은 해예요. 강한 에너지가 정관의 안정감과 결합되어 믿음직하고 듬직한 파트너십을 형성해요. 기존 연인이 있다면 두 사람의 관계가 결혼 약속이나 공식적인 단계로 발전할 가능성이 높습니다. 소개팅이나 결혼 관련 자리에 적극적으로 참여하면 좋은 인연을 만날 가능성이 높은 해예요. 외모나 조건보다 서로의 가치관과 생활 방식이 얼마나 잘 맞는지를 먼저 확인하세요.',
+            '건강이 안정적으로 유지되며 규칙적인 생활이 자연스럽게 이루어지는 해예요. 강한 에너지 덕분에 전반적으로 좋은 컨디션을 유지하며 회복력도 뛰어나요. 과도한 사회적 활동으로 심리적 피로가 쌓일 수 있으니 혼자만의 충전 시간을 의식적으로 확보하세요. 정기 건강검진을 꼭 받아두고 사소한 이상도 초기에 대처하는 습관이 중요해요. 규칙적인 운동 습관을 이 해에 시작하면 이후 몇 년간 지속할 수 있는 루틴으로 자리잡습니다.',
+            '강한 에너지가 학업에서 끈기와 집중력으로 발현되는 해예요. 공식적인 시험·자격증·학위 취득에 가장 유리한 조건이 갖춰지는 시기예요. 공무원 시험·국가 공인 자격에 도전한다면 이 해가 합격 가능성이 가장 높은 시기예요. 체계적이고 공식적인 학습 환경을 활용하는 것이 이 해 학업 운을 최대화하는 방법이에요. 귀인이나 멘토의 도움이 결정적인 역할을 할 수 있으니 주변의 좋은 사람들에게 적극적으로 조언을 구하세요.',
         ),
         '신약': (
-            '신약한 사주에 정관이 들어와 의무와 책임으로 인한 지출이 늘어나는 해이에요. 재물을 지키려는 마음은 강하지만 체력과 에너지가 부족해 충분히 방어하기 어렵습니다. 안정적이고 검증된 저축 방식만을 유지하고 새로운 재테크 시도는 자제하세요. 부채가 있다면 이자 관리를 철저히 하고 새로운 대출은 절대 피하세요. 능력을 인정받는 것이 장기적으로 재물로 이어지는 구조이므로 지금은 역량 강화에 집중하세요.',
-            '신약한 기운에 정관의 의무와 책임이 더해져 직장 생활이 매우 부담스럽게 느껴지는 해이에요. 승진이나 직위 확대보다 현재 역할을 안정적으로 수행하는 것이 이 해의 최선 전략이에요. 상사의 기대와 조직의 요구가 과도하게 느껴질 수 있으니 자신의 한계를 명확히 표현하는 것도 중요해요. 이직을 고려한다면 에너지가 충전된 다음 시기로 미루는 것이 현명해요. 조용히 역량을 쌓고 기반을 다지면 다음 해에 더 좋은 기회가 찾아와요.',
-            '안정적인 관계를 원하지만 에너지 부족으로 충분히 표현하지 못하는 해이에요. 의무감에서 오는 관계 유지가 감정적으로 지치게 만들 수 있으니 파트너와 솔직하게 대화하세요. 기존 연인이 있다면 서로에게 가해지는 기대와 의무를 재조정하고 편안한 관계로 만들어가는 것이 필요해요. 새로운 만남보다 현재 소중한 관계에 집중하고 자신의 에너지를 돌보는 것이 우선이에요. 관계에서 완벽한 역할을 수행하려 하기보다 솔직하고 인간적인 모습을 보여주는 것이 더 깊은 관계를 만듭니다.',
-            '건강이 안정적으로 유지되고 싶지만 에너지 부족으로 규칙적인 생활을 지키기 어려운 해이에요. 정기 건강검진을 꼭 받아두고 이상 신호를 초기에 발견하는 것이 중요해요. 과도한 사회적 책임 수행으로 심리적 피로가 쌓이므로 혼자만의 회복 시간을 의식적으로 확보하세요. 규칙적인 수면과 적절한 운동을 생활화하면 체력 회복 속도가 빨라집니다. 건강을 위한 투자를 미루지 말고 이 해에 기반을 다지세요.',
-            '공식적인 시험이나 자격증에 도전하고 싶지만 체력과 집중력이 부족해 어려움을 느끼는 해이에요. 오랫동안 준비해온 것은 결과를 내기 좋은 시기이지만 무리하지 않는 것이 중요해요. 체력 관리를 학습 계획에 반드시 포함시키고 규칙적인 수면을 지켜야 집중력이 유지돼요. 귀인이나 멘토의 도움을 적극적으로 요청하면 혼자보다 훨씬 효율적으로 준비할 수 있어요. 에너지가 회복되는 다음 해에 더 큰 시험에 도전하는 것도 현명한 전략이에요.',
+            '신약한 사주에 정관이 들어와 의무와 책임으로 인한 지출이 늘어나는 해예요. 재물을 지키려는 마음은 강하지만 체력과 에너지가 부족해 충분히 방어하기 어렵습니다. 안정적이고 검증된 저축 방식만을 유지하고 새로운 재테크 시도는 자제하세요. 부채가 있다면 이자 관리를 철저히 하고 새로운 대출은 절대 피하세요. 능력을 인정받는 것이 장기적으로 재물로 이어지는 구조이므로 지금은 역량 강화에 집중하세요.',
+            '신약한 기운에 정관의 의무와 책임이 더해져 직장 생활이 매우 부담스럽게 느껴지는 해예요. 승진이나 직위 확대보다 현재 역할을 안정적으로 수행하는 것이 이 해의 최선 전략이에요. 상사의 기대와 조직의 요구가 과도하게 느껴질 수 있으니 자신의 한계를 명확히 표현하는 것도 중요해요. 이직을 고려한다면 에너지가 충전된 다음 시기로 미루는 것이 현명해요. 조용히 역량을 쌓고 기반을 다지면 다음 해에 더 좋은 기회가 찾아와요.',
+            '안정적인 관계를 원하지만 에너지 부족으로 충분히 표현하지 못하는 해예요. 의무감에서 오는 관계 유지가 감정적으로 지치게 만들 수 있으니 파트너와 솔직하게 대화하세요. 기존 연인이 있다면 서로에게 가해지는 기대와 의무를 재조정하고 편안한 관계로 만들어가는 것이 필요해요. 새로운 만남보다 현재 소중한 관계에 집중하고 자신의 에너지를 돌보는 것이 우선이에요. 관계에서 완벽한 역할을 수행하려 하기보다 솔직하고 인간적인 모습을 보여주는 것이 더 깊은 관계를 만듭니다.',
+            '건강이 안정적으로 유지되고 싶지만 에너지 부족으로 규칙적인 생활을 지키기 어려운 해예요. 정기 건강검진을 꼭 받아두고 이상 신호를 초기에 발견하는 것이 중요해요. 과도한 사회적 책임 수행으로 심리적 피로가 쌓이므로 혼자만의 회복 시간을 의식적으로 확보하세요. 규칙적인 수면과 적절한 운동을 생활화하면 체력 회복 속도가 빨라집니다. 건강을 위한 투자를 미루지 말고 이 해에 기반을 다지세요.',
+            '공식적인 시험이나 자격증에 도전하고 싶지만 체력과 집중력이 부족해 어려움을 느끼는 해예요. 오랫동안 준비해온 것은 결과를 내기 좋은 시기이지만 무리하지 않는 것이 중요해요. 체력 관리를 학습 계획에 반드시 포함시키고 규칙적인 수면을 지켜야 집중력이 유지돼요. 귀인이나 멘토의 도움을 적극적으로 요청하면 혼자보다 훨씬 효율적으로 준비할 수 있어요. 에너지가 회복되는 다음 해에 더 큰 시험에 도전하는 것도 현명한 전략이에요.',
         ),
         '중화': (
-            '직장과 사회적 활동을 통해 안정적인 재물이 들어오는 해이에요. 월급·사업 수익·용역비 등 정직하고 합법적인 방법으로 재물이 들어오며, 이렇게 번 재물은 오래 유지돼요. 재테크는 안정적이고 검증된 방법(예금·적금·우량주 장기투자)이 이 해에 가장 잘 맞습니다. 불법적이거나 원칙을 벗어난 방법으로 재물을 취하면 이 해에 반드시 화가 따라오니, 원칙을 지키는 것이 재물을 지키는 방법이에요. 승진이나 사회적 인정이 재물 증가로 이어지는 구조이므로, 능력을 키우는 데 투자하는 것이 최고의 재테크이에요.',
-            '승진·명예·사회적 인정이 따르는 직업 운 최고의 해이에요. 조직 내에서 신뢰와 인정이 높아지고, 중요한 역할이나 프로젝트의 책임자로 발탁될 가능성이 높습니다. 공무원·공기업·대기업 등 안정적이고 체계적인 조직에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 좋은 조건으로 이동할 수 있는 최적의 시기이에요. 법과 규칙을 철저히 지키고 윤리적으로 행동하는 것이 이 해 직업 운의 핵심이며, 원칙을 지킬수록 더 큰 기회가 찾아와요.',
-            '신뢰 있고 안정적인 이성 인연이 찾아오기 좋은 최고의 연애 운 해 중 하나이에요. 화려하기보다는 믿음직하고 듬직한 사람에게 끌리는 시기이며, 이런 인연이 오래가는 진짜 인연이 돼요. 기존 연인이 있다면 두 사람의 관계가 결혼 약속이나 공식적인 단계로 발전할 가능성이 높습니다. 소개팅이나 결혼 관련 자리에 적극적으로 참여하면 좋은 인연을 만날 가능성이 높은 해이에요. 외모나 조건보다 서로의 가치관과 생활 방식이 얼마나 잘 맞는지를 먼저 확인하는 것이 성공적인 관계의 시작이에요.',
-            '건강이 안정적으로 유지되며 규칙적인 생활이 자연스럽게 이루어지는 해이에요. 과로를 피하고 충분한 휴식을 취한다면 전반적으로 좋은 컨디션을 1년 내내 유지할 수 있어요. 정기 건강검진을 꼭 받아두고 사소한 건강 이상도 초기에 대처하는 습관이 이 해에 특히 중요해요. 과도한 사회적 활동으로 심리적 피로가 쌓일 수 있으니, 혼자만의 시간과 충전 시간을 의식적으로 확보하세요. 규칙적인 운동 습관을 이 해에 시작하면 이후 몇 년간 지속할 수 있는 좋은 건강 루틴으로 자리잡습니다.',
-            '공식적인 시험·자격증·학위 취득에 가장 유리한 최고의 학업 운 해이에요. 오랫동안 준비해온 것들이 드디어 결실을 맺는 시기이며, 노력에 비례한 정직한 결과가 돌아와요. 공무원 시험·변호사·회계사·의사·교사 등 국가 공인 자격에 도전한다면 이 해가 합격 가능성이 가장 높은 해이에요. 학습 환경을 공식적이고 체계적으로 유지하는 것이 중요하며, 정규 교육 기관이나 공인된 학원을 활용하는 것이 유리해요. 귀인(훌륭한 교수님·선배·멘토)의 도움이 결정적인 역할을 할 수 있으니, 주변의 좋은 사람들에게 적극적으로 조언을 구하세요.',
+            '직장과 사회적 활동을 통해 안정적인 재물이 들어오는 해예요. 월급·사업 수익·용역비 등 정직하고 합법적인 방법으로 재물이 들어오며, 이렇게 번 재물은 오래 유지돼요. 재테크는 안정적이고 검증된 방법(예금·적금·우량주 장기투자)이 이 해에 가장 잘 맞습니다. 불법적이거나 원칙을 벗어난 방법으로 재물을 취하면 이 해에 반드시 화가 따라오니, 원칙을 지키는 것이 재물을 지키는 방법이에요. 승진이나 사회적 인정이 재물 증가로 이어지는 구조이므로, 능력을 키우는 데 투자하는 것이 최고의 재테크예요.',
+            '승진·명예·사회적 인정이 따르는 직업 운 최고의 해예요. 조직 내에서 신뢰와 인정이 높아지고, 중요한 역할이나 프로젝트의 책임자로 발탁될 가능성이 높습니다. 공무원·공기업·대기업 등 안정적이고 체계적인 조직에서 특히 큰 성과를 냅니다. 이직을 생각하고 있다면 이 해가 더 좋은 조건으로 이동할 수 있는 최적의 시기예요. 법과 규칙을 철저히 지키고 윤리적으로 행동하는 것이 이 해 직업 운의 핵심이며, 원칙을 지킬수록 더 큰 기회가 찾아와요.',
+            '신뢰 있고 안정적인 이성 인연이 찾아오기 좋은 최고의 연애 운 해 중 하나예요. 화려하기보다는 믿음직하고 듬직한 사람에게 끌리는 시기이며, 이런 인연이 오래가는 진짜 인연이 돼요. 기존 연인이 있다면 두 사람의 관계가 결혼 약속이나 공식적인 단계로 발전할 가능성이 높습니다. 소개팅이나 결혼 관련 자리에 적극적으로 참여하면 좋은 인연을 만날 가능성이 높은 해예요. 외모나 조건보다 서로의 가치관과 생활 방식이 얼마나 잘 맞는지를 먼저 확인하는 것이 성공적인 관계의 시작이에요.',
+            '건강이 안정적으로 유지되며 규칙적인 생활이 자연스럽게 이루어지는 해예요. 과로를 피하고 충분한 휴식을 취한다면 전반적으로 좋은 컨디션을 1년 내내 유지할 수 있어요. 정기 건강검진을 꼭 받아두고 사소한 건강 이상도 초기에 대처하는 습관이 이 해에 특히 중요해요. 과도한 사회적 활동으로 심리적 피로가 쌓일 수 있으니, 혼자만의 시간과 충전 시간을 의식적으로 확보하세요. 규칙적인 운동 습관을 이 해에 시작하면 이후 몇 년간 지속할 수 있는 좋은 건강 루틴으로 자리잡습니다.',
+            '공식적인 시험·자격증·학위 취득에 가장 유리한 최고의 학업 운 해예요. 오랫동안 준비해온 것들이 드디어 결실을 맺는 시기이며, 노력에 비례한 정직한 결과가 돌아와요. 공무원 시험·변호사·회계사·의사·교사 등 국가 공인 자격에 도전한다면 이 해가 합격 가능성이 가장 높은 해예요. 학습 환경을 공식적이고 체계적으로 유지하는 것이 중요하며, 정규 교육 기관이나 공인된 학원을 활용하는 것이 유리해요. 귀인(훌륭한 교수님·선배·멘토)의 도움이 결정적인 역할을 할 수 있으니, 주변의 좋은 사람들에게 적극적으로 조언을 구하세요.',
         ),
     },
     '편인': {
         '신강': (
-            '신강 사주에 편인이 더해져 이미 넘치는 에너지가 더 강해지는 최악의 조합 중 하나이에요. 재물보다 지식과 아이디어에 집중하게 되어 수입이 정체되거나 줄어드는 경험을 할 수 있어요. 예상했던 수입이 갑자기 줄거나 끊길 수 있으니 비상금을 반드시 충분히 확보해두세요. 타인의 아이디어를 활용한 수익화 사업 모델보다 자신의 독보적인 전문성으로 수익을 내는 방향이 이 해에 더 현실적이에요. 재물에 대한 집착을 내려놓고 역량 개발에 투자하는 것이 장기적으로 더 큰 재물로 돌아와요.',
-            '넘치는 에너지가 고독한 내면 세계로 침잠하며 조직 생활에서 이방인처럼 느껴지는 해이에요. 독립적인 환경(재택근무·연구직·프리랜서)에서 일할 때 훨씬 높은 집중력과 창의성이 발휘돼요. 조직보다 혼자 깊이 파고드는 작업에서 독보적인 성과를 내는 시기이에요. 주변과 어울리지 않는 느낌이 들더라도 그것이 더 깊은 수준에서 자신의 일을 하고 있다는 신호이에요. 지나친 고독감이 고집이나 피해망상으로 발전하지 않도록 신뢰하는 사람과 정기적으로 대화하세요.',
-            '내면 세계에 깊이 빠져들어 이성 관계보다 자기 자신에게 더 집중하게 되는 해이에요. 이성보다 지적·철학적 교류가 가능한 깊이 있는 사람과의 관계가 이 해에 더 잘 맞습니다. 기존 연인이 있다면 혼자 있고 싶은 욕구 때문에 상대방이 소외감을 느낄 수 있으니 자신의 상태를 솔직하게 전달하고 공간을 조율하세요. 새로운 만남에 대한 욕구가 줄어드는 시기이므로 억지로 활발한 연애 활동을 하는 것은 오히려 에너지를 소모해요. 이 해에 맺어지는 인연은 얕지만 많은 것보다 깊고 적은 것이 훨씬 가치 있어요.',
-            '신강한 상태에 편인까지 더해져 과도한 사고와 내면 불안감이 신경계를 과부하 상태로 만드는 해이에요. 불면증·두통·어지러움이 반복된다면 신경과·정신건강의학과 전문의를 즉시 찾으세요. 디지털 디톡스(스마트폰·SNS 사용 시간 제한)와 규칙적인 수면 루틴이 이 해 건강의 핵심이에요. 명상·자연 산책·독서 등 내면을 안정시키는 활동이 과부하된 신경계 회복에 가장 효과적이에요. 음식과 수면 관리를 통해 신체 리듬을 안정화하는 것이 정신건강의 기반이에요.',
-            '독창적이고 깊이 있는 사고력이 특수 분야에서 빛을 발하는 해이에요. 철학·심리학·역학·예술·인문학 등 비주류적인 분야에서 탁월한 흥미와 재능이 발현돼요. 지나친 과신으로 자신만의 방식을 고집하다 기본기를 놓치는 실수를 경계하세요. 관심 분야를 너무 넓게 펼치지 말고 2~3개로 압축해 깊이 파고드는 것이 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요.',
+            '신강 사주에 편인이 더해져 이미 넘치는 에너지가 더 강해지는 최악의 조합 중 하나예요. 재물보다 지식과 아이디어에 집중하게 되어 수입이 정체되거나 줄어드는 경험을 할 수 있어요. 예상했던 수입이 갑자기 줄거나 끊길 수 있으니 비상금을 반드시 충분히 확보해두세요. 타인의 아이디어를 활용한 수익화 사업 모델보다 자신의 독보적인 전문성으로 수익을 내는 방향이 이 해에 더 현실적이에요. 재물에 대한 집착을 내려놓고 역량 개발에 투자하는 것이 장기적으로 더 큰 재물로 돌아와요.',
+            '넘치는 에너지가 고독한 내면 세계로 침잠하며 조직 생활에서 이방인처럼 느껴지는 해예요. 독립적인 환경(재택근무·연구직·프리랜서)에서 일할 때 훨씬 높은 집중력과 창의성이 발휘돼요. 조직보다 혼자 깊이 파고드는 작업에서 독보적인 성과를 내는 시기예요. 주변과 어울리지 않는 느낌이 들더라도 그것이 더 깊은 수준에서 자신의 일을 하고 있다는 신호예요. 지나친 고독감이 고집이나 피해망상으로 발전하지 않도록 신뢰하는 사람과 정기적으로 대화하세요.',
+            '내면 세계에 깊이 빠져들어 이성 관계보다 자기 자신에게 더 집중하게 되는 해예요. 이성보다 지적·철학적 교류가 가능한 깊이 있는 사람과의 관계가 이 해에 더 잘 맞습니다. 기존 연인이 있다면 혼자 있고 싶은 욕구 때문에 상대방이 소외감을 느낄 수 있으니 자신의 상태를 솔직하게 전달하고 공간을 조율하세요. 새로운 만남에 대한 욕구가 줄어드는 시기이므로 억지로 활발한 연애 활동을 하는 것은 오히려 에너지를 소모해요. 이 해에 맺어지는 인연은 얕지만 많은 것보다 깊고 적은 것이 훨씬 가치 있어요.',
+            '신강한 상태에 편인까지 더해져 과도한 사고와 내면 불안감이 신경계를 과부하 상태로 만드는 해예요. 불면증·두통·어지러움이 반복된다면 신경과·정신건강의학과 전문의를 즉시 찾으세요. 디지털 디톡스(스마트폰·SNS 사용 시간 제한)와 규칙적인 수면 루틴이 이 해 건강의 핵심이에요. 명상·자연 산책·독서 등 내면을 안정시키는 활동이 과부하된 신경계 회복에 가장 효과적이에요. 음식과 수면 관리를 통해 신체 리듬을 안정화하는 것이 정신건강의 기반이에요.',
+            '독창적이고 깊이 있는 사고력이 특수 분야에서 빛을 발하는 해예요. 철학·심리학·역학·예술·인문학 등 비주류적인 분야에서 탁월한 흥미와 재능이 발현돼요. 지나친 과신으로 자신만의 방식을 고집하다 기본기를 놓치는 실수를 경계하세요. 관심 분야를 너무 넓게 펼치지 말고 2~3개로 압축해 깊이 파고드는 것이 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요.',
         ),
         '신약': (
-            '신약한 사주에 편인이 들어와 기운이 보충되는 좋은 해이에요. 지식·연구·직관에 투자하면 향후 더 큰 재물로 돌아오는 씨앗을 심는 시기이에요. 예상했던 수입이 갑자기 줄거나 끊길 수 있으니 비상금을 충분히 확보해두세요. 새로운 재물보다 지금 있는 재물을 지키는 것에 집중하고 공부·연구·특수 기술에 투자하세요. 타인의 아이디어를 활용해 수익화하는 사업 모델에 관심을 가져볼 만한 해이에요.',
-            '신약한 기운이 회복되면서 연구·학문·상담·철학 분야에서 특별한 능력이 발현되는 해이에요. 독립적인 환경에서 일할 때 집중력과 창의성이 크게 높아집니다. 현재 직장에서 자신만의 전문 영역을 구축하는 좋은 시기이며, 독보적인 지식이나 기술로 입지를 강화하세요. 특수하고 전문적인 분야에서 독보적인 위치를 구축하기 시작하기에 좋은 해이에요. 조직 내에서 이방인처럼 느껴지더라도 그것이 오히려 더 깊은 전문성을 쌓는 과정이에요.',
+            '신약한 사주에 편인이 들어와 기운이 보충되는 좋은 해예요. 지식·연구·직관에 투자하면 향후 더 큰 재물로 돌아오는 씨앗을 심는 시기예요. 예상했던 수입이 갑자기 줄거나 끊길 수 있으니 비상금을 충분히 확보해두세요. 새로운 재물보다 지금 있는 재물을 지키는 것에 집중하고 공부·연구·특수 기술에 투자하세요. 타인의 아이디어를 활용해 수익화하는 사업 모델에 관심을 가져볼 만한 해예요.',
+            '신약한 기운이 회복되면서 연구·학문·상담·철학 분야에서 특별한 능력이 발현되는 해예요. 독립적인 환경에서 일할 때 집중력과 창의성이 크게 높아집니다. 현재 직장에서 자신만의 전문 영역을 구축하는 좋은 시기이며, 독보적인 지식이나 기술로 입지를 강화하세요. 특수하고 전문적인 분야에서 독보적인 위치를 구축하기 시작하기에 좋은 해예요. 조직 내에서 이방인처럼 느껴지더라도 그것이 오히려 더 깊은 전문성을 쌓는 과정이에요.',
             '내면적으로 충전되는 시기이므로 외향적인 연애보다 내면이 풍부한 깊은 관계가 이 해에 잘 맞습니다. 철학·예술·학문을 공유할 수 있는 지적 교류가 가능한 사람과 자연스럽게 인연이 깊어집니다. 기존 연인이 있다면 혼자만의 시간을 확보하고 싶은 욕구를 솔직하게 전달해 관계를 건강하게 조율하세요. 새로운 만남은 자연스럽게 찾아오는 인연을 기다리는 것이 이 해에 더 현명해요. 감정적 관계보다 지적·정신적 교류가 이루어지는 관계가 이 해에 더 오래가고 깊어집니다.',
-            '신약한 기운이 인성 운으로 보충되어 건강이 서서히 회복되는 해이에요. 충분한 수면과 정신적 휴식이 이 해 건강 회복의 핵심이에요. 신경계·수면 이상이 개선되는 경향이 있으며 명상·산책이 그 효과를 극대화해요. 뇌·신경계 이상 신호(두통·어지러움·불안감)가 지속되면 전문의를 찾으세요. 디지털 디톡스와 자연 속에서의 시간이 과부하된 신경계를 회복시키는 가장 좋은 방법이에요.',
-            '신약한 상태에 편인이 들어와 직관력·통찰력·흡수력이 크게 높아지는 좋은 학업 운의 해이에요. 정규 교육보다 독학·연구·특수 학습 방식이 훨씬 효과적인 시기이며, 자신만의 학습 방법을 찾는 것이 중요해요. 관심 분야를 2~3개로 압축해 깊이 파고드는 것이 이 해에 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요. 자격증보다 깊이 있는 이해와 통찰을 쌓는 것이 이 해 학업의 핵심이에요.',
+            '신약한 기운이 인성 운으로 보충되어 건강이 서서히 회복되는 해예요. 충분한 수면과 정신적 휴식이 이 해 건강 회복의 핵심이에요. 신경계·수면 이상이 개선되는 경향이 있으며 명상·산책이 그 효과를 극대화해요. 뇌·신경계 이상 신호(두통·어지러움·불안감)가 지속되면 전문의를 찾으세요. 디지털 디톡스와 자연 속에서의 시간이 과부하된 신경계를 회복시키는 가장 좋은 방법이에요.',
+            '신약한 상태에 편인이 들어와 직관력·통찰력·흡수력이 크게 높아지는 좋은 학업 운의 해예요. 정규 교육보다 독학·연구·특수 학습 방식이 훨씬 효과적인 시기이며, 자신만의 학습 방법을 찾는 것이 중요해요. 관심 분야를 2~3개로 압축해 깊이 파고드는 것이 이 해에 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요. 자격증보다 깊이 있는 이해와 통찰을 쌓는 것이 이 해 학업의 핵심이에요.',
         ),
         '중화': (
-            '재물보다 지식·아이디어·정신적 가치에 집중하는 해이에요. 큰 수입보다 안정적인 수입을 유지하면서 장기적인 역량 개발에 투자하는 것이 이 해에 가장 유리한 재물 전략이에요. 식신이 약해지는 해이므로 예상했던 수입이 갑자기 줄거나 끊기는 경험을 할 수 있으니 비상금을 철저히 확보해두세요. 새로운 재물보다 지금 있는 재물을 지키는 것에 집중하고, 공부·연구·특수 기술에 투자하면 훗날 더 큰 재물로 돌아와요. 타인의 아이디어나 연구 결과를 활용해 수익화하는 사업 모델에 관심을 가져볼 만한 해이에요.',
-            '학문·연구·종교·상담·철학 관련 분야에서 특별한 능력이 발현되는 해이에요. 기존의 업무 방식에서 벗어나 색다른 아이디어와 접근법으로 돌파구를 찾는 경우가 많아요. 조직보다 독립적인 환경에서 일할 때 더 높은 집중력과 창의성이 발휘되는 시기이므로, 재택근무·독립 프로젝트·연구직에 유리해요. 직장 내에서 다른 사람들과 동떨어진 느낌이 들거나 이방인처럼 느껴질 수 있는데, 이는 더 깊은 수준에서 일하고 있기 때문이에요. 특수하고 전문적인 분야에서 독보적인 위치를 구축하기 좋은 해이에요.',
-            '내성적이고 혼자만의 시간이 더 소중하게 느껴지는 해이에요. 이성보다 자기 내면의 세계에 집중하게 되어, 새로운 만남에 대한 욕구가 줄어드는 경우가 많아요. 기존 연인이 있다면 혼자 있고 싶은 욕구 때문에 상대방이 소외감을 느낄 수 있으니, 자신의 상태를 솔직하게 전달하고 공간을 조율하세요. 새로운 인연이 생긴다면 철학·예술·학문을 공유할 수 있는 깊이 있는 대화가 가능한 분과 잘 맞습니다. 감정적 관계보다 지적·정신적 교류가 이루어지는 관계가 이 해에 더 오래가고 깊어집니다.',
-            '신경계·수면 이상·만성 피로에 각별히 주의해야 하는 해이에요. 과도한 생각과 내면의 불안감이 수면 장애로 이어지기 쉬우며, 이것이 만성화되면 면역력 저하와 연쇄 건강 문제로 발전해요. 뇌·신경계·정신건강 관련 이상 신호(두통·어지러움·불안감)가 지속되면 반드시 전문의를 찾으세요. 디지털 디톡스(스마트폰·SNS 사용 시간 제한)와 규칙적인 수면 루틴이 이 해 건강의 핵심이에요. 명상·산책·자연 속에서의 시간이 과부하된 신경계를 회복시키는 가장 좋은 방법이에요.',
-            '전통적이지 않은 특수 분야—철학·심리학·역학·영성·예술·인문학—에서 탁월한 흥미와 재능이 발현되는 해이에요. 정규 교육보다 독학·연구·특수 학습 방식이 훨씬 효과적인 시기이며, 자신만의 학습 방법을 찾는 것이 중요해요. 직관적 이해력이 높아져 어렵고 복잡한 개념을 한 번에 꿰뚫어 보는 능력이 발휘돼요. 단 집중력이 들쑥날쑥하고 한 분야에 오래 머물기 어려운 해이므로, 관심 분야를 2~3개로 압축해 깊이 파고드는 것이 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요.',
+            '재물보다 지식·아이디어·정신적 가치에 집중하는 해예요. 큰 수입보다 안정적인 수입을 유지하면서 장기적인 역량 개발에 투자하는 것이 이 해에 가장 유리한 재물 전략이에요. 식신이 약해지는 해이므로 예상했던 수입이 갑자기 줄거나 끊기는 경험을 할 수 있으니 비상금을 철저히 확보해두세요. 새로운 재물보다 지금 있는 재물을 지키는 것에 집중하고, 공부·연구·특수 기술에 투자하면 훗날 더 큰 재물로 돌아와요. 타인의 아이디어나 연구 결과를 활용해 수익화하는 사업 모델에 관심을 가져볼 만한 해예요.',
+            '학문·연구·종교·상담·철학 관련 분야에서 특별한 능력이 발현되는 해예요. 기존의 업무 방식에서 벗어나 색다른 아이디어와 접근법으로 돌파구를 찾는 경우가 많아요. 조직보다 독립적인 환경에서 일할 때 더 높은 집중력과 창의성이 발휘되는 시기이므로, 재택근무·독립 프로젝트·연구직에 유리해요. 직장 내에서 다른 사람들과 동떨어진 느낌이 들거나 이방인처럼 느껴질 수 있는데, 이는 더 깊은 수준에서 일하고 있기 때문이에요. 특수하고 전문적인 분야에서 독보적인 위치를 구축하기 좋은 해예요.',
+            '내성적이고 혼자만의 시간이 더 소중하게 느껴지는 해예요. 이성보다 자기 내면의 세계에 집중하게 되어, 새로운 만남에 대한 욕구가 줄어드는 경우가 많아요. 기존 연인이 있다면 혼자 있고 싶은 욕구 때문에 상대방이 소외감을 느낄 수 있으니, 자신의 상태를 솔직하게 전달하고 공간을 조율하세요. 새로운 인연이 생긴다면 철학·예술·학문을 공유할 수 있는 깊이 있는 대화가 가능한 분과 잘 맞습니다. 감정적 관계보다 지적·정신적 교류가 이루어지는 관계가 이 해에 더 오래가고 깊어집니다.',
+            '신경계·수면 이상·만성 피로에 각별히 주의해야 하는 해예요. 과도한 생각과 내면의 불안감이 수면 장애로 이어지기 쉬우며, 이것이 만성화되면 면역력 저하와 연쇄 건강 문제로 발전해요. 뇌·신경계·정신건강 관련 이상 신호(두통·어지러움·불안감)가 지속되면 반드시 전문의를 찾으세요. 디지털 디톡스(스마트폰·SNS 사용 시간 제한)와 규칙적인 수면 루틴이 이 해 건강의 핵심이에요. 명상·산책·자연 속에서의 시간이 과부하된 신경계를 회복시키는 가장 좋은 방법이에요.',
+            '전통적이지 않은 특수 분야—철학·심리학·역학·영성·예술·인문학—에서 탁월한 흥미와 재능이 발현되는 해예요. 정규 교육보다 독학·연구·특수 학습 방식이 훨씬 효과적인 시기이며, 자신만의 학습 방법을 찾는 것이 중요해요. 직관적 이해력이 높아져 어렵고 복잡한 개념을 한 번에 꿰뚫어 보는 능력이 발휘돼요. 단 집중력이 들쑥날쑥하고 한 분야에 오래 머물기 어려운 해이므로, 관심 분야를 2~3개로 압축해 깊이 파고드는 것이 효과적이에요. 이 해에 공부한 특수 지식이 훗날 예상치 못한 방식으로 큰 가치를 발휘하게 돼요.',
         ),
     },
     '정인': {
         '신강': (
             '신강 사주에 정인이 더해져 이미 과잉된 에너지가 더욱 강해지는 부담스러운 조합이에요. 과보호와 의존적 성향이 강해지며 재물 운에서 스스로 개척하기보다 타인에게 기대는 경향이 생깁니다. 귀인의 도움은 있지만 그것에 지나치게 의존하다 독립적인 재물 창출 능력이 떨어질 수 있어요. 안정적인 수입을 유지하면서 자기 주도적인 재물 활동을 의식적으로 늘리는 것이 중요해요. 재테크는 안정적인 장기 투자만을 유지하고 새로운 시도는 자제하세요.',
             '능력이 과잉 상태이지만 인성 운으로 더 강해져 오히려 독립적 활동보다 의존적 역할에 머무르는 경향이 생깁니다. 귀인·상사·멘토의 도움이 이 해에 큰 역할을 하지만 그것에 지나치게 의존하면 성장이 정체돼요. 주도적으로 새로운 역할을 개척하기보다 현재 위치에서 탁월함을 발휘하는 방향이 이 해에 더 현실적이에요. 학습·교육·연구·상담 관련 분야에서 특히 좋은 성과를 냅니다. 귀인의 도움을 감사히 받되 독립적인 역량 강화를 병행하는 것이 중요해요.',
-            '상대방에게 과도하게 배려하고 돌보려는 경향이 강해지는 해이에요. 일방적으로 주기만 하는 관계가 형성되지 않도록 의식적으로 자신도 충분히 받는 균형을 만드세요. 기존 연인과의 관계는 서로 의지하고 배워가는 따뜻한 단계로 발전하며 부모님·어른들의 지지를 받는 관계로 공식화될 수 있어요. 새로운 인연이 생긴다면 처음보다 시간이 지날수록 더 좋아지는 유형의 인연을 찾으세요. 감정적으로 지나치게 베풀다 지치는 패턴을 주의하고 자신의 에너지를 먼저 채우세요.',
-            '신강한 상태에 인성이 더해져 과도한 사고와 의존적 생활 방식이 건강을 해칠 수 있는 해이에요. 몸을 충분히 쓰는 신체 활동이 오히려 정신 건강을 지키는 핵심이에요. 지나친 안주로 신진대사가 떨어지지 않도록 규칙적인 운동 루틴을 유지하세요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 올바른 정보를 선별하고 실천에 옮기는 것이 중요해요. 정기 건강검진을 빠뜨리지 마세요.',
-            '지식과 학문에 대한 욕구는 강하지만 행동력이 부족해 공부를 시작하기 어려운 해이에요. 알고 있는 것은 많지만 실제로 시험을 보거나 결과를 내는 행동력이 약해지는 시기이에요. 공부한 내용을 실제 자격증이나 시험 응시로 연결하는 행동 계획을 세우는 것이 중요해요. 의존적 성향이 학습에서도 나타날 수 있으니 스스로 목표를 정하고 자기주도 학습을 강화하세요. 알고 있는 지식을 타인에게 가르치는 활동이 이 해 학습 효과를 극대화하는 좋은 방법이에요.',
+            '상대방에게 과도하게 배려하고 돌보려는 경향이 강해지는 해예요. 일방적으로 주기만 하는 관계가 형성되지 않도록 의식적으로 자신도 충분히 받는 균형을 만드세요. 기존 연인과의 관계는 서로 의지하고 배워가는 따뜻한 단계로 발전하며 부모님·어른들의 지지를 받는 관계로 공식화될 수 있어요. 새로운 인연이 생긴다면 처음보다 시간이 지날수록 더 좋아지는 유형의 인연을 찾으세요. 감정적으로 지나치게 베풀다 지치는 패턴을 주의하고 자신의 에너지를 먼저 채우세요.',
+            '신강한 상태에 인성이 더해져 과도한 사고와 의존적 생활 방식이 건강을 해칠 수 있는 해예요. 몸을 충분히 쓰는 신체 활동이 오히려 정신 건강을 지키는 핵심이에요. 지나친 안주로 신진대사가 떨어지지 않도록 규칙적인 운동 루틴을 유지하세요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 올바른 정보를 선별하고 실천에 옮기는 것이 중요해요. 정기 건강검진을 빠뜨리지 마세요.',
+            '지식과 학문에 대한 욕구는 강하지만 행동력이 부족해 공부를 시작하기 어려운 해예요. 알고 있는 것은 많지만 실제로 시험을 보거나 결과를 내는 행동력이 약해지는 시기예요. 공부한 내용을 실제 자격증이나 시험 응시로 연결하는 행동 계획을 세우는 것이 중요해요. 의존적 성향이 학습에서도 나타날 수 있으니 스스로 목표를 정하고 자기주도 학습을 강화하세요. 알고 있는 지식을 타인에게 가르치는 활동이 이 해 학습 효과를 극대화하는 좋은 방법이에요.',
         ),
         '신약': (
-            '신약한 사주에 정인이 들어와 기운이 완전히 회복되는 최고의 조합 중 하나이에요. 귀인의 도움과 문서(계약·증서·부동산)로 재물이 들어오는 길한 해이에요. 뜻밖의 지원·장학금·상속·보험금·부동산 관련 이익이 생길 수 있어요. 성실하고 정직하게 일한 것이 인정받아 보너스·승진·연봉 인상으로 이어지는 경우가 많아요. 재테크는 안정적인 장기 투자나 부동산 관련이 이 해에 가장 잘 맞으며, 주변에 귀인이 나타날 때 그 관계를 소홀히 하지 마세요.',
-            '귀인과 윗사람의 도움이 직장 운의 핵심이 되는 최고의 직업 운 해이에요. 상사·멘토·선배의 인정과 지원으로 중요한 기회를 얻게 되며, 이 관계를 잘 유지하는 것이 이 해 직장 운의 열쇠이에요. 시험·자격증·승진에 가장 유리한 해이며, 오랫동안 노력해온 것에 대한 공식적인 인정이 이 해에 찾아와요. 학습·교육·연구·상담·출판 관련 직종에서 특히 좋은 성과를 내는 해이에요. 아이디어를 혼자 품고 있기보다 존경하는 윗사람이나 귀인에게 먼저 조언을 구하면 예상보다 훨씬 좋은 방향이 열립니다.',
-            '어머니처럼 편안하고 신뢰감 있는 이성 인연이 찾아오는 해이에요. 화려함보다 마음이 따뜻하고 배려심이 깊은 사람에게 끌리며, 이런 인연이 가장 오래가는 진짜 인연이 돼요. 기존 연인과의 관계는 서로 의지하고 배워가는 깊이 있는 단계로 발전하며, 부모님이나 주변 어른들의 지지를 받는 관계로 공식화될 수 있어요. 처음 만남보다 시간이 지날수록 더 좋아지는 유형의 인연이 이 해에 맺어집니다. 관계에서 일방적으로 주기만 하거나 받기만 하는 불균형이 생기지 않도록 서로 균형 있게 돌보는 관계를 만들어가세요.',
-            '신약한 기운이 정인으로 완전히 회복되어 건강 회복 운이 가장 강한 해이에요. 전반적인 체력과 면역력이 좋아지고, 만성적으로 괴롭히던 질환이 개선되는 경우가 많아요. 의사·한의사·상담사 등 좋은 치료자(귀인)를 만나 오래된 건강 문제를 해결할 기회가 찾아와요. 규칙적인 생활과 충분한 수면, 영양 균형 있는 식사가 이 해 건강 운을 최대한 활용하는 방법이에요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 건강 서적이나 전문가의 조언을 통해 생활 습관을 개선하는 좋은 기회로 활용하세요.',
-            '신약한 상태에 정인이 들어와 학업·시험 운이 1년 중 가장 강한 해이에요. 귀인(훌륭한 스승·교수·멘토)의 도움이 결정적인 역할을 하며, 오랫동안 준비해온 시험에 합격하는 경우가 많아요. 정규 교육 기관·학원·스터디 그룹 등 체계적인 학습 환경에서 최고의 성과가 나오는 시기이에요. 외우고 이해하는 능력이 높아지는 해이므로, 이 기회를 활용해 어렵고 방대한 자격증에 도전해보세요. 학습에 투자한 시간과 비용이 가장 효율적으로 성과로 돌아오므로, 좋은 강의나 교재에 투자를 아끼지 마세요.',
+            '신약한 사주에 정인이 들어와 기운이 완전히 회복되는 최고의 조합 중 하나예요. 귀인의 도움과 문서(계약·증서·부동산)로 재물이 들어오는 길한 해예요. 뜻밖의 지원·장학금·상속·보험금·부동산 관련 이익이 생길 수 있어요. 성실하고 정직하게 일한 것이 인정받아 보너스·승진·연봉 인상으로 이어지는 경우가 많아요. 재테크는 안정적인 장기 투자나 부동산 관련이 이 해에 가장 잘 맞으며, 주변에 귀인이 나타날 때 그 관계를 소홀히 하지 마세요.',
+            '귀인과 윗사람의 도움이 직장 운의 핵심이 되는 최고의 직업 운 해예요. 상사·멘토·선배의 인정과 지원으로 중요한 기회를 얻게 되며, 이 관계를 잘 유지하는 것이 이 해 직장 운의 열쇠예요. 시험·자격증·승진에 가장 유리한 해이며, 오랫동안 노력해온 것에 대한 공식적인 인정이 이 해에 찾아와요. 학습·교육·연구·상담·출판 관련 직종에서 특히 좋은 성과를 내는 해예요. 아이디어를 혼자 품고 있기보다 존경하는 윗사람이나 귀인에게 먼저 조언을 구하면 예상보다 훨씬 좋은 방향이 열립니다.',
+            '어머니처럼 편안하고 신뢰감 있는 이성 인연이 찾아오는 해예요. 화려함보다 마음이 따뜻하고 배려심이 깊은 사람에게 끌리며, 이런 인연이 가장 오래가는 진짜 인연이 돼요. 기존 연인과의 관계는 서로 의지하고 배워가는 깊이 있는 단계로 발전하며, 부모님이나 주변 어른들의 지지를 받는 관계로 공식화될 수 있어요. 처음 만남보다 시간이 지날수록 더 좋아지는 유형의 인연이 이 해에 맺어집니다. 관계에서 일방적으로 주기만 하거나 받기만 하는 불균형이 생기지 않도록 서로 균형 있게 돌보는 관계를 만들어가세요.',
+            '신약한 기운이 정인으로 완전히 회복되어 건강 회복 운이 가장 강한 해예요. 전반적인 체력과 면역력이 좋아지고, 만성적으로 괴롭히던 질환이 개선되는 경우가 많아요. 의사·한의사·상담사 등 좋은 치료자(귀인)를 만나 오래된 건강 문제를 해결할 기회가 찾아와요. 규칙적인 생활과 충분한 수면, 영양 균형 있는 식사가 이 해 건강 운을 최대한 활용하는 방법이에요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 건강 서적이나 전문가의 조언을 통해 생활 습관을 개선하는 좋은 기회로 활용하세요.',
+            '신약한 상태에 정인이 들어와 학업·시험 운이 1년 중 가장 강한 해예요. 귀인(훌륭한 스승·교수·멘토)의 도움이 결정적인 역할을 하며, 오랫동안 준비해온 시험에 합격하는 경우가 많아요. 정규 교육 기관·학원·스터디 그룹 등 체계적인 학습 환경에서 최고의 성과가 나오는 시기예요. 외우고 이해하는 능력이 높아지는 해이므로, 이 기회를 활용해 어렵고 방대한 자격증에 도전해보세요. 학습에 투자한 시간과 비용이 가장 효율적으로 성과로 돌아오므로, 좋은 강의나 교재에 투자를 아끼지 마세요.',
         ),
         '중화': (
-        '귀인의 도움과 문서(계약·증서·부동산)로 재물이 들어오는 길한 해이에요. 뜻밖의 지원·장학금·상속·보험금·부동산 관련 이익이 생길 수 있어요. 성실하고 정직하게 일한 것이 인정받아 보너스·승진·연봉 인상으로 이어지는 경우가 많아요. 재테크는 안정적인 장기 투자나 부동산 관련이 이 해에 가장 잘 맞으며, 문서와 계약이 중요한 역할을 해요. 주변에 귀인이 나타날 때 그 관계를 소홀히 하지 마세요 — 그분이 예상치 못한 재물 기회를 가져다줄 수 있어요.',
-        '귀인과 윗사람의 도움이 직장 운의 핵심이 되는 해이에요. 상사·멘토·선배의 인정과 지원으로 중요한 기회를 얻게 되며, 이 관계를 잘 유지하는 것이 이 해 직장 운의 열쇠이에요. 시험·자격증·승진에 가장 유리한 해이며, 오랫동안 노력해온 것에 대한 공식적인 인정이 이 해에 찾아와요. 학습·교육·연구·상담·출판 관련 직종에서 특히 좋은 성과를 내는 해이에요. 아이디어를 혼자 품고 있기보다 존경하는 윗사람이나 귀인에게 먼저 조언을 구하면 예상보다 훨씬 좋은 방향이 열립니다.',
-        '어머니처럼 편안하고 신뢰감 있는 이성 인연이 찾아오는 해이에요. 화려함보다 마음이 따뜻하고 배려심이 깊은 사람에게 끌리며, 이런 인연이 가장 오래가는 진짜 인연이 돼요. 기존 연인과의 관계는 서로 의지하고 배워가는 깊이 있는 단계로 발전하며, 부모님이나 주변 어른들의 지지를 받는 관계로 공식화될 수 있어요. 처음 만남보다 시간이 지날수록 더 좋아지는 유형의 인연이 이 해에 맺어집니다. 관계에서 일방적으로 주기만 하거나 받기만 하는 불균형이 생기지 않도록 서로 균형 있게 돌보는 관계를 만들어가세요.',
-        '건강 회복 운이 있으며 기존의 건강 문제가 호전되는 길한 해이에요. 전반적인 체력과 면역력이 좋아지고, 만성적으로 괴롭히던 질환이 개선되는 경우가 많아요. 의사·한의사·상담사 등 좋은 치료자(귀인)를 만나 오래된 건강 문제를 해결할 기회가 찾아와요. 규칙적인 생활과 충분한 수면, 영양 균형 있는 식사가 이 해 건강 운을 최대한 활용하는 방법이에요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 건강 서적이나 전문가의 조언을 통해 생활 습관을 개선하는 좋은 기회로 활용하세요.',
-        '학업·시험 운이 1년 중 가장 강한 해이에요. 귀인(훌륭한 스승·교수·멘토)의 도움이 결정적인 역할을 하며, 오랫동안 준비해온 시험에 합격하는 경우가 많아요. 정규 교육 기관·학원·스터디 그룹 등 체계적인 학습 환경에서 최고의 성과가 나오는 시기이에요. 외우고 이해하는 능력이 높아지는 해이므로, 이 기회를 활용해 어렵고 방대한 자격증에 도전해보세요. 학습에 투자한 시간과 비용이 가장 효율적으로 성과로 돌아오는 시기이므로, 좋은 강의나 교재에 투자를 아끼지 마세요.',
+        '귀인의 도움과 문서(계약·증서·부동산)로 재물이 들어오는 길한 해예요. 뜻밖의 지원·장학금·상속·보험금·부동산 관련 이익이 생길 수 있어요. 성실하고 정직하게 일한 것이 인정받아 보너스·승진·연봉 인상으로 이어지는 경우가 많아요. 재테크는 안정적인 장기 투자나 부동산 관련이 이 해에 가장 잘 맞으며, 문서와 계약이 중요한 역할을 해요. 주변에 귀인이 나타날 때 그 관계를 소홀히 하지 마세요 — 그분이 예상치 못한 재물 기회를 가져다줄 수 있어요.',
+        '귀인과 윗사람의 도움이 직장 운의 핵심이 되는 해예요. 상사·멘토·선배의 인정과 지원으로 중요한 기회를 얻게 되며, 이 관계를 잘 유지하는 것이 이 해 직장 운의 열쇠예요. 시험·자격증·승진에 가장 유리한 해이며, 오랫동안 노력해온 것에 대한 공식적인 인정이 이 해에 찾아와요. 학습·교육·연구·상담·출판 관련 직종에서 특히 좋은 성과를 내는 해예요. 아이디어를 혼자 품고 있기보다 존경하는 윗사람이나 귀인에게 먼저 조언을 구하면 예상보다 훨씬 좋은 방향이 열립니다.',
+        '어머니처럼 편안하고 신뢰감 있는 이성 인연이 찾아오는 해예요. 화려함보다 마음이 따뜻하고 배려심이 깊은 사람에게 끌리며, 이런 인연이 가장 오래가는 진짜 인연이 돼요. 기존 연인과의 관계는 서로 의지하고 배워가는 깊이 있는 단계로 발전하며, 부모님이나 주변 어른들의 지지를 받는 관계로 공식화될 수 있어요. 처음 만남보다 시간이 지날수록 더 좋아지는 유형의 인연이 이 해에 맺어집니다. 관계에서 일방적으로 주기만 하거나 받기만 하는 불균형이 생기지 않도록 서로 균형 있게 돌보는 관계를 만들어가세요.',
+        '건강 회복 운이 있으며 기존의 건강 문제가 호전되는 길한 해예요. 전반적인 체력과 면역력이 좋아지고, 만성적으로 괴롭히던 질환이 개선되는 경우가 많아요. 의사·한의사·상담사 등 좋은 치료자(귀인)를 만나 오래된 건강 문제를 해결할 기회가 찾아와요. 규칙적인 생활과 충분한 수면, 영양 균형 있는 식사가 이 해 건강 운을 최대한 활용하는 방법이에요. 건강 관련 정보와 지식에 관심이 높아지는 시기이므로, 건강 서적이나 전문가의 조언을 통해 생활 습관을 개선하는 좋은 기회로 활용하세요.',
+        '학업·시험 운이 1년 중 가장 강한 해예요. 귀인(훌륭한 스승·교수·멘토)의 도움이 결정적인 역할을 하며, 오랫동안 준비해온 시험에 합격하는 경우가 많아요. 정규 교육 기관·학원·스터디 그룹 등 체계적인 학습 환경에서 최고의 성과가 나오는 시기예요. 외우고 이해하는 능력이 높아지는 해이므로, 이 기회를 활용해 어렵고 방대한 자격증에 도전해보세요. 학습에 투자한 시간과 비용이 가장 효율적으로 성과로 돌아오는 시기이므로, 좋은 강의나 교재에 투자를 아끼지 마세요.',
         ),
     },
 }
@@ -14138,7 +14342,7 @@ _HAP_PILLAR_MSG = {
     '년지': '년지와 합이 이루어져 가족·건강·뿌리 영역에 좋은 기운이 응집돼요.',
     '월지': '월지와 합이 이루어져 직장·사회적 환경에 좋은 인연과 기회가 찾아와요.',
     '일지': '일지와 합이 이루어져 배우자·연인과의 관계가 더욱 깊어지고 안정돼요.',
-    '시지': '시지와 합이 이루어져 자녀·미래 목표에 긍정적인 기운이 모이에요.',
+    '시지': '시지와 합이 이루어져 자녀·미래 목표에 긍정적인 기운이 모여요.',
 }
 
 def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
@@ -14153,7 +14357,7 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
     # ① 격국 × 세운 십성 특별 조합 (최우선)
     if gyeok_core == ss_g and ss_g not in ('비견', '겁재'):
         addons[1] = (
-            f'격국({gyeok})의 핵심 기운이 세운에서 그대로 발동하는 특별한 해이에요. '
+            f'격국({gyeok})의 핵심 기운이 세운에서 그대로 발동하는 특별한 해예요. '
             '사회적 역할과 본업에서 두각을 나타낼 가능성이 매우 높으며, '
             '이 시기에 쏟는 노력은 평소보다 훨씬 큰 결실로 돌아와요. '
             '외부 평판이 높아지고 직업적 정체성이 강화되는 시기이므로 적극적인 자기표현을 권장해요. '
@@ -14163,7 +14367,7 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
     if gyeok in ('건록격', '월겁격') and ss_g in ('비견', '겁재'):
         addons[0] = (
             '건록·월겁 사주에 비겁 운이 더해져 독립·창업 에너지가 최고조에 달해요. '
-            '자기 주도적 사업 구상이나 프리랜서 전환을 검토하기에 좋은 해이에요. '
+            '자기 주도적 사업 구상이나 프리랜서 전환을 검토하기에 좋은 해예요. '
             '단, 경쟁자와의 재물 분쟁 및 동업 갈등 가능성도 함께 높아지므로 계약서와 권리 관계를 철저히 정리하세요. '
             '수익보다 구조를 먼저 탄탄히 하는 전략이 장기적으로 유리해요. '
             '주변 인맥과의 경계 설정도 필요해요.'
@@ -14173,8 +14377,8 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
     if is_gang and ss_g in ('편재', '정재') and not addons[0]:
         addons[0] = (
             '신강 사주가 재성(財星) 운을 맞이한 최상의 재물 조합이에요. '
-            '넘치는 자기 에너지를 재물로 전환하는 능력이 극대화되는 시기이에요. '
-            '적극적인 투자, 부업 확장, 사업 규모 확대를 검토하기에 최적의 해이에요. '
+            '넘치는 자기 에너지를 재물로 전환하는 능력이 극대화되는 시기예요. '
+            '적극적인 투자, 부업 확장, 사업 규모 확대를 검토하기에 최적의 해예요. '
             '단, 과욕은 금물이며 수익 실현과 리스크 분산을 병행하세요. '
             '재물이 모이는 만큼 주변의 요청도 늘어나니 명확한 경계를 유지하세요.'
         )
@@ -14189,7 +14393,7 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
         )
         if not addons[3]:
             addons[3] = (
-                '관성의 압박이 신체적 피로와 스트레스로 전환되기 쉬운 시기이에요. '
+                '관성의 압박이 신체적 피로와 스트레스로 전환되기 쉬운 시기예요. '
                 '충분한 수면과 면역 관리를 최우선으로 두세요. '
                 '업무 과부하가 지속되면 소화기·심혈관에 이상 신호가 올 수 있어요. '
                 '정기 건강 검진과 함께 규칙적인 운동 습관을 시작하기를 권장해요. '
@@ -14202,20 +14406,20 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
             '리더십이 인정받는 시기로, 공직·관리직·팀장급 역할에서 성과를 내기 좋습니다. '
             '외부의 시선과 평가가 집중되므로 언행에 일관성을 유지하는 것이 중요해요. '
             '이 시기의 실적이 향후 3~5년의 커리어 방향을 결정할 수 있어요. '
-            '규율과 성실함이 최대의 무기이에요.'
+            '규율과 성실함이 최대의 무기예요.'
         )
 
     if is_yak and ss_g in ('편인', '정인') and not addons[4]:
         addons[4] = (
             '신약 사주에 인성(印星) 운이 들어와 학습력·집중력·통찰력이 크게 높아집니다. '
             '자격증 취득, 공무원 시험, 대학원 진학 등 지식을 쌓는 모든 활동에서 좋은 결과가 기대돼요. '
-            '스승·멘토와의 인연도 강해져 지식 전수나 학문적 조언을 받기 좋은 시기이에요. '
+            '스승·멘토와의 인연도 강해져 지식 전수나 학문적 조언을 받기 좋은 시기예요. '
             '이 시기에 투자한 공부와 자기계발은 10년 후 큰 자산이 돼요. '
             '독서, 강의 수강, 전문 교육을 적극적으로 계획하세요.'
         )
         if not addons[3]:
             addons[3] = (
-                '인성 운이 심신을 재충전시켜 건강 회복에 유리한 시기이에요. '
+                '인성 운이 심신을 재충전시켜 건강 회복에 유리한 시기예요. '
                 '지나친 활동보다 충분한 휴식과 영양 보충을 우선시하면 면역력이 크게 향상돼요. '
                 '정신적 안정감이 높아져 만성 스트레스가 해소되는 경향이 있어요. '
                 '명상, 독서, 자연 속 휴식 등 내면을 채우는 활동이 건강에 직결돼요. '
@@ -14225,7 +14429,7 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
     if is_gang and ss_g in ('식신', '상관') and not addons[0]:
         addons[0] = (
             '신강 사주의 넘치는 에너지가 식상(食傷) 운을 만나 창의적 부업·사업 아이디어가 결실을 맺기 좋습니다. '
-            '재능을 수익화하는 새로운 채널을 개척하거나 콘텐츠·기술 기반 수입을 늘리기 최적의 해이에요. '
+            '재능을 수익화하는 새로운 채널을 개척하거나 콘텐츠·기술 기반 수입을 늘리기 최적의 해예요. '
             '단, 지출도 함께 늘어날 수 있으니 수입 증가분의 일부는 반드시 저축에 배정하세요. '
             '무형 자산(브랜드, 기술력, 인지도)을 쌓는 투자도 이 시기에 효과적이에요. '
             '재능과 아이디어를 너무 넓게 펼치기보다 집중 분야를 좁혀 깊이 파는 전략이 더 큰 수익을 냅니다.'
@@ -14233,7 +14437,7 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
         if not addons[4]:
             addons[4] = (
                 '식상 운의 창의성과 표현 욕구가 학업·자기계발 분야에서도 빛을 발해요. '
-                '새로운 기술, 예술, 언어 등 다양한 분야 탐구가 자연스럽게 이루어지는 시기이에요. '
+                '새로운 기술, 예술, 언어 등 다양한 분야 탐구가 자연스럽게 이루어지는 시기예요. '
                 '정형화된 공부보다 프로젝트 기반·실습 중심 학습에서 훨씬 높은 효율을 냅니다. '
                 '이 시기에 익힌 실용 기술은 커리어 전환의 발판이 될 수 있어요. '
                 '창작 활동(글쓰기, 유튜브, 디자인 등)을 학습 동기와 연결하면 큰 시너지가 나요.'
@@ -14244,14 +14448,14 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
         yong_msgs = [
             (
                 '용신 오행이 재물 영역에 직접 발동하여 예상을 뛰어넘는 수입 증가와 자산 확대의 기회가 열립니다. '
-                '평소 시도하지 못했던 투자나 사업 기회에 과감하게 도전할 수 있는 해이에요. '
+                '평소 시도하지 못했던 투자나 사업 기회에 과감하게 도전할 수 있는 해예요. '
                 '수입원이 다양해지고 부수입이 생기는 흐름이 나타나요. '
                 '재물을 불리되 기반을 먼저 튼튼히 하는 원칙을 지키면 손실 없이 이익을 극대화할 수 있어요. '
                 '이 시기의 재물 운은 향후 2~3년의 경제적 기반이 돼요.'
             ),
             (
                 '용신 기운이 직업 영역을 직접 강화하여 승진·이직·사업 성과에서 긍정적인 결과가 따릅니다. '
-                '오랫동안 준비해 온 커리어 도약의 기회가 현실로 이어지는 해이에요. '
+                '오랫동안 준비해 온 커리어 도약의 기회가 현실로 이어지는 해예요. '
                 '직업적 정체성이 뚜렷해지고 주변의 신뢰와 인정이 쌓이에요. '
                 '새로운 포지션이나 역할을 제안받을 가능성이 높으니 준비를 철저히 하세요. '
                 '이 시기에 결정한 직업적 선택이 장기 커리어의 전환점이 돼요.'
@@ -14264,14 +14468,14 @@ def _personal_addon(strength, ss_g, yongshin_oh, ki_list, sw_oh_g, gyeok):
                 '이 시기의 인연은 오래 지속될 가능성이 높습니다.'
             ),
             (
-                '용신 기운이 신체에 활력을 더해 체력과 면역력이 높아지는 건강한 해이에요. '
+                '용신 기운이 신체에 활력을 더해 체력과 면역력이 높아지는 건강한 해예요. '
                 '지병이 있다면 호전되거나 안정되는 흐름이 나타나요. '
-                '새로운 운동 습관이나 건강 루틴을 시작하기에 최적의 시기이에요. '
+                '새로운 운동 습관이나 건강 루틴을 시작하기에 최적의 시기예요. '
                 '심신의 균형이 회복되어 전반적인 에너지 수준이 향상돼요. '
                 '이 시기의 건강 투자는 노후까지 장기적인 혜택을 줘요.'
             ),
             (
-                '용신 기운이 지성과 집중력을 강화하여 학업·시험에서 탁월한 성과를 낼 수 있는 해이에요. '
+                '용신 기운이 지성과 집중력을 강화하여 학업·시험에서 탁월한 성과를 낼 수 있는 해예요. '
                 '시험·자격증·공모전 등에서 실력 이상의 결과를 얻는 경우도 많아요. '
                 '배움에 대한 동기가 자연스럽게 높아지는 시기로, 오랫동안 미뤄 온 공부를 시작하기에 최적이에요. '
                 '새로운 지식 체계를 흡수하는 속도가 빠르며 기억력도 평소보다 높아집니다. '
@@ -14686,19 +14890,19 @@ def analyze_month_fortune(name, pillars, target_year):
     pillar_jijis = [p[1] for p in pillars]
     gaeun_data = YONGSHIN_GAEUN[yongshin_oh]
 
-    # 절기 기준 월지 매핑 (인월~축월)
-    MONTH_JIJI = {1:2, 2:3, 3:4, 4:5, 5:6, 6:7, 7:8, 8:9, 9:10, 10:11, 11:0, 12:1}
-    KOR_MONTH  = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',
-                  7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
     PILLAR_LBL = ['년주','월주','일주','시주']
+    _, _, _ki_list_m = get_gyeokguk(pillars)
+    _ki_names_m = [OHAENG_NAMES[k] for k in _ki_list_m]
 
-    cur_month = _now_kst().month if target_year == _now_kst().year else 0
+    # 절기 기준 12개월(인월~축월)과 각 달의 양력 기간 — 달 이름을 '1월'로 쓰면 양력과 한 달 어긋난다
+    _wl = get_wolun(target_year)
+    _starts = [w[1] for w in _wl] + [solar_term(target_year + 1, 315)]
+    _now = _now_kst()
 
     out = [f'**◈ {name}님  {target_year}년 월별 운세**']
 
-    for mon in range(1, 13):
-        mj = MONTH_JIJI[mon]
-        mg, _ = _month_pillar(yg, mj)
+    for _mi, (_wlabel, _st, mg, mj) in enumerate(_wl):
+        _end = _starts[_mi + 1] - timedelta(days=1)
         ss_g = get_sipseong(ilgan, OHAENG_IDX[mg],   mg % 2)
         ss_j = get_sipseong(ilgan, OHAENG_IDX_J[mj], mj % 2)
 
@@ -14726,11 +14930,23 @@ def analyze_month_fortune(name, pillars, target_year):
         if chung_notes:
             extra += f' {PILLAR_LBL[chung_notes[0]]}와 충(沖)이 발생해 변화와 불안정한 기운이 생겨요. 변동에 대비하세요.'
 
-        now_mark = '  ◀ 이번 달' if mon == cur_month else ''
+        now_mark = '  ◀ 이번 달' if _st <= _now < _starts[_mi + 1] else ''
+        _mg_oh = OHAENG_NAMES[OHAENG_IDX[mg]]
+        _mj_oh = OHAENG_NAMES[OHAENG_IDX_J[mj]]
+        _m_yong = yongshin_name in (_mg_oh, _mj_oh)
+        _m_ki = [o for o in dict.fromkeys((_mg_oh, _mj_oh)) if o in _ki_names_m]
+        yk_mark = yk_note = ''
+        if _m_yong and not _m_ki:
+            yk_mark = '  |  용신달'
+            yk_note = f' 용신({yongshin_name}) 기운이 들어와 흐름을 타기 좋은 달이에요.'
+        elif _m_ki and not _m_yong:
+            yk_mark = '  |  기신달'
+            yk_note = (f' 다만 기신({"·".join(_m_ki)}) 기운이 들어오는 달이라 좋은 흐름도 평소보다 약하게 나타나요. '
+                       f'크게 벌이지 말고 지키는 쪽으로 가세요.')
 
-        out.append(f'\n### {KOR_MONTH[mon]} — {title}{now_mark}')
-        out.append(f'  {CHEONGAN[mg]}{JIJI[mj]}월  |  천간 기운: {ss_g}  /  지지 기운: {ss_j}')
-        out.append(f'  {body}{extra}')
+        out.append(f'\n### {_st.month}/{_st.day}~{_end.month}/{_end.day} ({_wlabel}) — {title}{now_mark}')
+        out.append(f'  {CHEONGAN[mg]}{JIJI[mj]}월  |  천간 기운: {ss_g}  /  지지 기운: {ss_j}{yk_mark}')
+        out.append(f'  {body}{extra}{yk_note}')
         out.append(f'\n  ✦ 개운법  {tip}{color_tip}')
 
     return '\n'.join(out)
@@ -14791,9 +15007,9 @@ def analyze_sewoon_detail(name, pillars, target_year, daeun, birth_year):
         elif rel == 3:
             dw_note = f'  ⚠ 세운이 대운을 극하는 구조 — 예상치 못한 변수와 장애에 대비하세요.'
         elif rel == 2:
-            dw_note = f'  ⚠ 대운이 세운을 극하는 구조 — 노력 대비 성과가 막히는 시기이에요.'
+            dw_note = f'  ⚠ 대운이 세운을 극하는 구조 — 노력 대비 성과가 막히는 시기예요.'
         elif rel == 0:
-            dw_note = f'  ✦ 대운과 세운이 같은 오행 — 해당 기운이 강하게 집중되는 해이에요.'
+            dw_note = f'  ✦ 대운과 세운이 같은 오행 — 해당 기운이 강하게 집중되는 해예요.'
 
     # 용신 여부
     sw_oh_j = OHAENG_IDX_J[yj]
@@ -14815,13 +15031,13 @@ def analyze_sewoon_detail(name, pillars, target_year, daeun, birth_year):
     caution_ss = {'겁재', '상관', '편관', '편인'}
     if ss_g in good_ss:
         grade = '길한(吉)'
-        overall = '적극적으로 기회를 잡고 도전하면 좋은 성과를 얻을 수 있는 해이에요.'
+        overall = '적극적으로 기회를 잡고 도전하면 좋은 성과를 얻을 수 있는 해예요.'
     elif ss_g in caution_ss:
         grade = '주의가 필요한(凶)'
-        overall = '변화와 도전이 많은 해이에요. 무리한 확장보다 내실을 다지고 안전을 우선시하는 전략이 유리해요.'
+        overall = '변화와 도전이 많은 해예요. 무리한 확장보다 내실을 다지고 안전을 우선시하는 전략이 유리해요.'
     else:
         grade = '중립적인(中)'
-        overall = '스스로의 의지와 선택이 중요한 해이에요. 방향을 잘 잡으면 잠재력을 충분히 발휘할 수 있어요.'
+        overall = '스스로의 의지와 선택이 중요한 해예요. 방향을 잘 잡으면 잠재력을 충분히 발휘할 수 있어요.'
 
     out = [
         f'**◈ {name}  {target_year}년 ({age}세) 연간 상세 운세**',
@@ -14870,7 +15086,7 @@ def analyze_sewoon_detail(name, pillars, target_year, daeun, birth_year):
 
     # 전반 총평
     out.append(f'\n### ⑥ 전반 총평')
-    out.append(f'  {target_year}년은 {name}님에게 {grade} 해이에요.')
+    out.append(f'  {target_year}년은 {name}님에게 {grade} 해예요.')
     out.append(f'  {overall}')
     if yong_note:
         out.append(f'  용신 {yongshin_name}의 기운을 더욱 가까이하면 이 해의 복록이 극대화돼요.')
