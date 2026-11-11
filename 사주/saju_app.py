@@ -4,7 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
-APP_VERSION = "v2026.11.12.01"
+APP_VERSION = "v2026.11.12.02"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -24,7 +24,7 @@ from saju import (
     JIJANGAN, JIJANGAN_IDX, JIJI_EUYANG, OHAENG_IDX, OHAENG_IDX_J,
     _SAL_DESC, _SAL_MODERN, _SEWOON_SS_DESC, _sewoon_ss,
     OHAENG_NAMES,
-    get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin, ilchin_grade,
+    get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin, ilchin_grade, un_grade, sewoon_ss_text,
     analyze_romantic_type, judge_strength, get_strength_detail,
     get_gyeokguk, get_yongshin, _year_pillar, get_gyeok_clarity, get_cheongan_hwa, get_sangshin, get_johu_desc, get_job_aptitude, get_jiji_hyeong,
     YUKAHP, CHUNG as JIJI_CHUNG, _CHUNGAN_HAP, SAMHAP, _BANGHAP, HYEONG_3,
@@ -3258,7 +3258,9 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gen
     _sw_gm = get_gongmang(*pillars[2])
     for y, age, yg, yj in sewoon:
         ss_g, ss_j = _sewoon_ss(ilgan, yg, yj)
-        grade, desc = _SEWOON_SS_DESC.get(ss_g, ('중립', ''))
+        # 등급은 십성(정재=길…)이 아니라 용신·기신 기준 — 아래 세운 해설과 같은 판정(un_grade)
+        grade = un_grade(pillars, yg, yj)['grade']
+        desc = sewoon_ss_text(ss_g, pillars)
         tc, bg, bd, icon = _GRADE_TL.get(grade, ('#374151','#f9fafb','#e5e7eb','→'))
         is_cur = (y == cur)
         dot_bg = tc if not is_cur else '#f59e0b'
@@ -3396,7 +3398,10 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
             cur_idx = i
         ss_g = get_sipseong(ilgan, OHAENG_IDX[mg], mg % 2)
         ss_j = get_sipseong(ilgan, OHAENG_IDX_J[mj], JIJI_EUYANG[mj])
-        grade, desc = _SEWOON_SS_DESC.get(ss_g, ('중립', ''))
+        # 등급은 용신·기신 기준(un_grade). 문구는 세운용이라 '한 해'를 '한 달'로 바꿔 쓴다
+        _mgr = un_grade(pillars, mg, mj)
+        grade = _mgr['grade']
+        desc = sewoon_ss_text(ss_g, pillars).replace('한 해예요', '한 달이에요').replace('한 해', '한 달').replace('이 해', '이달')
         mg_oh = OHAENG_NAMES[OHAENG_IDX[mg]]
         months.append({
             'label': label,
@@ -3408,8 +3413,9 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
             'desc': desc,
             'is_cur': is_cur,
             'is_next': False,
-            'is_yong': mg_oh == ya_name,
-            'is_ki':   mg_oh in ki_ohs,
+            # 월운 해설의 용신달·기신달 표시와 같은 기준 (천간·지지 모두 봄, 섞인 달은 표시 안 함)
+            'is_yong': _mgr['yong_in'] and not _mgr['ki_in'],
+            'is_ki':   bool(_mgr['ki_in']) and not _mgr['yong_in'],
         })
 
     if cur_idx is not None and cur_idx + 1 < len(months):
