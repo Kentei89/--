@@ -4,7 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
-APP_VERSION = "v2026.11.11.09"
+APP_VERSION = "v2026.11.12.01"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -21,10 +21,10 @@ from saju import (
     analyze_ohaeng, analyze_ohaeng_strength, get_gongmang,
     get_12unsung, get_sipseong,
     CHEONGAN, JIJI, OHAENG_G, OHAENG_J, ANIMALS,
-    JIJANGAN, JIJANGAN_IDX, OHAENG_IDX, OHAENG_IDX_J,
+    JIJANGAN, JIJANGAN_IDX, JIJI_EUYANG, OHAENG_IDX, OHAENG_IDX_J,
     _SAL_DESC, _SAL_MODERN, _SEWOON_SS_DESC, _sewoon_ss,
     OHAENG_NAMES,
-    get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin,
+    get_ilchin, get_yongki, analyze_ilchin_basic, analyze_ilchin_day, explain_yongshin, ilchin_grade,
     analyze_romantic_type, judge_strength, get_strength_detail,
     get_gyeokguk, get_yongshin, _year_pillar, get_gyeok_clarity, get_cheongan_hwa, get_sangshin, get_johu_desc, get_job_aptitude, get_jiji_hyeong,
     YUKAHP, CHUNG as JIJI_CHUNG, _CHUNGAN_HAP, SAMHAP, _BANGHAP, HYEONG_3,
@@ -1118,7 +1118,7 @@ def render_pillars_table(pillars, no_time=False):
         border  = f'2px solid {bdc}' if is_ilju else f'1px solid {bdc}'
         shadow  = '0 2px 14px rgba(0,0,0,0.12)' if is_ilju else '0 1px 4px rgba(0,0,0,0.06)'
         ss_g    = _ss_g(i)
-        ss_j    = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+        ss_j    = get_sipseong(ilgan, OHAENG_IDX_J[j], JIJI_EUYANG[j])
         unsung  = get_12unsung(ilgan, j)
         jijg    = ' '.join(JIJANGAN[j])
         _nm     = _get_naeum(g, j)
@@ -1232,7 +1232,7 @@ def _make_saju_summary(name, pillars, corr_dt, gender, no_time=False, cal_label=
     for i, hdr in zip(order, hdrs):
         g, j = pillars[i]
         ss_g = '일간' if i == 2 else get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
-        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], JIJI_EUYANG[j])
         unsung = get_12unsung(ilgan, j)
         lines.append(f'  {hdr}: 천간 {ss_g} / 지지 {ss_j} / {unsung}')
     lines.append('')
@@ -1286,7 +1286,7 @@ def _make_saju_basic(name, pillars, corr_dt, gender, no_time=False, cal_label="�
     for i, h in zip(order, hdrs):
         g, j = pillars[i]
         ss_g = '일간' if i == 2 else get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
-        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[j], JIJI_EUYANG[j])
         ss_parts.append(f'{h}(천간 {ss_g}/지지 {ss_j}/{get_12unsung(ilgan, j)})')
 
     # 오행 분포 (여덟 글자 단순 집계 — 가중치 없는 객관 카운트)
@@ -1346,7 +1346,7 @@ def _make_saju_html(name, pillars, corr_dt, gender, no_time=False, cal_label="�
     for idx, hdr in zip(order, hdrs):
         g, j    = pillars[idx]
         ss_g    = '일간' if idx == 2 else get_sipseong(ilgan, OHAENG_IDX[g], g % 2)
-        ss_j    = get_sipseong(ilgan, OHAENG_IDX_J[j], j % 2)
+        ss_j    = get_sipseong(ilgan, OHAENG_IDX_J[j], JIJI_EUYANG[j])
         unsung  = get_12unsung(ilgan, j)
         nm      = _get_naeum(g, j)
         nm_clr  = _NM_CLR.get(nm[2], '#374151')
@@ -1655,28 +1655,24 @@ def _card_now(pillars, daeun, start_age):
         _ya, _ki = get_yongki(pillars)
         _dg_oh = OHAENG_NAMES[OHAENG_IDX[_dg]]
         _dj_oh = OHAENG_NAMES[OHAENG_IDX_J[_dj]]
-        _is_yong = _dg_oh == _ya or _dj_oh == _ya
-        _is_ki   = _dg_oh in _ki or _dj_oh in _ki
-        _pair    = frozenset([pillars[2][1], _dj])
-        _is_hap  = _pair in YUKAHP
-        _is_chung = any(_pair == c for c in JIJI_CHUNG)
-        if _is_yong and not _is_ki:
-            _grade, _gc = '길일', '#166534'; _gbg = '#f0fdf4'; _gbd = '#bbf7d0'
-            _gmsg = f'용신({_ya}) 활성 — 오늘 적극 움직이세요'
-        elif _is_ki and _is_chung:
-            _grade, _gc = '반길', '#5b21b6'; _gbg = '#f5f0ff'; _gbd = '#ddd4f8'
-            _gmsg = f'충이 기신({", ".join(_ki)})을 깨뜨려요 — 막힌 일이 풀릴 수 있어요'
-        elif _is_ki:
-            _grade, _gc = '흉일', '#b91c1c'; _gbg = '#fef2f2'; _gbd = '#fecaca'
-            _gmsg = f'기신({", ".join(_ki)}) 주의 — 중요 결정은 미루세요'
-        elif _is_hap:
-            _grade, _gc = '합일', '#5b21b6'; _gbg = '#f5f0ff'; _gbd = '#ddd4f8'
+        # 판정은 엔진의 ilchin_grade 한 곳에서 — 달력 칸·일진 해설과 같은 기준
+        _ig = ilchin_grade(pillars, _dg, _dj)
+        _grade = _ig['grade']
+        _ki_txt = '·'.join(_ig['ki_in'])
+        _gc, _gbg, _gbd = '#5b21b6', '#f5f0ff', '#ddd4f8'
+        if _grade in ('대길', '길일'):
+            _gc, _gbg, _gbd = '#166534', '#f0fdf4', '#bbf7d0'
+            _gmsg = f'용신({_ya}) 기운이 들어오는 날 — 미뤄둔 일을 움직이기 좋아요'
+        elif _grade == '흉일':
+            _gc, _gbg, _gbd = '#b91c1c', '#fef2f2', '#fecaca'
+            _gmsg = f'기신({_ki_txt}) 기운이 강한 날 — 큰 결정은 미루세요'
+        elif _grade == '주의':
+            _gmsg = f'기신({_ki_txt}) 기운이 들어오는 날 — 무리하지 말고 평소대로'
+        elif _grade == '합일':
             _gmsg = '인연·만남에 좋은 날'
-        elif _is_chung:
-            _grade, _gc = '충일', '#5b21b6'; _gbg = '#f5f0ff'; _gbd = '#ddd4f8'
+        elif _grade == '충일':
             _gmsg = '변화·이동이 생기기 쉬운 날'
         else:
-            _grade, _gc = '평일', '#5b21b6'; _gbg = '#f5f0ff'; _gbd = '#ddd4f8'
             _gmsg = '평온하게 흘러가는 날'
 
         st.markdown(
@@ -2415,7 +2411,7 @@ def _daeun_sewoon_combo(pillars, daeun, target_year):
     dg_oh = OHAENG_NAMES[OHAENG_IDX[dg]]
     dj_oh = OHAENG_NAMES[OHAENG_IDX_J[dj]]
     dg_ss = get_sipseong(ilgan, OHAENG_IDX[dg], dg % 2)
-    dj_ss = get_sipseong(ilgan, OHAENG_IDX_J[dj], dj % 2)
+    dj_ss = get_sipseong(ilgan, OHAENG_IDX_J[dj], JIJI_EUYANG[dj])
 
     dae_is_yong = (dg_oh == ya_name or dj_oh == ya_name)
     dae_is_ki   = (dg_oh in ki_names or dj_oh in ki_names)
@@ -3399,7 +3395,7 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
         if is_cur:
             cur_idx = i
         ss_g = get_sipseong(ilgan, OHAENG_IDX[mg], mg % 2)
-        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[mj], mj % 2)
+        ss_j = get_sipseong(ilgan, OHAENG_IDX_J[mj], JIJI_EUYANG[mj])
         grade, desc = _SEWOON_SS_DESC.get(ss_g, ('중립', ''))
         mg_oh = OHAENG_NAMES[OHAENG_IDX[mg]]
         months.append({
@@ -3637,8 +3633,10 @@ def _render_ilchin_calendar(year, month, pillars=None):
         dg_oh = OHAENG_NAMES[OHAENG_IDX[dg]]
         is_yong = is_ki = hap = chung = False
         if pillars:
-            is_yong = dg_oh == ya_name or dj_oh == ya_name
-            is_ki   = dg_oh in ki_names or dj_oh in ki_names
+            # 용신·기신 표시는 엔진의 ilchin_grade 판정을 따른다 (기신이 한 글자만 있어도 표시하던 것 → 주의·흉일인 날만)
+            _ig = ilchin_grade(pillars, dg, dj)
+            is_yong = _ig['grade'] in ('대길', '길일')
+            is_ki   = _ig['grade'] in ('주의', '흉일')
             pair    = frozenset([ilji, dj])
             hap     = pair in YUKAHP
             chung   = any(pair == c for c in JIJI_CHUNG)
@@ -3930,10 +3928,11 @@ def _render_gunghap_visual(r):
     hap_list  = rel.get('합',[]) + rel.get('삼합',[]) + rel.get('방합',[]) + rel.get('천간합',[])
     neg_list  = rel.get('충',[]) + rel.get('원진',[]) + rel.get('형',[]) + rel.get('파',[]) + rel.get('해',[]) + rel.get('천간충',[])
     ilji_hap  = any('일지합' in rs for rs in reasons)
-    bae_both  = any('쌍방 배우자성' in rs or ('배우자성 +10' in rs and nb in rs) for rs in reasons)
-    bae_a     = any(f'[배우자성' in rs and nb in rs for rs in reasons)
-    bae_b     = any(f'[배우자성' in rs and na in rs for rs in reasons)
-    yong_comp = any('용신보완' in rs for rs in reasons)
+    # 근거 문장은 "[배우자성 +N] 가진사람이 상대의 배우자성(오행)을 …" 꼴. '조금 가짐'(약한 가점)은 끌림·보완으로 치지 않는다
+    bae_a     = any(rs.startswith('[배우자성') and f'] {nb}' in rs and '조금' not in rs for rs in reasons)
+    bae_b     = any(rs.startswith('[배우자성') and f'] {na}' in rs and '조금' not in rs for rs in reasons)
+    bae_both  = bae_a and bae_b
+    yong_comp = any('용신보완' in rs and '조금' not in rs for rs in reasons)
     oh_comp   = any('오행보완' in rs for rs in reasons)
 
     # ── 영역별 상성 4칸 (합·충 목록은 위쪽 '잘 맞는 점 / 부딪히는 점'으로 옮김) ──
