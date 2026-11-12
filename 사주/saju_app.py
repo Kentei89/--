@@ -4,7 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
-APP_VERSION = "v2026.11.12.03"
+APP_VERSION = "v2026.11.13.01"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -509,9 +509,14 @@ def _narr_sec(secs, *keys):
         st.caption("해당 내용이 없어요.")
 
 
+def _md(text: str) -> str:
+    """엔진 해설을 st.markdown에 넣기 전 처리 — '~'가 한 줄에 두 번 나오면 취소선으로 그려지므로 이스케이프한다."""
+    return (text or '').replace('~', '\\~')
+
+
 def _narr(text: str):
     import re
-    lines = [l.strip() for l in text.split('\n')]
+    lines = [l.strip() for l in _md(text).split('\n')]
     chunks: list[str] = []
     body_buf: list[str] = []
 
@@ -2465,6 +2470,11 @@ def _daeun_sewoon_combo(pillars, daeun, target_year):
         '',
         f'**[ {label} ]** {msg}{amplify}',
     ]
+    # 십성 조합 문구는 용신·기신을 모르고 쓴 것 — 기신이 걸린 해에는 빼거나 단서를 붙인다
+    if cross_text and label == '수비':
+        cross_text = ''
+    elif cross_text and label in ('주의', '경계', '완충'):
+        cross_text += ' 다만 기신이 걸려 있어 이 흐름은 기대보다 약하게 나타나요.'
     if cross_text:
         lines.append(f'> {cross_text}')
     if extra:
@@ -3277,11 +3287,11 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gen
         _hy, _wj = _sewoon_hyeong_wonjin(pil_jijis, yj)
         _hw_chips = ''.join(
             f'<span style="background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;'
-            f'padding:1px 7px;border-radius:8px;font-size:0.7rem;font-weight:600;margin-right:4px;">⚡ {h}</span>'
+            f'padding:1px 7px;border-radius:8px;font-size:0.7rem;white-space:nowrap;display:inline-block;margin-top:2px;font-weight:600;margin-right:4px;">⚡ {h}</span>'
             for h in _hy
         ) + ''.join(
             f'<span style="background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;'
-            f'padding:1px 7px;border-radius:8px;font-size:0.7rem;font-weight:600;margin-right:4px;">😤 {w}</span>'
+            f'padding:1px 7px;border-radius:8px;font-size:0.7rem;white-space:nowrap;display:inline-block;margin-top:2px;font-weight:600;margin-right:4px;">😤 {w}</span>'
             for w in _wj
         )
         _hw_row = f'<span style="margin-left:8px;">{_hw_chips}</span>' if _hw_chips else ''
@@ -3296,21 +3306,21 @@ def _render_sewoon_section(name, pillars, birth_year, daeun, card_id="main", gen
             _da_tag, _da_st = '', ''
         _da_chip = (
             f'<span style="{_da_st}padding:1px 7px;border-radius:8px;'
-            f'font-size:0.7rem;font-weight:700;margin-left:5px;">{_da_tag}</span>'
+            f'font-size:0.7rem;font-weight:700;margin-left:5px;white-space:nowrap;display:inline-block;">{_da_tag}</span>'
         ) if _da_tag else ''
         _cl = _get_combo_label(pillars, daeun, y)
         if _cl and _cl in _COMBO_CHIP:
             _ctc, _cbg, _cbd = _COMBO_CHIP[_cl]
             _combo_chip = (
                 f'<span style="color:{_ctc};background:{_cbg};border:1px solid {_cbd};'
-                f'padding:1px 7px;border-radius:8px;font-size:0.7rem;font-weight:700;margin-left:5px;">'
+                f'padding:1px 7px;border-radius:8px;font-size:0.7rem;white-space:nowrap;display:inline-block;margin-top:2px;font-weight:700;margin-left:5px;">'
                 f'대운×세운 {_cl}</span>'
             )
         else:
             _combo_chip = ''
         _gm_chip = (
             '<span style="background:#1f2937;color:#f9fafb;border:1px solid #374151;'
-            'padding:1px 7px;border-radius:8px;font-size:0.7rem;font-weight:700;margin-left:5px;">'
+            'padding:1px 7px;border-radius:8px;font-size:0.7rem;white-space:nowrap;display:inline-block;margin-top:2px;font-weight:700;margin-left:5px;">'
             '⬛ 공망</span>'
         ) if yj in _sw_gm else ''
         tl_html += (
@@ -3452,10 +3462,10 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
 </div>""", unsafe_allow_html=True)
             st.markdown("<div style='margin-top:4px;'></div>", unsafe_allow_html=True)
 
-    # ── 12달 미니 카드 그리드 ──
+    # ── 12달 미니 카드 그리드 ── (HTML 그리드 하나로: 화면 폭에 맞춰 칸 수가 바뀌고 순서가 유지된다)
     st.markdown("<div style='margin-top:14px; margin-bottom:6px; font-size:0.85rem; color:#555; font-weight:600;'>📅 월별 운세 한눈에 보기</div>", unsafe_allow_html=True)
-    grid_cols = st.columns(4)
-    for i, m in enumerate(months):
+    _gcards = []
+    for m in months:
         tc, bg, ac = _GRADE_COLOR.get(m['grade'], ('#546e7a', '#f5f5f5', '#78909c'))
         border_style = f'1px solid {ac}88'
         card_bg = bg
@@ -3467,24 +3477,26 @@ def _render_wolun_section(pillars, year, name="", card_id="main", rel_status='�
         elif m['is_next']:
             label_extra = ' ▷'
         if m['is_yong']:
-            _g_yk = '<div style="font-size:0.75rem;font-weight:700;color:#065f46;background:#d1fae5;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🟢 용신달</div>'
+            _g_yk = '<div style="font-size:0.7rem;font-weight:700;color:#065f46;background:#d1fae5;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;white-space:nowrap;">용신달</div>'
         elif m['is_ki']:
-            _g_yk = '<div style="font-size:0.75rem;font-weight:700;color:#991b1b;background:#fee2e2;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;">🔴 기신달</div>'
+            _g_yk = '<div style="font-size:0.7rem;font-weight:700;color:#991b1b;background:#fee2e2;border-radius:8px;padding:1px 6px;margin-top:3px;display:inline-block;white-space:nowrap;">기신달</div>'
         else:
             _g_yk = ''
-        with grid_cols[i % 4]:
-            st.markdown(f"""
-<div style="background:{card_bg}; border:{border_style}; border-radius:10px; padding:10px 8px; text-align:center; margin-bottom:10px;">
-  <div style="font-size:0.75rem; color:#888; margin-bottom:2px;">{m['label']}{label_extra}</div>
-  <div style="font-size:1.1rem; font-weight:700; margin-bottom:3px;">{m['gaji']}</div>
-  <div style="font-size:0.72rem; font-weight:600; color:{tc}; background:{ac}22; display:inline-block; padding:2px 7px; border-radius:10px; margin-bottom:2px;">{m['grade']}</div>
-  <div style="font-size:0.72rem; color:#777;">{_tip(m['ss_g'])}</div>
-  {_g_yk}
-</div>""", unsafe_allow_html=True)
+        _gcards.append(
+            f'<div style="background:{card_bg};border:{border_style};border-radius:10px;padding:8px 6px;text-align:center;">'
+            f'<div style="font-size:0.72rem;color:#888;margin-bottom:2px;white-space:nowrap;">{m["label"]} · {m["date"]}{label_extra}</div>'
+            f'<div style="font-size:1.05rem;font-weight:700;margin-bottom:3px;">{m["gaji"]}</div>'
+            f'<div style="font-size:0.72rem;font-weight:600;color:{tc};background:{ac}22;display:inline-block;padding:2px 7px;border-radius:10px;margin-bottom:2px;">{m["grade"]}</div>'
+            f'<div style="font-size:0.72rem;color:#777;">{_tip(m["ss_g"])}</div>'
+            f'{_g_yk}</div>'
+        )
+    st.markdown(
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;">'
+        + ''.join(_gcards) + '</div>', unsafe_allow_html=True)
 
     st.divider()
     with st.expander("월별 상세 해설", expanded=False):
-        st.markdown(analyze_wolun_detail(name, pillars, sel_year, rel_status=rel_status, gender=gender))
+        st.markdown(_md(analyze_wolun_detail(name, pillars, sel_year, rel_status=rel_status, gender=gender)))
 
 
 def _render_sal_detail(pillars):
@@ -3638,11 +3650,13 @@ def _render_ilchin_calendar(year, month, pillars=None):
         dj_oh = OHAENG_NAMES[OHAENG_IDX_J[dj]]
         dg_oh = OHAENG_NAMES[OHAENG_IDX[dg]]
         is_yong = is_ki = hap = chung = False
+        grade = None
         if pillars:
             # 용신·기신 표시는 엔진의 ilchin_grade 판정을 따른다 (기신이 한 글자만 있어도 표시하던 것 → 주의·흉일인 날만)
             _ig = ilchin_grade(pillars, dg, dj)
-            is_yong = _ig['grade'] in ('대길', '길일')
-            is_ki   = _ig['grade'] in ('주의', '흉일')
+            grade   = _ig['grade']
+            is_yong = grade in ('대길', '길일')
+            is_ki   = grade in ('주의', '흉일')
             pair    = frozenset([ilji, dj])
             hap     = pair in YUKAHP
             chung   = any(pair == c for c in JIJI_CHUNG)
@@ -3656,7 +3670,7 @@ def _render_ilchin_calendar(year, month, pillars=None):
             'lunar': lunar_str,
             'bg': _OH_BG.get(dj_oh, '#fff'),
             'is_yong': is_yong, 'is_ki': is_ki,
-            'hap': hap, 'chung': chung,
+            'hap': hap, 'chung': chung, 'grade': grade,
             'is_today': datetime(year, month, d).date() == today,
             'holiday': holiday_name,
         })
@@ -3694,42 +3708,30 @@ def _render_ilchin_calendar(year, month, pillars=None):
             is_sunday  = col_i == 0
             is_sat     = col_i == 6
 
-            _yong = cell['is_yong']; _ki = cell['is_ki']
+            _gr = cell['grade']
             _hap = cell['hap']; _chung = cell['chung']
+            # 등급별 (배경, 테두리색, 칩색, 칩 글자) — 날짜 해설의 판정(ilchin_grade)과 같은 값
+            _GR_STYLE = {
+                '대길': ('#c8f7d4', '#00897b', '#00897b', '대길'),
+                '길일': ('#e8f5e9', '#43a047', '#43a047', '길'),
+                '합일': (None,      '#1e88e5', '#1e88e5', '합'),
+                '충일': (None,      '#e53935', '#e53935', '충'),
+                '주의': ('#fff8e1', '#fb8c00', '#fb8c00', '주의'),
+                '흉일': ('#ffe9e6', '#c62828', '#c62828', '흉'),
+            }
+            _gs = _GR_STYLE.get(_gr)
 
-            # 배경: 조합 우선
             if cell['is_today']:
                 bg = '#ede7f6'
             elif is_holiday:
                 bg = '#fdecea'
-            elif _yong and _hap:
-                bg = '#b9f6ca'   # 대길 — 짙은 초록
-            elif _yong and _chung:
-                bg = '#e8f5e9'   # 길+변화 — 연초록
-            elif _ki and _chung:
-                bg = '#fff3e0'   # 반길(충이 기신 깨뜨림) — 연한 황색
-            elif _ki and _hap:
-                bg = '#fff8e1'   # 기신+합 — 옅은 노란
-            elif _yong:
-                bg = '#e8f5e9'
-            elif _ki:
-                bg = '#fff8e1'
+            elif _gs and _gs[0]:
+                bg = _gs[0]
             else:
                 bg = cell['bg']
 
-            # 테두리: 조합별 색상
-            if _yong and _hap:
-                bw, bc = '2px', '#00897b'   # 청록
-            elif _yong and _chung:
-                bw, bc = '2px', '#ff7043'   # 주황 (길+충돌)
-            elif _ki and _chung:
-                bw, bc = '2px', '#e53935'   # 빨강 (충)
-            elif _ki and _hap:
-                bw, bc = '2px', '#1e88e5'   # 파랑 (합)
-            elif _hap:
-                bw, bc = '2px', '#1e88e5'
-            elif _chung:
-                bw, bc = '2px', '#e53935'
+            if _gs:
+                bw, bc = '2px', _gs[1]
             else:
                 bw, bc = '1px', '#e0e0ec'
 
@@ -3755,23 +3757,9 @@ def _render_ilchin_calendar(year, month, pillars=None):
                 )
 
             tags = ''
-            if _yong and _hap:
-                tags += '<span style="font-size:0.72rem;background:#00897b;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+합</span>'
-            elif _yong and _chung:
-                tags += '<span style="font-size:0.72rem;background:#ff7043;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신+충</span>'
-            elif _ki and _chung:
-                tags += '<span style="font-size:0.72rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충→기신↓</span>'
-            elif _ki and _hap:
-                tags += '<span style="font-size:0.72rem;background:#7b1fa2;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신+합</span>'
-            else:
-                if _yong:
-                    tags += '<span style="font-size:0.72rem;background:#43a047;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">용신</span>'
-                if _ki:
-                    tags += '<span style="font-size:0.72rem;background:#fb8c00;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">기신</span>'
-                if _hap:
-                    tags += '<span style="font-size:0.72rem;background:#1e88e5;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">합</span>'
-                if _chung:
-                    tags += '<span style="font-size:0.72rem;background:#e53935;color:#fff;border-radius:3px;padding:0 2px;margin:0 1px 1px 0;display:inline-block;">충</span>'
+            if _gs:
+                tags = (f'<span style="font-size:0.72rem;background:{_gs[2]};color:#fff;border-radius:3px;'
+                        f'padding:0 3px;margin:0 1px 1px 0;display:inline-block;white-space:nowrap;">{_gs[3]}</span>')
 
             html.append(
                 f'<td style="border:{bw} solid {bc};background:{bg};padding:4px 3px 3px 4px;'
@@ -3795,11 +3783,9 @@ def _render_ilchin_calendar(year, month, pillars=None):
            '<span><i style="background:#ede7f6;outline:2px solid #7c4dff;"></i>오늘</span>'
            '<span><i style="background:#fdecea;"></i>공휴일</span>')
     if pillars:
-        _lg += ('<span><i style="background:#e8f5e9;"></i>용신 날</span>'
-                '<span><i style="background:#fff8e1;"></i>기신 날</span><br>')
-        for _lt, _lc in (('용신', '#43a047'), ('기신', '#fb8c00'), ('합', '#1e88e5'), ('충', '#e53935'),
-                         ('용신+합', '#00897b'), ('용신+충', '#ff7043'), ('충→기신↓', '#e53935'),
-                         ('기신+합', '#7b1fa2')):
+        _lg += '<br>'
+        for _lt, _lc in (('대길', '#00897b'), ('길', '#43a047'), ('합', '#1e88e5'), ('충', '#e53935'),
+                         ('주의', '#fb8c00'), ('흉', '#c62828')):
             _lg += f'<span><b style="background:{_lc};">{_lt}</b></span>'
     _lg += ('<br><span>그 외 칸 색 = 그날 지지의 오행</span>'
             + ''.join(f'<span><i style="background:{_c};"></i>{_o}</span>' for _o, _c in _OH_BG.items())
@@ -3810,14 +3796,14 @@ def _render_ilchin_calendar(year, month, pillars=None):
             st.markdown("""
 | 표시 | 의미 |
 |------|------|
-| **용신(用神)** | 내 사주에 **필요한 기운**이 흐르는 날. 하고자 하는 일이 잘 풀리는 편. |
-| **기신(忌神)** | 내 사주에 **해로운 기운**이 흐르는 날. 중요한 결정·계약·시작은 피하는 게 좋음. |
-| **합(合)** | 일진이 내 사주와 **끌어당겨 합쳐지는** 날. 인연·만남·결합에 유리. |
-| **충(沖)** | 일진이 내 사주와 **충돌하는** 날. 변화·이동이 생기기 쉬움. |
-| **용신+합** | ★★ 대길 — 좋은 기운이 더욱 강화. 중요한 일 추진 최적. |
-| **용신+충** | ★◎ 길+변화 — 좋은 기운이 흔들리지만 돌파의 기회도 있음. 조심하되 과감하게. |
-| **충→기신↓** | △ 반길 — 충이 기신을 깨뜨려 해로운 기운이 흩어짐. 막혔던 일이 풀릴 수 있음. |
-| **기신+합** | ▽ 주의 — 기신이 합으로 완화되지만 완전히 사라지진 않음. 큰 결정은 신중하게. |
+| **대길** | 용신 기운이 강하게 들어오는 날. 미뤄둔 일을 움직이기 좋음. |
+| **길** | 용신 기운이 들어오는 날. 흐름이 순조로운 편. |
+| **합** | 일진이 내 일지와 합을 이루는 날. 인연·만남·결합에 유리. |
+| **충** | 일진이 내 일지와 충돌하는 날. 변화·이동이 생기기 쉬움. |
+| **주의** | 기신 기운이 들어오는 날. 무리하지 말고 평소대로. |
+| **흉** | 기신 기운이 강한 날. 큰 결정·계약·다툼은 다른 날로. |
+
+용신(用神)은 내 사주에 필요한 기운, 기신(忌神)은 부담이 되는 기운이에요. 아래 날짜별 상세 분석과 같은 기준으로 표시해요.
 """)
 
 
@@ -3942,9 +3928,20 @@ def _render_gunghap_visual(r):
     oh_comp   = any('오행보완' in rs for rs in reasons)
 
     # ── 영역별 상성 4칸 (합·충 목록은 위쪽 '잘 맞는 점 / 부딪히는 점'으로 옮김) ──
-    comm_ok   = True if rel.get('천간합') else ('warn' if rel.get('천간충') else None)
-    pull_ok   = True if (ilji_hap or bae_both) else (True if (bae_a or bae_b) else None)
-    long_ok   = True if (rel.get('삼합') or rel.get('방합') or yong_comp) else (True if oh_comp else None)
+    # 합과 충이 같이 있으면 보통, 일지가 충·원진이면 끌림은 한 단계 낮춤, 장기 상성은 세 글자가 다 모인 삼합·방합이나 뚜렷한 용신 보완만 '좋음'
+    _ilji_bad = any(rs.startswith(('[일지충', '[일지원진')) for rs in reasons)
+    _full_hap = [h for h in rel.get('삼합', []) + rel.get('방합', []) if '반' not in h]
+    if rel.get('천간합') and rel.get('천간충'):
+        comm_ok = None
+    else:
+        comm_ok = True if rel.get('천간합') else ('warn' if rel.get('천간충') else None)
+    if ilji_hap or (bae_both and not _ilji_bad):
+        pull_ok = True
+    elif _ilji_bad:
+        pull_ok = None if (bae_a or bae_b) else 'warn'
+    else:
+        pull_ok = True if (bae_a or bae_b) else None
+    long_ok   = True if ((_full_hap or yong_comp) and score >= 50) else None
     risk_cnt  = len(neg_list)
     risk_ok   = None if risk_cnt == 0 else ('warn' if risk_cnt <= 2 else False)
     _BADGE = {'good': ('#f0fdf4', '#166534'), 'warn': ('#fef2f2', '#b91c1c'), 'mid': ('#f3efff', '#6b5b95')}
@@ -4390,7 +4387,7 @@ with tab4:
         )
     with col_b:
         if cal_pillars:
-            st.markdown(analyze_ilchin_day(cal_pillars, cal_year, cal_month, sel_day))
+            st.markdown(_md(analyze_ilchin_day(cal_pillars, cal_year, cal_month, sel_day)))
         else:
             st.markdown(analyze_ilchin_basic(cal_year, cal_month, sel_day))
 

@@ -1,4 +1,6 @@
 # ── 사주 엔진 변경 이력 ────────────────────────────────
+# v2026.11.13.01 (2026-11-13)
+#   · 화면 점검 반영: 올해 운세 강약 표기 8단계로, 기대·조심달을 양력 기간으로, 재회 해설 문체·줄바꿈.
 # v2026.11.12.03 (2026-11-12)
 #   · 궁합(직장·형제·부모·자식·썸) 문구: 해요체로 통일, 직장 궁합의 '나' 호칭을 이름으로, 부모·자식의 인성·자식성
 #     '존재' 판정을 점수와 같은 기준으로, 결혼·썸 궁합의 헤어짐 가정 문장 수정.
@@ -47,7 +49,7 @@
 #     (실제 KASI 절기와 초 단위 일치, 절기 경계 출생자 정확도 개선)
 #   · 해설 다듬기: 신살/표현 중복 제거, 문장 접합 버그·오타 수정,
 #     날것 한자(格局) 한글화, 성격 결핍 나열에 긍정 마무리 추가
-ENGINE_VERSION = '2026.11.12.03'
+ENGINE_VERSION = '2026.11.13.01'
 
 import sys, math
 from datetime import datetime, timedelta, timezone
@@ -4062,7 +4064,8 @@ def _jeolgi_month_label(target_year, mon):
         lon_e = (lon_s + 30) % 360
         y_e = target_year + (1 if mon == 11 else 0)
         e = solar_term(y_e, lon_e)
-    return f'{mon}월({s.month}/{s.day}~{e.month}/{e.day})'   # 끝 날짜 = 다음 절입일(그날 절입 시각까지)
+    # '1월(2/4~3/5)'처럼 쓰면 양력 1월로 읽혀 헷갈린다 — 양력 기간만 쓴다. 끝 날짜 = 다음 절입일(그날 절입 시각까지)
+    return f'{s.month}/{s.day}~{e.month}/{e.day}'
 
 
 def _sewoon_natal_points(pillars, yg, yj, ya_name, ki_names):
@@ -4169,7 +4172,7 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
     lines = [
         f'## {mark} — {yg_name}{yj_name}년  ({age}세)',
         '',
-        f'**{name}님**은 **{ilgan_name}일간** {gyeok_name}이에요. ({strength})',
+        f'**{name}님**은 **{ilgan_name}일간** {gyeok_name}이에요. ({get_strength_detail(pillars)[0]})',
         f'올해 {yg_name}{yj_name}년은 천간·지지 모두 **{ss_g}·{ss_j}** 기운으로 들어와요.',
     ]
 
@@ -4340,22 +4343,31 @@ def analyze_this_year(name, pillars, birth_year, target_year, rel_status='솔로
         lines.append('')
         lines.append(f'**📊 {target_year}년 기대달 · 조심달**')
         lines.append('')
-        lines.append('_사주의 달은 절기로 바뀌어요. 괄호 안이 양력 기간이에요._')
+        lines.append('_사주의 달은 절기(입춘·경칩 등)로 바뀌어서 양력 1일과 맞지 않아요. 아래는 양력 기간이에요._')
         lines.append('')
-        lines.append('| 구분 | 달 | 이유 |')
-        lines.append('|:--|:--|:--|')
+        if _good_months:
+            lines.append('**기대달**')
+            lines.append('')
+            lines.append('| 기간 | 이유 |')
+            lines.append('|:--|:--|')
         for _m, _s in _good_months:
             _pr, _nr, _ss = _mon_reason[_m]
             _col_r = ' + '.join(_pr) if _pr else '흐름이 좋은 달'
             _col_t = _SS_GOOD_TIP.get(_ss, '') if f'{_ss}운' in _pr else ''
             _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
-            lines.append(f'| 🌟 기대 | **{_KMB[_m-1]}** | {_col} |')
+            lines.append(f'| **{_KMB[_m-1]}** | {_col} |')
+        if _bad_months:
+            lines.append('')
+            lines.append('**조심달**')
+            lines.append('')
+            lines.append('| 기간 | 이유 |')
+            lines.append('|:--|:--|')
         for _m, _s in _bad_months:
             _pr, _nr, _ss = _mon_reason[_m]
             _col_r = ' + '.join(_nr) if _nr else '주의가 필요한 달'
             _col_t = _SS_BAD_TIP.get(_ss, '') if f'{_ss}운' in _nr else ''
             _col = f'{_col_r} — {_col_t}' if _col_t else _col_r
-            lines.append(f'| ⚠️ 조심 | **{_KMB[_m-1]}** | {_col} |')
+            lines.append(f'| **{_KMB[_m-1]}** | {_col} |')
         lines.append('')
         lines.append('---')
         lines.append('')
@@ -13665,7 +13677,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         out.append(
             f'  일지합({YUKAHP[fs_ij]}) — 배우자궁이 합을 이루는 강한 인연이에요.\n'
             f'  사주에서 일지는 배우자와의 인연을 가장 직접적으로 나타내는 자리인데, 두 분이 여기서 합을 이루고 있어요.\n'
-            f'  한번 맺어진 인연이 쉽게 끊어지지 않는 구조로 헤어진 후에도 서로를 완전히 잊기 어렵습니다.\n'
+            f'  한번 맺어진 인연이 쉽게 끊어지지 않는 구조로 헤어진 후에도 서로를 완전히 잊기 어려워요.\n'
             f'  이 합의 에너지가 재회의 가장 강력한 근거가 돼요.\n'
             f'  두 분이 다시 만나면 처음처럼 자연스럽게 이어지는 느낌을 받을 가능성이 높아요.\n'
             f'  재회 후 관계를 더욱 안정적으로 만드는 구조적 힘이 있으니 이 인연을 소중히 여기세요.'
@@ -13675,7 +13687,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  일지충({JIJI[da]}{JIJI[db]}충) — 강하게 끌리지만 함께하면 부딪히는 패턴이 반복되는 인연이에요.\n'
             f'  일지충은 서로를 강하게 자극하는 에너지로, 처음 만났을 때 강렬한 끌림을 만들어요.\n'
             f'  그러나 그 강한 에너지가 갈등과 충돌로 이어지는 양면이 있어요.\n'
-            f'  재회하더라도 이전과 같은 소통 방식이라면 같은 갈등이 반복될 가능성이 높습니다.\n'
+            f'  재회하더라도 이전과 같은 소통 방식이라면 같은 갈등이 반복될 가능성이 높아요.\n'
             f'  재회 전 두 분이 충분히 성장하고 소통 방식을 바꾸는 것이 반드시 선행되어야 해요.\n'
             f'  충(沖) 인연은 서로를 가장 많이 성장시키는 인연이기도 해요. 준비가 된 재회라면 이전보다 훨씬 깊은 관계가 될 수 있어요.'
         )
@@ -13771,7 +13783,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
             f'  {nb}님은 올해 세운에서 {ss_b}{_jp(ss_b, "이", "가")} 들어와 이성 인연 에너지가 강한 시기예요.\n'
             f'  {nb}님 쪽에서 먼저 연락해오거나 그리움을 표현할 가능성이 있어요.\n'
             f'  {na}님은 {ss_a} 운으로 현재 내실을 다지는 시기이므로,\n'
-            f'  연락이 왔을 때 감정이 충분히 정리된 상태에서 응하는 것이 더 깊은 대화로 이어집니다.'
+            f'  연락이 왔을 때 감정이 충분히 정리된 상태에서 응하는 것이 더 깊은 대화로 이어져요.'
         )
     else:
         out.append(
@@ -13799,7 +13811,7 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
     elif hap_cnt > chung_cnt:
         out.append(
             f'  합의 기운({hap_str})이 충·형·원진보다 많아요.\n'
-            f'  재회 후 관계가 이전보다 더 안정되고 성숙해질 가능성이 높습니다.\n'
+            f'  재회 후 관계가 이전보다 더 안정되고 성숙해질 가능성이 높아요.\n'
             f'  이별을 통해 서로를 더 이해하게 된 만큼, 두 번째 관계가 더 깊어지는 구조예요.\n'
             f'  재회 후 초기 3개월이 관계의 방향을 결정하는 핵심 시기예요.'
         )
@@ -14103,20 +14115,18 @@ def analyze_jaehoe(pa, pb, na, nb, score, reasons, rel,
         if bad_rels >= 3:
             signals.append(
                 f'  • 사주 전반에 충·형·원진이 {bad_rels}개 — 관계 에너지가 갈등 쪽으로 치우쳐 있어요.\n'
-                f'    재회 후에도 같은 이유로 다시 헤어질 가능성이 통계적으로 높습니다.'
+                f'    재회 후에도 같은 이유로 다시 헤어질 가능성이 높아요.'
             )
         if score < 45:
             signals.append(
-                f'  • 종합 재회 점수 {score}점 — 현 시점의 운 흐름이 재회에 우호적이지 않습니다.\n'
+                f'  • 종합 재회 점수 {score}점 — 현 시점의 운 흐름이 재회에 우호적이지 않아요.\n'
                 f'    운이 좋아지는 시기를 기다리거나, 각자의 성장에 집중하는 것이 현명해요.'
             )
         for s in signals:
             out.append(s)
         out.append(
-            f'\n  ⚠ 위 신호가 강하게 해당된다면, 재회 자체보다 "왜 헤어졌는지"를\n'
-            f'    다시 한번 냉정하게 돌아보는 시간이 필요해요.\n'
-            f'    각자의 길에서 성장한 후 운이 바뀌는 시기에 자연스럽게 재회하는 것이\n'
-            f'    더 오래가는 관계를 만드는 지혜로운 방법일 수 있어요.'
+            f'\n  ⚠ 위 신호가 강하게 해당된다면, 재회 자체보다 "왜 헤어졌는지"를 다시 한번 냉정하게 돌아보는 시간이 필요해요. '
+            f'각자의 길에서 성장한 후 운이 바뀌는 시기에 자연스럽게 재회하는 것이 더 오래가는 관계를 만드는 방법일 수 있어요.'
         )
 
 
