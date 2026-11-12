@@ -4,7 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
-APP_VERSION = "v2026.11.12.02"
+APP_VERSION = "v2026.11.12.03"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
