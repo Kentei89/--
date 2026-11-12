@@ -4,7 +4,7 @@ import pandas as pd
 import calendar as _cal_mod
 from datetime import datetime, timedelta, timezone
 _KST = timezone(timedelta(hours=9))
-APP_VERSION = "v2026.11.13.01"
+APP_VERSION = "v2026.11.13.02"
 import sys, os, json
 from korean_lunar_calendar import KoreanLunarCalendar
 import firebase_admin
@@ -4171,6 +4171,8 @@ with tab2:
             f'<div class="score-label">{_html.escape(r["na"])} × {_html.escape(r["nb"])}  |  {r["chosen_label"]}  |  {grades[gi]}</div>'
             f'</div>', unsafe_allow_html=True,
         )
+        if r['rel_type'] == '전연인':
+            st.caption("재회 탭과 같은 기준의 점수예요. 차단 여부를 반영한 점수와 재회 시기는 재회 탭에서 볼 수 있어요.")
         _render_key_points(r['reasons'])
         _render_gunghap_visual(r)
         _narr(r['narr_text'])
@@ -4359,11 +4361,10 @@ with tab4:
         key="cal_sel_day",
     ))
 
-    try:
-        dg_d, dj_d = get_ilchin(cal_year, cal_month, sel_day)
-    except Exception:
-        st.error("올바른 날짜를 선택하세요.")
-        st.stop()
+    # 날짜칸 최대값이 그 달 날수로 제한돼 있지만, 혹시 넘는 값이 들어와도 그 달 마지막 날로 맞춘다
+    # (예전엔 st.stop()으로 멈춰서 아래 상담 탭까지 그려지지 않았다)
+    sel_day = max(1, min(sel_day, max_day))
+    dg_d, dj_d = get_ilchin(cal_year, cal_month, sel_day)
 
     col_a, col_b = st.columns([1, 3])
     with col_a:

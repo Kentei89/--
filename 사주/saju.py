@@ -1,4 +1,6 @@
 # ── 사주 엔진 변경 이력 ────────────────────────────────
+# v2026.11.13.02 (2026-11-13)
+#   · 궁합 '전연인' 점수를 재회 탭과 같은 계산(재회운_분석)으로 통일.
 # v2026.11.13.01 (2026-11-13)
 #   · 화면 점검 반영: 올해 운세 강약 표기 8단계로, 기대·조심달을 양력 기간으로, 재회 해설 문체·줄바꿈.
 # v2026.11.12.03 (2026-11-12)
@@ -49,7 +51,7 @@
 #     (실제 KASI 절기와 초 단위 일치, 절기 경계 출생자 정확도 개선)
 #   · 해설 다듬기: 신살/표현 중복 제거, 문장 접합 버그·오타 수정,
 #     날것 한자(格局) 한글화, 성격 결핍 나열에 긍정 마무리 추가
-ENGINE_VERSION = '2026.11.13.01'
+ENGINE_VERSION = '2026.11.13.02'
 
 import sys, math
 from datetime import datetime, timedelta, timezone
@@ -11832,6 +11834,9 @@ def _gh_have(pillars, oh_name, w):
 
 
 def _score_gunghap_typed(pa, pb, na, nb, rel_type, is_male_a=None, is_male_b=None):
+    if rel_type == '전연인':
+        # 같은 두 사람이 궁합 탭(전연인)과 재회 탭에서 다른 점수로 나오던 것 — 재회 탭과 같은 계산을 쓴다
+        return 재회운_분석(pa, pb, na, nb, is_male_a, is_male_b)
     ja = [p[1] for p in pa]; jb = [p[1] for p in pb]
     ia, ib = pa[2][0], pb[2][0]
     wkey = rel_type if rel_type in _GH_WEIGHTS else '직장_동료'
