@@ -4,29 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>리뷰 작성</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="리뷰">
+    <meta name="theme-color" content="#f4f4f4">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body {
-            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
             background: #f4f4f4;
             min-height: 100vh;
-            padding: 20px 14px 40px;
+            padding: 10px 10px 24px;
+            padding-top: max(10px, env(safe-area-inset-top));
         }
-        .wrap { max-width: 600px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h1 { font-size: 22px; color: #e63312; margin-bottom: 4px; }
-        .header p { font-size: 13px; color: #999; }
+        .wrap { max-width: 520px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 8px; }
+        .header h1 { font-size: 17px; color: #e63312; margin-bottom: 1px; }
+        .header p { font-size: 11px; color: #aaa; }
         .card {
-            background: white; border-radius: 14px;
-            padding: 20px; margin-bottom: 14px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            background: white; border-radius: 12px;
+            padding: 12px 13px; margin-bottom: 10px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
         }
         .platform-tabs {
-            display: flex; gap: 8px; margin-bottom: 16px;
+            display: flex; gap: 6px; margin-bottom: 4px;
         }
         .platform-tab {
-            flex: 1; padding: 11px 0; border: 1.5px solid #e0e0e0;
-            border-radius: 9px; background: white; font-size: 14px;
+            flex: 1; padding: 7px 0; border: 1.5px solid #e0e0e0;
+            border-radius: 8px; background: white; font-size: 13px;
             font-weight: bold; font-family: inherit; cursor: pointer;
             color: #999; transition: all 0.15s;
         }
@@ -34,67 +42,83 @@
             background: #e63312; border-color: #e63312; color: white;
         }
         .tone-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            display: grid; grid-template-columns: 34px repeat(4, 1fr);
+            align-items: center; gap: 5px; margin-bottom: 6px;
         }
         .tone-row-label {
-            font-size: 13px; font-weight: bold; color: #888; white-space: nowrap; min-width: 36px;
+            font-size: 12px; font-weight: bold; color: #888; white-space: nowrap; min-width: 34px;
         }
         .tone-btn {
-            padding: 6px 14px; border: 1.5px solid #e0e0e0; border-radius: 20px;
-            background: white; font-size: 13px; font-family: inherit;
+            padding: 5px 0; border: 1.5px solid #e0e0e0; border-radius: 16px;
+            background: white; font-size: 12px; font-family: inherit;
             cursor: pointer; color: #aaa; transition: all 0.15s;
         }
         .tone-btn.active {
             background: #333; border-color: #333; color: white; font-weight: bold;
         }
+        .tone-summary {
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            margin-top: 9px; padding: 7px 10px; background: #f7f7f7; border-radius: 8px;
+        }
+        .tone-summary-label { font-size: 12px; font-weight: bold; color: #888; }
+        .tone-summary-value { font-size: 13px; font-weight: bold; color: #333; flex: 1; }
+        .tone-summary-edit { font-size: 12px; color: #e63312; }
+        #toneRows { margin-top: 7px; }
+        .star-row { display: flex; gap: 5px; }
+        .star {
+            flex: 1; padding: 3px 0; border: 1.5px solid #e0e0e0; border-radius: 8px;
+            background: white; font-size: 21px; line-height: 1.25; font-family: inherit;
+            color: #d8d8d8; cursor: pointer;
+        }
+        .star.on { color: #f5a623; border-color: #f3d79c; background: #fffaf0; }
         .experience-box {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 8px;
             background: #fff8f5; border: 1px solid #ffd0c0;
-            border-radius: 10px; padding: 14px 16px; cursor: pointer;
+            border-radius: 8px; padding: 7px 10px; cursor: pointer; margin-top: 8px;
         }
         .experience-box input[type="checkbox"] {
-            width: 20px; height: 20px; accent-color: #e63312; flex-shrink: 0;
+            width: 17px; height: 17px; accent-color: #e63312; flex-shrink: 0;
         }
         .experience-box .text-wrap label {
-            font-size: 14px; color: #c0392b; font-weight: bold; display: block;
+            font-size: 13px; color: #c0392b; font-weight: bold; display: inline; margin-right: 6px;
         }
-        .experience-box .text-wrap span { font-size: 12px; color: #aaa; }
+        .experience-box .text-wrap span { font-size: 11px; color: #aaa; }
         .field-label {
-            font-size: 14px; font-weight: bold; color: #333;
-            margin-top: 18px; margin-bottom: 8px; display: block;
+            font-size: 13px; font-weight: bold; color: #333;
+            margin-top: 11px; margin-bottom: 5px; display: block;
         }
         .field-label em { color: #e63312; font-style: normal; }
-        .field-label .opt { color: #aaa; font-size: 12px; font-weight: normal; margin-left: 4px; }
+        .field-label .opt { color: #aaa; font-size: 11px; font-weight: normal; margin-left: 3px; }
         input[type="text"] {
-            width: 100%; padding: 13px 14px; border: 1.5px solid #e0e0e0;
-            border-radius: 9px; font-size: 15px; font-family: inherit;
+            width: 100%; padding: 8px 11px; border: 1.5px solid #e0e0e0;
+            border-radius: 8px; font-size: 16px; font-family: inherit;
             outline: none; -webkit-appearance: none;
         }
         input[type="text"]:focus { border-color: #e63312; }
         textarea {
-            width: 100%; padding: 12px 14px; border: 1.5px solid #e0e0e0;
-            border-radius: 9px; font-size: 14px; font-family: inherit;
-            outline: none; resize: vertical; min-height: 90px;
-            line-height: 1.6; -webkit-appearance: none;
+            width: 100%; padding: 8px 11px; border: 1.5px solid #e0e0e0;
+            border-radius: 8px; font-size: 16px; font-family: inherit;
+            outline: none; resize: vertical; min-height: 62px;
+            line-height: 1.45; -webkit-appearance: none;
         }
         textarea:focus { border-color: #e63312; }
         .upload-area {
-            border: 2px dashed #ddd; border-radius: 10px; padding: 26px;
-            text-align: center; cursor: pointer; color: #bbb; font-size: 14px;
+            border: 1.5px dashed #ddd; border-radius: 8px; padding: 9px;
+            text-align: center; cursor: pointer; color: #aaa; font-size: 13px;
         }
-        .upload-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+        .upload-icon { font-size: 16px; display: inline; margin-right: 4px; vertical-align: -1px; }
         #imagePreview {
-            width: 100%; max-height: 200px; object-fit: contain;
-            border-radius: 10px; margin-top: 12px; display: none; border: 1px solid #eee;
+            width: 100%; max-height: 130px; object-fit: contain;
+            border-radius: 8px; margin-top: 8px; display: none; border: 1px solid #eee;
         }
         .generate-btn {
             width: 100%; background: #e63312; color: white; border: none;
-            border-radius: 10px; padding: 16px; font-size: 16px;
-            font-weight: bold; font-family: inherit; cursor: pointer; margin-top: 20px;
+            border-radius: 9px; padding: 12px; font-size: 15px;
+            font-weight: bold; font-family: inherit; cursor: pointer; margin-top: 12px;
         }
         .generate-btn:disabled { background: #ccc; }
         .result-card { display: none; }
-        .loading { text-align: center; padding: 28px; color: #999; font-size: 14px; }
+        .loading { text-align: center; padding: 18px; color: #999; font-size: 13px; }
         .spinner {
             display: inline-block; width: 20px; height: 20px;
             border: 3px solid #eee; border-top-color: #e63312;
@@ -107,37 +131,38 @@
             border-radius: 10px; padding: 14px; color: #c0392b;
             font-size: 13px; display: none;
         }
-        .result-block { margin-bottom: 16px; }
+        .result-block { margin-bottom: 10px; }
         .result-header {
             display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 8px;
+            align-items: center; margin-bottom: 5px;
         }
         .result-tag {
-            font-size: 12px; font-weight: bold; color: #fff;
-            background: #e63312; padding: 3px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: bold; color: #fff;
+            background: #e63312; padding: 2px 9px; border-radius: 12px;
         }
-        .char-info { font-size: 12px; color: #aaa; }
+        .char-info { font-size: 11px; color: #aaa; }
         .char-info.warn { color: #e63312; }
         .result-box {
-            background: #fafafa; border: 1px solid #eee; border-radius: 10px;
-            padding: 14px; font-size: 14px; line-height: 1.8;
+            background: #fafafa; border: 1px solid #eee; border-radius: 8px;
+            padding: 10px 11px; font-size: 13.5px; line-height: 1.65;
             white-space: pre-wrap; color: #333; word-break: keep-all;
         }
         .copy-btn {
-            display: block; width: 100%; margin-top: 8px; background: #f5f5f5;
-            border: 1px solid #ddd; border-radius: 8px; padding: 12px;
-            font-size: 14px; font-family: inherit; cursor: pointer; color: #555;
+            display: block; width: 100%; margin-top: 6px; background: #f5f5f5;
+            border: 1px solid #ddd; border-radius: 8px; padding: 8px;
+            font-size: 13px; font-family: inherit; cursor: pointer; color: #555;
         }
-        .divider { border: none; border-top: 1px solid #f0f0f0; margin: 18px 0; }
+        .divider { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
+        .btn-row { display: flex; gap: 6px; }
         .regen-btn {
-            width: 100%; background: white; color: #e63312;
-            border: 1.5px solid #e63312; border-radius: 10px; padding: 14px;
-            font-size: 14px; font-weight: bold; font-family: inherit; cursor: pointer;
+            flex: 1; background: white; color: #e63312;
+            border: 1.5px solid #e63312; border-radius: 9px; padding: 10px;
+            font-size: 13px; font-weight: bold; font-family: inherit; cursor: pointer;
         }
         .reset-btn {
-            width: 100%; margin-top: 10px; background: white; color: #888;
-            border: 1.5px solid #ddd; border-radius: 10px; padding: 14px;
-            font-size: 14px; font-weight: bold; font-family: inherit; cursor: pointer;
+            flex: 1; background: white; color: #888;
+            border: 1.5px solid #ddd; border-radius: 9px; padding: 10px;
+            font-size: 13px; font-weight: bold; font-family: inherit; cursor: pointer;
         }
     </style>
 </head>
@@ -156,25 +181,31 @@
             <button class="platform-tab" data-platform="etc">기타</button>
         </div>
 
-        <label class="field-label" style="margin-bottom:10px">작성자 톤</label>
-        <div class="tone-row">
-            <span class="tone-row-label">성별</span>
-            <button class="tone-tab tone-btn active" data-gender="male">남성</button>
-            <button class="tone-tab tone-btn" data-gender="female">여성</button>
+        <div class="tone-summary" id="toneSummary">
+            <span class="tone-summary-label">작성자 톤</span>
+            <span class="tone-summary-value" id="toneSummaryValue">30대 남성</span>
+            <span class="tone-summary-edit" id="toneEdit">변경</span>
         </div>
-        <div class="tone-row">
-            <span class="tone-row-label">나이대</span>
-            <button class="age-tab tone-btn" data-age="20">20대</button>
-            <button class="age-tab tone-btn active" data-age="30">30대</button>
-            <button class="age-tab tone-btn" data-age="40">40대</button>
-            <button class="age-tab tone-btn" data-age="50">50대+</button>
+        <div id="toneRows" style="display:none">
+            <div class="tone-row">
+                <span class="tone-row-label">성별</span>
+                <button class="tone-tab tone-btn active" data-gender="male">남성</button>
+                <button class="tone-tab tone-btn" data-gender="female">여성</button>
+            </div>
+            <div class="tone-row">
+                <span class="tone-row-label">나이대</span>
+                <button class="age-tab tone-btn" data-age="20">20대</button>
+                <button class="age-tab tone-btn active" data-age="30">30대</button>
+                <button class="age-tab tone-btn" data-age="40">40대</button>
+                <button class="age-tab tone-btn" data-age="50">50대+</button>
+            </div>
         </div>
 
         <div class="experience-box" id="experienceBox">
             <input type="checkbox" id="experienceCheck">
             <div class="text-wrap">
                 <label for="experienceCheck">쿠팡 체험단</label>
-                <span>체험단으로 제공받은 상품이라면 체크하세요</span>
+                <span>제공받은 상품이면 체크</span>
             </div>
         </div>
 
@@ -183,14 +214,22 @@
 
         <label class="field-label">상품 이미지 <span class="opt">(선택)</span></label>
         <div class="upload-area" id="uploadArea">
-            <span class="upload-icon">📷</span>
-            이미지 파일을 선택하세요
+            <span class="upload-icon">📷</span>이미지 선택
         </div>
         <input type="file" id="imageInput" accept="image/*" style="display:none">
         <img id="imagePreview" alt="미리보기">
 
-        <label class="field-label" for="userMemo">추가 메모 및 특이사항 <span class="opt">(선택 — 이걸 넣으면 AI가 이 내용을 반드시 리뷰에 포함)</span></label>
-        <textarea id="userMemo" placeholder="기억하고 싶은 내용을 적어두세요. 예&#10;) 배송이 빠르고 좋았어, 색상 선택 옵션이 다양해서 좋았음."></textarea>
+        <label class="field-label">별점 <em>*</em> <span class="opt" id="ratingText">5점 · 아주 만족</span></label>
+        <div class="star-row" id="starRow">
+            <button class="star on" data-star="1">★</button>
+            <button class="star on" data-star="2">★</button>
+            <button class="star on" data-star="3">★</button>
+            <button class="star on" data-star="4">★</button>
+            <button class="star on" data-star="5">★</button>
+        </div>
+
+        <label class="field-label" for="userMemo">메모 <span class="opt" id="memoHint">(선택 · 적은 내용 그대로 리뷰에 반영)</span></label>
+        <textarea id="userMemo" placeholder="예) 배송이 빠르고 좋았음, 색상 옵션이 다양해서 좋았음"></textarea>
 
         <button class="generate-btn" id="generateBtn">리뷰 생성</button>
     </div>
@@ -220,8 +259,10 @@
                 <button class="copy-btn" id="copyContentBtn">본문 복사</button>
             </div>
             <hr class="divider">
-            <button class="regen-btn" id="regenBtn">다시 생성하기</button>
-            <button class="reset-btn" id="resetBtn">새로 생성하기</button>
+            <div class="btn-row">
+                <button class="regen-btn" id="regenBtn">다시 생성하기</button>
+                <button class="reset-btn" id="resetBtn">새로 생성하기</button>
+            </div>
         </div>
     </div>
 </div>
@@ -232,14 +273,70 @@
     var selectedPlatform = 'coupang';
     var selectedGender = 'male';
     var selectedAge = '30';
+    var selectedRating = 5;
+    var ratingLabels = { 5: '아주 만족', 4: '만족', 3: '보통', 2: '불만족', 1: '매우 불만족' };
 
-    document.getElementById('experienceBox').style.display = 'flex';
+    // 지난번에 고른 플랫폼·성별·나이대 불러오기
+    try {
+        var saved = JSON.parse(localStorage.getItem('reviewPrefs') || '{}');
+        if (['coupang', 'naver', 'etc'].indexOf(saved.platform) >= 0) selectedPlatform = saved.platform;
+        if (['male', 'female'].indexOf(saved.gender) >= 0) selectedGender = saved.gender;
+        if (['20', '30', '40', '50'].indexOf(saved.age) >= 0) selectedAge = saved.age;
+    } catch (e) {}
+
+    function savePrefs() {
+        try {
+            localStorage.setItem('reviewPrefs', JSON.stringify({
+                platform: selectedPlatform, gender: selectedGender, age: selectedAge
+            }));
+        } catch (e) {}
+    }
+
+    function setActive(selector, key, value) {
+        document.querySelectorAll(selector).forEach(function(t) {
+            t.classList.toggle('active', t.dataset[key] === value);
+        });
+    }
+
+    function updateToneSummary() {
+        document.getElementById('toneSummaryValue').textContent =
+            (selectedAge === '50' ? '50대+' : selectedAge + '대') + ' ' + (selectedGender === 'male' ? '남성' : '여성');
+    }
+
+    function setRating(n) {
+        selectedRating = n;
+        document.querySelectorAll('.star').forEach(function(s) {
+            s.classList.toggle('on', Number(s.dataset.star) <= n);
+        });
+        document.getElementById('ratingText').textContent = n + '점 · ' + ratingLabels[n];
+        document.getElementById('memoHint').textContent = n <= 3
+            ? '(필수 · 어떤 점이 아쉬웠는지 적어주세요)'
+            : '(선택 · 적은 내용 그대로 리뷰에 반영)';
+    }
+
+    setActive('.platform-tab', 'platform', selectedPlatform);
+    setActive('.tone-tab', 'gender', selectedGender);
+    setActive('.age-tab', 'age', selectedAge);
+    updateToneSummary();
+    document.getElementById('experienceBox').style.display = selectedPlatform === 'coupang' ? 'flex' : 'none';
+
+    document.getElementById('toneSummary').addEventListener('click', function() {
+        var rows = document.getElementById('toneRows');
+        var open = rows.style.display === 'none';
+        rows.style.display = open ? 'block' : 'none';
+        document.getElementById('toneEdit').textContent = open ? '닫기' : '변경';
+    });
+
+    document.querySelectorAll('.star').forEach(function(s) {
+        s.addEventListener('click', function() { setRating(Number(this.dataset.star)); });
+    });
 
     document.querySelectorAll('.tone-tab').forEach(function(tab) {
         tab.addEventListener('click', function() {
             document.querySelectorAll('.tone-tab').forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
             selectedGender = this.dataset.gender;
+            savePrefs(); updateToneSummary();
         });
     });
 
@@ -248,6 +345,7 @@
             document.querySelectorAll('.age-tab').forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
             selectedAge = this.dataset.age;
+            savePrefs(); updateToneSummary();
         });
     });
 
@@ -256,12 +354,14 @@
             document.querySelectorAll('.platform-tab').forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
             selectedPlatform = this.dataset.platform;
+            savePrefs();
             document.getElementById('experienceBox').style.display = selectedPlatform === 'coupang' ? 'flex' : 'none';
             if (selectedPlatform !== 'coupang') document.getElementById('experienceCheck').checked = false;
         });
     });
 
-    document.getElementById('experienceBox').addEventListener('click', function() {
+    document.getElementById('experienceBox').addEventListener('click', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
         var cb = document.getElementById('experienceCheck');
         cb.checked = !cb.checked;
     });
@@ -296,6 +396,7 @@
         document.getElementById('productName').value = '';
         document.getElementById('userMemo').value = '';
         document.getElementById('experienceCheck').checked = false;
+        setRating(5);
         document.getElementById('imageInput').value = '';
         document.getElementById('imagePreview').style.display = 'none';
         document.getElementById('imagePreview').src = '';
@@ -315,6 +416,11 @@
             alert('상품명을 입력해주세요.');
             return;
         }
+        if (selectedRating <= 3 && !userMemo) {
+            alert('별점 3점 이하는 어떤 점이 아쉬웠는지 메모에 적어주세요.');
+            document.getElementById('userMemo').focus();
+            return;
+        }
 
         var btn = document.getElementById('generateBtn');
         btn.disabled = true;
@@ -329,17 +435,18 @@
         loadingMsg.style.display = 'block';
         errorMsg.style.display = 'none';
         resultContent.style.display = 'none';
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         try {
             var imageBase64 = '';
             var imageMimeType = '';
             if (imageFile) {
-                var dataUrl = await readFileAsDataURL(imageFile);
-                imageBase64 = dataUrl.split(',')[1];
-                imageMimeType = imageFile.type;
+                var prepared = await prepareImage(imageFile);
+                imageBase64 = prepared.base64;
+                imageMimeType = prepared.mime;
             }
 
-            var raw = await callGemini(productName, selectedPlatform, isCheoheomdan, userMemo, selectedGender, selectedAge, imageBase64, imageMimeType);
+            var raw = await callGemini(productName, selectedPlatform, isCheoheomdan, userMemo, selectedGender, selectedAge, selectedRating, imageBase64, imageMimeType);
 
             var titleMatch = raw.match(/제목:\s*(.+)/);
             var contentMatch = raw.match(/본문:\s*([\s\S]+)/);
@@ -359,6 +466,7 @@
 
             loadingMsg.style.display = 'none';
             resultContent.style.display = 'block';
+            resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (err) {
             loadingMsg.style.display = 'none';
             errorMsg.style.display = 'block';
@@ -369,7 +477,14 @@
         btn.textContent = '리뷰 생성';
     }
 
-    async function callGemini(productName, platform, isCheoheomdan, userMemo, gender, age, imageBase64, imageMimeType) {
+    async function callGemini(productName, platform, isCheoheomdan, userMemo, gender, age, rating, imageBase64, imageMimeType) {
+        var ratingGuide = {
+            5: '별점 5점(아주 만족). 전반적으로 만족스러운 톤. 아쉬운 점은 없거나 사소한 것 하나 정도만.',
+            4: '별점 4점(만족). 대체로 만족하지만 아쉬운 점 한두 가지는 분명하게 언급.',
+            3: '별점 3점(보통). 좋은 점과 아쉬운 점을 비슷한 비중으로 작성. 무조건 추천하지 말고 조건부로만 추천.',
+            2: '별점 2점(불만족). 실망한 톤으로 작성. 아쉬운 점과 단점이 리뷰의 중심이고, 장점은 실제로 있었던 것만 짧게. 추천하지 않는 쪽으로 마무리.',
+            1: '별점 1점(매우 불만족). 크게 실망한 톤으로 작성. 문제점 위주로 쓰고 억지로 장점을 찾아 쓰지 말 것. 비추천으로 마무리.'
+        };
         var platformMap = { naver: '네이버쇼핑', coupang: '쿠팡', etc: '쇼핑몰' };
         var platformName = platformMap[platform] || '쇼핑몰';
 
@@ -387,7 +502,13 @@
             : '';
 
         var memoSection = userMemo
-            ? '\n추가 메모 및 특이사항 (다음 내용을 반드시 리뷰에 포함시켜줄 것):\n"' + userMemo + '"\n'
+            ? '\n작성자 메모 (작성자가 실제로 겪은 사실. 리뷰의 중심 내용으로 삼을 것):\n"' + userMemo + '"\n'
+            : '';
+
+        var memoRules = userMemo
+            ? '- 메모는 실제 경험이므로 메모와 어긋나는 내용은 절대 쓰지 말 것 (예: 메모에 신선하지 않았다고 했으면 신선하다, 싱싱하다 같은 표현 금지)\n'
+            + '- 메모에 불만이나 아쉬운 점이 있으면 사용후기 한 줄로 축소하지 말고 제목, 요약, 사용후기, 총평 전체에 반영할 것\n'
+            + '- 메모에 없는 장점을 과장해서 지어내지 말 것. 메모에 없는 내용은 상품명과 이미지로 알 수 있는 범위에서만 담백하게\n'
             : '';
 
         var promptIntro = platform === 'etc'
@@ -395,28 +516,32 @@
             : platformName + '에 올릴 상품리뷰를 작성해줘. 주어진 정보를 최대한 활용해서 자연스러운 리뷰를 써줘.\n\n';
         var prompt = promptIntro
             + '상품명: ' + productName + '\n'
+            + '작성자가 준 별점: ' + rating + '점 (5점 만점)\n'
             + memoSection + '\n'
+            + '[전체 톤]\n'
+            + '- ' + ratingGuide[rating] + '\n'
+            + '- 제목, 요약, 사용후기, 총평 모두 이 별점과 같은 온도로 쓸 것. 별점보다 좋게 포장하지 말 것\n'
+            + memoRules + '\n'
             + '[제목 조건]\n'
             + '- 공백 포함 30자 이내로 작성\n'
             + '- 제목에 "쿠팡체험단)" 또는 어떤 태그, 접두어도 절대 붙이지 말 것\n'
-            + '- 상품의 핵심 장점이나 느낌을 담은 자연스러운 문장\n\n'
+            + '- 별점과 실제 사용 느낌이 그대로 드러나는 자연스러운 문장 (별점이 낮으면 아쉬움이나 실망이 제목에서 보이게)\n\n'
             + '[본문 조건]\n'
             + '- 500자 이상 작성\n'
             + '- 첫 줄부터 바로 본문 시작 (인사말, 서론 없이)\n'
             + '- 반드시 아래 3단락 구성으로 작성:\n'
             + '  1) 제품특징: 상품의 주요 특징과 스펙 중심\n'
-            + '  2) 사용후기: 실제 써본 느낌, 좋은 점과 함께 아쉬운 점이나 단점도 솔직하게 포함\n'
-            + '  3) 총평: 전반적인 평가와 어떤 사람에게 추천하는지\n'
+            + '  2) 사용후기: 실제 써본 느낌. 좋은 점과 아쉬운 점의 비중은 별점에 맞출 것\n'
+            + '  3) 총평: 전반적인 평가와 별점에 맞는 결론 (추천, 조건부 추천, 비추천 중 하나)\n'
             + '- 이모티콘, 이모지, 특수문자 일절 사용 금지\n'
             + '- ' + (age + '대 ' + (gender === 'male' ? '남성' : '여성')) + '이 직접 쓴 것처럼 그 나이대와 성별에 맞는 자연스러운 말투와 표현 사용\n'
             + '- AI 느낌 나지 않게, 진짜 사람이 쓴 것처럼 자연스러운 구어체\n'
-            + (userMemo ? '- 메모에 언급된 불만이나 아쉬운 점을 반드시 사용후기에 포함\n' : '- 특별한 불만 없이 전반적으로 만족스러운 톤으로 작성\n')
             + '- ' + platformStyle + '\n'
             + (cheoheomNote ? '- ' + cheoheomNote + '\n' : '')
             + '\n[출력 형식] 아래 형식을 정확히 따를 것. 다른 설명 없이.\n'
             + '제목: (제목 내용)\n'
             + '본문:\n'
-            + '(전체 리뷰를 2문장으로 요약. 핵심 장점과 전반적인 만족도 중심)\n\n'
+            + '(전체 리뷰를 2문장으로 요약. 별점에 맞는 전반적인 평가 중심)\n\n'
             + '제품특징\n'
             + '(제품특징 내용)\n\n'
             + '사용후기\n'
@@ -439,9 +564,48 @@
             })
         });
 
-        var data = await res.json();
+        var bodyText = await res.text();
+        var data;
+        try {
+            data = JSON.parse(bodyText);
+        } catch (e) {
+            if (res.status === 502 || res.status === 504) throw new Error('응답 시간이 초과됐습니다. 다시 시도해주세요.');
+            if (res.status === 413) throw new Error('사진 용량이 너무 큽니다. 다른 사진으로 시도해주세요.');
+            throw new Error('서버 응답을 읽지 못했습니다 (' + res.status + ')');
+        }
         if (data.error) throw new Error(data.error.message);
-        return data.candidates[0].content.parts[0].text;
+        var cand = data.candidates && data.candidates[0];
+        var out = cand && cand.content && cand.content.parts
+            ? cand.content.parts.map(function(p) { return p.text || ''; }).join('')
+            : '';
+        if (!out.trim()) throw new Error('리뷰가 생성되지 않았습니다. 다시 시도해주세요.');
+        return out;
+    }
+
+    // 폰 사진은 용량이 커서 긴 변 1280px JPEG로 줄여서 보냄
+    function prepareImage(file) {
+        return readFileAsDataURL(file).then(function(dataUrl) {
+            return new Promise(function(resolve) {
+                var original = { base64: dataUrl.split(',')[1], mime: file.type || 'image/jpeg' };
+                var img = new Image();
+                img.onload = function() {
+                    try {
+                        var scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+                        var canvas = document.createElement('canvas');
+                        canvas.width = Math.round(img.width * scale);
+                        canvas.height = Math.round(img.height * scale);
+                        var ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        var out = canvas.toDataURL('image/jpeg', 0.85);
+                        resolve({ base64: out.split(',')[1], mime: 'image/jpeg' });
+                    } catch (e) { resolve(original); }
+                };
+                img.onerror = function() { resolve(original); };
+                img.src = dataUrl;
+            });
+        });
     }
 
     function readFileAsDataURL(file) {
