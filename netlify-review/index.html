@@ -1,592 +1,601 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>리뷰 작성</title>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="리뷰">
-    <meta name="theme-color" content="#f4f4f4">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" type="image/png" href="icon.png">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-        body {
-            font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-            background: #f4f4f4;
-            min-height: 100vh;
-            padding: 10px 10px 24px;
-            padding-top: max(10px, env(safe-area-inset-top));
-        }
-        .wrap { max-width: 520px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 8px; }
-        .header h1 { font-size: 17px; color: #e63312; margin-bottom: 1px; }
-        .header p { font-size: 11px; color: #aaa; }
-        .card {
-            background: white; border-radius: 12px;
-            padding: 12px 13px; margin-bottom: 10px;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
-        }
-        .platform-tabs {
-            display: flex; gap: 6px; margin-bottom: 4px;
-        }
-        .platform-tab {
-            flex: 1; padding: 7px 0; border: 1.5px solid #e0e0e0;
-            border-radius: 8px; background: white; font-size: 13px;
-            font-weight: bold; font-family: inherit; cursor: pointer;
-            color: #999; transition: all 0.15s;
-        }
-        .platform-tab.active {
-            background: #e63312; border-color: #e63312; color: white;
-        }
-        .tone-row {
-            display: grid; grid-template-columns: 34px repeat(4, 1fr);
-            align-items: center; gap: 5px; margin-bottom: 6px;
-        }
-        .tone-row-label {
-            font-size: 12px; font-weight: bold; color: #888; white-space: nowrap; min-width: 34px;
-        }
-        .tone-btn {
-            padding: 5px 0; border: 1.5px solid #e0e0e0; border-radius: 16px;
-            background: white; font-size: 12px; font-family: inherit;
-            cursor: pointer; color: #aaa; transition: all 0.15s;
-        }
-        .tone-btn.active {
-            background: #333; border-color: #333; color: white; font-weight: bold;
-        }
-        .tone-summary {
-            display: flex; align-items: center; gap: 8px; cursor: pointer;
-            margin-top: 9px; padding: 7px 10px; background: #f7f7f7; border-radius: 8px;
-        }
-        .tone-summary-label { font-size: 12px; font-weight: bold; color: #888; }
-        .tone-summary-value { font-size: 13px; font-weight: bold; color: #333; flex: 1; }
-        .tone-summary-edit { font-size: 12px; color: #e63312; }
-        #toneRows { margin-top: 7px; }
-        .star-row { display: flex; gap: 5px; }
-        .star {
-            flex: 1; padding: 3px 0; border: 1.5px solid #e0e0e0; border-radius: 8px;
-            background: white; font-size: 21px; line-height: 1.25; font-family: inherit;
-            color: #d8d8d8; cursor: pointer;
-        }
-        .star.on { color: #f5a623; border-color: #f3d79c; background: #fffaf0; }
-        .experience-box {
-            display: flex; align-items: center; gap: 8px;
-            background: #fff8f5; border: 1px solid #ffd0c0;
-            border-radius: 8px; padding: 7px 10px; cursor: pointer; margin-top: 8px;
-        }
-        .experience-box input[type="checkbox"] {
-            width: 17px; height: 17px; accent-color: #e63312; flex-shrink: 0;
-        }
-        .experience-box .text-wrap label {
-            font-size: 13px; color: #c0392b; font-weight: bold; display: inline; margin-right: 6px;
-        }
-        .experience-box .text-wrap span { font-size: 11px; color: #aaa; }
-        .field-label {
-            font-size: 13px; font-weight: bold; color: #333;
-            margin-top: 11px; margin-bottom: 5px; display: block;
-        }
-        .field-label em { color: #e63312; font-style: normal; }
-        .field-label .opt { color: #aaa; font-size: 11px; font-weight: normal; margin-left: 3px; }
-        input[type="text"] {
-            width: 100%; padding: 8px 11px; border: 1.5px solid #e0e0e0;
-            border-radius: 8px; font-size: 16px; font-family: inherit;
-            outline: none; -webkit-appearance: none;
-        }
-        input[type="text"]:focus { border-color: #e63312; }
-        textarea {
-            width: 100%; padding: 8px 11px; border: 1.5px solid #e0e0e0;
-            border-radius: 8px; font-size: 16px; font-family: inherit;
-            outline: none; resize: vertical; min-height: 62px;
-            line-height: 1.45; -webkit-appearance: none;
-        }
-        textarea:focus { border-color: #e63312; }
-        .upload-area {
-            border: 1.5px dashed #ddd; border-radius: 8px; padding: 9px;
-            text-align: center; cursor: pointer; color: #aaa; font-size: 13px;
-        }
-        .upload-icon { font-size: 16px; display: inline; margin-right: 4px; vertical-align: -1px; }
-        #imagePreview {
-            width: 100%; max-height: 130px; object-fit: contain;
-            border-radius: 8px; margin-top: 8px; display: none; border: 1px solid #eee;
-        }
-        .generate-btn {
-            width: 100%; background: #e63312; color: white; border: none;
-            border-radius: 9px; padding: 12px; font-size: 15px;
-            font-weight: bold; font-family: inherit; cursor: pointer; margin-top: 12px;
-        }
-        .generate-btn:disabled { background: #ccc; }
-        .result-card { display: none; }
-        .loading { text-align: center; padding: 18px; color: #999; font-size: 13px; }
-        .spinner {
-            display: inline-block; width: 20px; height: 20px;
-            border: 3px solid #eee; border-top-color: #e63312;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
-            margin-right: 8px; vertical-align: middle;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .error-box {
-            background: #fff0ee; border: 1px solid #ffc0b0;
-            border-radius: 10px; padding: 14px; color: #c0392b;
-            font-size: 13px; display: none;
-        }
-        .result-block { margin-bottom: 10px; }
-        .result-header {
-            display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 5px;
-        }
-        .result-tag {
-            font-size: 11px; font-weight: bold; color: #fff;
-            background: #e63312; padding: 2px 9px; border-radius: 12px;
-        }
-        .char-info { font-size: 11px; color: #aaa; }
-        .char-info.warn { color: #e63312; }
-        .result-box {
-            background: #fafafa; border: 1px solid #eee; border-radius: 8px;
-            padding: 10px 11px; font-size: 13.5px; line-height: 1.65;
-            white-space: pre-wrap; color: #333; word-break: keep-all;
-        }
-        .copy-btn {
-            display: block; width: 100%; margin-top: 6px; background: #f5f5f5;
-            border: 1px solid #ddd; border-radius: 8px; padding: 8px;
-            font-size: 13px; font-family: inherit; cursor: pointer; color: #555;
-        }
-        .divider { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
-        .btn-row { display: flex; gap: 6px; }
-        .regen-btn {
-            flex: 1; background: white; color: #e63312;
-            border: 1.5px solid #e63312; border-radius: 9px; padding: 10px;
-            font-size: 13px; font-weight: bold; font-family: inherit; cursor: pointer;
-        }
-        .reset-btn {
-            flex: 1; background: white; color: #888;
-            border: 1.5px solid #ddd; border-radius: 9px; padding: 10px;
-            font-size: 13px; font-weight: bold; font-family: inherit; cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>리뷰 작성</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="리뷰">
+<!-- REVIEW_APP_OK : 앱스 스크립트가 이 표시를 보고 정상 파일인지 확인함. 지우지 말 것 -->
+<style>
+:root {
+    --bg: #ffffff;
+    --field: #f3f4f6;
+    --field-focus: #ffffff;
+    --text: #1b1f26;
+    --sub: #6b7480;
+    --faint: #a3abb5;
+    --line: #e6e8eb;
+    --accent: #2f6fed;
+    --accent-soft: #eaf1fe;
+    --on-accent: #ffffff;
+    --star: #ffb400;
+    --star-off: #dfe2e6;
+    --danger: #e5484d;
+    --danger-soft: #fdeeee;
+    --ok: #12a150;
+    --ok-soft: #e7f6ed;
+    --shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+html[data-accent="green"]  { --accent: #0f9a6c; --accent-soft: #e4f5ee; }
+html[data-accent="purple"] { --accent: #6b57d9; --accent-soft: #eeebfc; }
+html[data-accent="pink"]   { --accent: #e0457b; --accent-soft: #fdebf1; }
+html[data-accent="mono"]   { --accent: #23272e; --accent-soft: #eceef1; }
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #121418;
+        --field: #1e2228;
+        --field-focus: #252a32;
+        --text: #f1f3f5;
+        --sub: #9aa3ae;
+        --faint: #6c7480;
+        --line: #2a2f37;
+        --accent: #5a93ff;
+        --accent-soft: #1b2942;
+        --on-accent: #ffffff;
+        --star-off: #3a404a;
+        --danger: #ff6b6f;
+        --danger-soft: #3a1e20;
+        --ok: #3ccf7e;
+        --ok-soft: #173224;
+        --shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    }
+    html[data-accent="green"]  { --accent: #2fc08f; --accent-soft: #15302a; }
+    html[data-accent="purple"] { --accent: #9382ff; --accent-soft: #272446; }
+    html[data-accent="pink"]   { --accent: #ff6f9f; --accent-soft: #3b1f2a; }
+    html[data-accent="mono"]   { --accent: #e9ecef; --accent-soft: #2a2f37; --on-accent: #16181c; }
+    .swatch[data-v="mono"] { background: #e9ecef !important; }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Malgun Gothic', sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 15px; line-height: 1.45;
+    min-height: 100vh;
+}
+button { font-family: inherit; color: inherit; border: none; background: none; cursor: pointer; }
+[hidden] { display: none !important; }
+
+.app { max-width: 520px; margin: 0 auto; padding: 10px 16px 28px; }
+.app.has-bar { padding-bottom: 96px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; height: 38px; margin-bottom: 8px; }
+.top h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+.link-btn { font-size: 13px; color: var(--sub); padding: 8px 2px 8px 10px; }
+
+/* 선택 버튼 묶음 */
+.seg { display: flex; background: var(--field); border-radius: 11px; padding: 3px; gap: 2px; }
+.seg button {
+    flex: 1; height: 34px; border-radius: 9px; font-size: 14px; font-weight: 600; color: var(--sub);
+    transition: background 0.15s, color 0.15s;
+}
+.seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+@media (prefers-color-scheme: dark) { .seg button.on { background: #3d4553; box-shadow: none; } }
+
+.field { margin-top: 14px; }
+.label-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.label-row label, .label-row .label { font-size: 13px; font-weight: 700; color: var(--text); }
+.label-row .hint { font-size: 12px; color: var(--faint); }
+.label-row .hint.need { color: var(--danger); font-weight: 600; }
+
+textarea, input[type="text"] {
+    width: 100%; display: block; border: 1.5px solid transparent; border-radius: 12px;
+    background: var(--field); color: var(--text);
+    font-family: inherit; font-size: 16px; line-height: 1.45;
+    padding: 10px 12px; outline: none; resize: none; -webkit-appearance: none; appearance: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+textarea::placeholder { color: var(--faint); }
+textarea:focus { border-color: var(--accent); background: var(--field-focus); }
+
+.input-wrap { position: relative; }
+.input-wrap textarea { padding-right: 40px; }
+.clear {
+    position: absolute; right: 8px; top: 9px; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--faint); color: var(--bg); font-size: 17px; line-height: 26px; font-weight: 700; opacity: 0.75;
+}
+
+/* 사진 · 체험단 */
+.pills { display: flex; gap: 8px; margin-top: 10px; }
+.pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 13px; border-radius: 18px;
+    background: var(--field); font-size: 13.5px; font-weight: 600; color: var(--sub);
+    border: 1.5px solid transparent; transition: all 0.15s;
+}
+.pill.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.pill img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; margin-left: -4px; }
+.pill .x { font-size: 16px; margin-left: 2px; opacity: 0.7; }
+.pill .check { font-size: 13px; }
+
+/* 별점 */
+.stars { display: flex; gap: 4px; margin-left: -4px; }
+.star { font-size: 34px; line-height: 1; width: 46px; height: 42px; color: var(--star-off); transition: color 0.12s, transform 0.12s; }
+.star.on { color: var(--star); }
+.star:active { transform: scale(0.88); }
+
+/* 메모 빠른 입력 */
+.chips { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+    flex: none; height: 30px; padding: 0 11px; border-radius: 15px; font-size: 13px; font-weight: 500;
+    color: var(--sub); border: 1.5px solid var(--line); background: var(--bg); white-space: nowrap; transition: all 0.15s;
+}
+.chip.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+
+/* 작성 설정 */
+.settings-row {
+    width: 100%; display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 11px 12px;
+    background: var(--field); border-radius: 12px; font-size: 13.5px; text-align: left;
+}
+.settings-row .k { font-weight: 700; }
+.settings-row .v { flex: 1; color: var(--sub); text-align: right; }
+.settings-row .chev { color: var(--faint); font-size: 16px; transition: transform 0.2s; }
+.settings-row.open .chev { transform: rotate(90deg); }
+.settings-panel { padding: 4px 2px 0; }
+.settings-panel .set { margin-top: 10px; }
+.settings-panel .set > .label { display: block; font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 5px; }
+.swatches { display: flex; gap: 10px; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1.5px var(--line); }
+.swatch.on { box-shadow: 0 0 0 2.5px var(--text); }
+
+.primary {
+    width: 100%; height: 52px; margin-top: 16px; border-radius: 14px;
+    background: var(--accent); color: var(--on-accent); font-size: 16.5px; font-weight: 700; letter-spacing: -0.2px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.15s, transform 0.1s;
+}
+.primary:active { transform: scale(0.985); }
+.primary:disabled { opacity: 0.55; }
+.spinner {
+    width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255, 255, 255, 0.4); border-top-color: currentColor;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 결과 */
+.result { margin-top: 22px; padding-top: 18px; border-top: 8px solid var(--field); margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+.skeleton .bar { height: 14px; border-radius: 7px; background: var(--field); margin-bottom: 10px; animation: pulse 1.2s ease-in-out infinite; }
+.skeleton .bar.w40 { width: 40%; } .skeleton .bar.w90 { width: 90%; } .skeleton .bar.w75 { width: 75%; } .skeleton .bar.w60 { width: 60%; }
+.skeleton .wait { font-size: 13px; color: var(--sub); margin-bottom: 14px; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.error-box { background: var(--danger-soft); color: var(--danger); border-radius: 12px; padding: 13px 14px; font-size: 14px; }
+.error-box button { display: block; margin-top: 8px; font-weight: 700; color: var(--danger); text-decoration: underline; font-size: 14px; }
+.result .field:first-child { margin-top: 0; }
+.result .count { margin-left: auto; font-size: 12px; color: var(--faint); }
+.result .count.warn { color: var(--danger); font-weight: 600; }
+.result textarea { line-height: 1.65; font-size: 15px; overflow: hidden; }
+#titleText { font-weight: 600; }
+.sub-actions { display: flex; gap: 8px; margin-top: 14px; }
+.ghost {
+    flex: 1; height: 44px; border-radius: 12px; background: var(--field); font-size: 14px; font-weight: 600; color: var(--text);
+}
+.note { font-size: 12px; color: var(--faint); margin-top: 8px; text-align: center; }
+
+/* 하단 복사 버튼 */
+.copybar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--bg); box-shadow: var(--shadow);
+    padding: 10px 16px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.copybar .inner { max-width: 488px; margin: 0 auto; display: flex; gap: 8px; }
+.copy {
+    flex: 1; height: 50px; border-radius: 13px; background: var(--accent); color: var(--on-accent);
+    font-size: 15.5px; font-weight: 700; transition: background 0.15s, color 0.15s;
+}
+.copy.done { background: var(--ok-soft); color: var(--ok); }
+
+/* 최근 리뷰 */
+.backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 30; }
+.sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-height: 78vh; overflow-y: auto;
+    background: var(--bg); border-radius: 18px 18px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.sheet-inner { max-width: 488px; margin: 0 auto; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.sheet-head h2 { font-size: 17px; font-weight: 800; }
+.hist { width: 100%; text-align: left; padding: 12px 2px; border-bottom: 1px solid var(--line); display: block; }
+.hist .n { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist .m { font-size: 12px; color: var(--sub); margin-top: 2px; }
+.hist .m b { color: var(--star); font-weight: 400; letter-spacing: -1px; }
+.empty { color: var(--sub); font-size: 14px; padding: 26px 0; text-align: center; }
+
+.toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 40;
+    background: rgba(25, 28, 33, 0.92); color: #fff; font-size: 13.5px; padding: 9px 15px; border-radius: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+.ver { margin-top: 22px; text-align: center; font-size: 11px; color: var(--faint); }
+</style>
 </head>
 <body>
-<div class="wrap">
-    <div class="header">
+<div class="app" id="app">
+    <header class="top">
         <h1>리뷰 작성</h1>
-        <p>AI가 상품에 맞는 자연스러운 리뷰를 작성해드립니다</p>
+        <button type="button" class="link-btn" id="historyBtn">최근 리뷰</button>
+    </header>
+
+    <div class="seg" id="platformSeg">
+        <button type="button" data-v="coupang" class="on">쿠팡</button>
+        <button type="button" data-v="naver">네이버</button>
+        <button type="button" data-v="etc">기타</button>
     </div>
 
-    <div class="card">
-        <label class="field-label" style="margin-top:0">플랫폼 선택 <em>*</em></label>
-        <div class="platform-tabs">
-            <button class="platform-tab active" data-platform="coupang">쿠팡</button>
-            <button class="platform-tab" data-platform="naver">네이버</button>
-            <button class="platform-tab" data-platform="etc">기타</button>
+    <section class="field">
+        <div class="label-row"><label for="productName">상품명</label></div>
+        <div class="input-wrap">
+            <textarea id="productName" rows="1" placeholder="상품명 입력 또는 붙여넣기" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+            <button type="button" class="clear" id="clearName" aria-label="상품명 지우기" hidden>×</button>
         </div>
+        <div class="pills">
+            <button type="button" class="pill" id="photoBtn"><span id="photoLabel">사진 추가</span></button>
+            <button type="button" class="pill" id="cheoBtn"><span class="check" id="cheoCheck"></span>체험단 상품</button>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" hidden>
+    </section>
 
-        <div class="tone-summary" id="toneSummary">
-            <span class="tone-summary-label">작성자 톤</span>
-            <span class="tone-summary-value" id="toneSummaryValue">30대 남성</span>
-            <span class="tone-summary-edit" id="toneEdit">변경</span>
+    <section class="field">
+        <div class="label-row"><span class="label">별점</span><span class="hint" id="ratingText">5점 · 아주 만족</span></div>
+        <div class="stars" id="stars">
+            <button type="button" class="star on" data-v="1" aria-label="1점">★</button>
+            <button type="button" class="star on" data-v="2" aria-label="2점">★</button>
+            <button type="button" class="star on" data-v="3" aria-label="3점">★</button>
+            <button type="button" class="star on" data-v="4" aria-label="4점">★</button>
+            <button type="button" class="star on" data-v="5" aria-label="5점">★</button>
         </div>
-        <div id="toneRows" style="display:none">
-            <div class="tone-row">
-                <span class="tone-row-label">성별</span>
-                <button class="tone-tab tone-btn active" data-gender="male">남성</button>
-                <button class="tone-tab tone-btn" data-gender="female">여성</button>
+    </section>
+
+    <section class="field">
+        <div class="label-row"><label for="userMemo">메모</label><span class="hint" id="memoHint">선택 · 적은 내용이 그대로 반영돼요</span></div>
+        <textarea id="userMemo" rows="2" placeholder="좋았던 점, 아쉬웠던 점을 짧게"></textarea>
+        <div class="chips" id="memoChips"></div>
+    </section>
+
+    <button type="button" class="settings-row" id="settingsRow">
+        <span class="k">작성 설정</span><span class="v" id="settingsSummary">30대 남성 · 보통 길이</span><span class="chev">›</span>
+    </button>
+    <div class="settings-panel" id="settingsPanel" hidden>
+        <div class="set"><span class="label">성별</span>
+            <div class="seg" id="genderSeg">
+                <button type="button" data-v="male" class="on">남성</button>
+                <button type="button" data-v="female">여성</button>
             </div>
-            <div class="tone-row">
-                <span class="tone-row-label">나이대</span>
-                <button class="age-tab tone-btn" data-age="20">20대</button>
-                <button class="age-tab tone-btn active" data-age="30">30대</button>
-                <button class="age-tab tone-btn" data-age="40">40대</button>
-                <button class="age-tab tone-btn" data-age="50">50대+</button>
+        </div>
+        <div class="set"><span class="label">나이대</span>
+            <div class="seg" id="ageSeg">
+                <button type="button" data-v="20">20대</button>
+                <button type="button" data-v="30" class="on">30대</button>
+                <button type="button" data-v="40">40대</button>
+                <button type="button" data-v="50">50대+</button>
             </div>
         </div>
-
-        <div class="experience-box" id="experienceBox">
-            <input type="checkbox" id="experienceCheck">
-            <div class="text-wrap">
-                <label for="experienceCheck">쿠팡 체험단</label>
-                <span>제공받은 상품이면 체크</span>
+        <div class="set"><span class="label">리뷰 길이</span>
+            <div class="seg" id="lengthSeg">
+                <button type="button" data-v="short">짧게 (300자)</button>
+                <button type="button" data-v="normal" class="on">보통 (500자)</button>
+                <button type="button" data-v="long">길게 (800자)</button>
             </div>
         </div>
-
-        <label class="field-label" for="productName">상품명 <em>*</em></label>
-        <input type="text" id="productName" placeholder="예) 무선 이어폰 블루투스 5.3 노이즈캔슬링">
-
-        <label class="field-label">상품 이미지 <span class="opt">(선택)</span></label>
-        <div class="upload-area" id="uploadArea">
-            <span class="upload-icon">📷</span>이미지 선택
+        <div class="set"><span class="label">색상</span>
+            <div class="swatches" id="swatches">
+                <button type="button" class="swatch on" data-v="blue" style="background:#2f6fed" aria-label="파랑"></button>
+                <button type="button" class="swatch" data-v="green" style="background:#0f9a6c" aria-label="초록"></button>
+                <button type="button" class="swatch" data-v="purple" style="background:#6b57d9" aria-label="보라"></button>
+                <button type="button" class="swatch" data-v="pink" style="background:#e0457b" aria-label="분홍"></button>
+                <button type="button" class="swatch" data-v="mono" style="background:#23272e" aria-label="검정"></button>
+            </div>
         </div>
-        <input type="file" id="imageInput" accept="image/*" style="display:none">
-        <img id="imagePreview" alt="미리보기">
-
-        <label class="field-label">별점 <em>*</em> <span class="opt" id="ratingText">5점 · 아주 만족</span></label>
-        <div class="star-row" id="starRow">
-            <button class="star on" data-star="1">★</button>
-            <button class="star on" data-star="2">★</button>
-            <button class="star on" data-star="3">★</button>
-            <button class="star on" data-star="4">★</button>
-            <button class="star on" data-star="5">★</button>
-        </div>
-
-        <label class="field-label" for="userMemo">메모 <span class="opt" id="memoHint">(선택 · 적은 내용 그대로 리뷰에 반영)</span></label>
-        <textarea id="userMemo" placeholder="예) 배송이 빠르고 좋았음, 색상 옵션이 다양해서 좋았음"></textarea>
-
-        <button class="generate-btn" id="generateBtn">리뷰 생성</button>
     </div>
 
-    <div class="card result-card" id="resultCard">
-        <div class="loading" id="loadingMsg" style="display:none">
-            <span class="spinner"></span> 리뷰를 생성하고 있습니다...
-        </div>
-        <div class="error-box" id="errorMsg"></div>
+    <button type="button" class="primary" id="generateBtn">리뷰 만들기</button>
 
-        <div id="resultContent" style="display:none">
-            <div class="result-block">
-                <div class="result-header">
-                    <span class="result-tag">제목</span>
-                    <span class="char-info" id="titleCharInfo"></span>
-                </div>
-                <div class="result-box" id="titleText"></div>
-                <button class="copy-btn" id="copyTitleBtn">제목 복사</button>
+    <section class="result" id="result" hidden>
+        <div class="skeleton" id="loading" hidden>
+            <div class="wait" id="waitText">리뷰를 쓰고 있어요…</div>
+            <div class="bar w40"></div><div class="bar w90"></div><div class="bar w75"></div><div class="bar w90"></div><div class="bar w60"></div>
+        </div>
+        <div class="error-box" id="errorBox" hidden><span id="errorText"></span><button type="button" id="retryBtn">다시 시도</button></div>
+        <div id="resultContent" hidden>
+            <div class="field">
+                <div class="label-row"><label for="titleText">제목</label><span class="count" id="titleCount"></span></div>
+                <textarea id="titleText" rows="1"></textarea>
             </div>
-            <hr class="divider">
-            <div class="result-block">
-                <div class="result-header">
-                    <span class="result-tag">본문</span>
-                    <span class="char-info" id="contentCharInfo"></span>
-                </div>
-                <div class="result-box" id="contentText"></div>
-                <button class="copy-btn" id="copyContentBtn">본문 복사</button>
+            <div class="field">
+                <div class="label-row"><label for="bodyText">본문</label><span class="count" id="bodyCount"></span></div>
+                <textarea id="bodyText" rows="6"></textarea>
             </div>
-            <hr class="divider">
-            <div class="btn-row">
-                <button class="regen-btn" id="regenBtn">다시 생성하기</button>
-                <button class="reset-btn" id="resetBtn">새로 생성하기</button>
+            <div class="note">글을 눌러서 바로 고칠 수 있어요</div>
+            <div class="sub-actions">
+                <button type="button" class="ghost" id="regenBtn">다시 만들기</button>
+                <button type="button" class="ghost" id="resetBtn">새 리뷰 쓰기</button>
             </div>
         </div>
+    </section>
+
+    <div class="ver" id="ver"></div>
+</div>
+
+<div class="copybar" id="copyBar" hidden>
+    <div class="inner">
+        <button type="button" class="copy" id="copyTitleBtn">제목 복사</button>
+        <button type="button" class="copy" id="copyBodyBtn">본문 복사</button>
     </div>
 </div>
 
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="sheet" id="historySheet" hidden>
+    <div class="sheet-inner">
+        <div class="sheet-head"><h2>최근 리뷰</h2><button type="button" class="link-btn" id="historyClose">닫기</button></div>
+        <div id="historyList"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
-    const API_URL = '/.netlify/functions/gemini';
+(function() {
+    'use strict';
 
-    var selectedPlatform = 'coupang';
-    var selectedGender = 'male';
-    var selectedAge = '30';
-    var selectedRating = 5;
-    var ratingLabels = { 5: '아주 만족', 4: '만족', 3: '보통', 2: '불만족', 1: '매우 불만족' };
+    var APP_VERSION = '2026.11.18-4';
+    var STORE_KEY = 'reviewApp.v2';
+    var KEEP_HOURS = 6;          // 이 시간 안에 다시 열면 쓰던 내용과 결과를 그대로 보여줌
+    var HISTORY_MAX = 8;
 
-    // 지난번에 고른 플랫폼·성별·나이대 불러오기
-    try {
-        var saved = JSON.parse(localStorage.getItem('reviewPrefs') || '{}');
-        if (['coupang', 'naver', 'etc'].indexOf(saved.platform) >= 0) selectedPlatform = saved.platform;
-        if (['male', 'female'].indexOf(saved.gender) >= 0) selectedGender = saved.gender;
-        if (['20', '30', '40', '50'].indexOf(saved.age) >= 0) selectedAge = saved.age;
-    } catch (e) {}
+    var RATING_LABEL = { 5: '아주 만족', 4: '만족', 3: '보통', 2: '불만족', 1: '매우 불만족' };
+    var LENGTH_LABEL = { short: '짧게', normal: '보통 길이', long: '길게' };
+    var CHIPS = {
+        good: ['배송 빠름', '포장 꼼꼼', '가성비 좋음', '품질 만족', '사진과 같음', '재구매 의사 있음'],
+        mid: ['가격은 괜찮음', '품질은 평범', '기대보다 아쉬움', '배송 느림', '사진과 다름', '마감 아쉬움'],
+        bad: ['품질 불량', '사진과 다름', '신선하지 않음', '배송 지연', '포장 불량', '가격 대비 아쉬움']
+    };
 
-    function savePrefs() {
-        try {
-            localStorage.setItem('reviewPrefs', JSON.stringify({
-                platform: selectedPlatform, gender: selectedGender, age: selectedAge
-            }));
-        } catch (e) {}
-    }
+    var state = {
+        prefs: { platform: 'coupang', gender: 'male', age: '30', length: 'normal', cheoheom: false, accent: 'blue' },
+        draft: { name: '', memo: '', rating: 5, at: 0 },
+        result: null,       // { title, body, name, rating, at }
+        history: []
+    };
+    var image = null;       // { base64, mime, preview }
+    var busy = false;
+    var copied = { title: false, body: false };
 
-    function setActive(selector, key, value) {
-        document.querySelectorAll(selector).forEach(function(t) {
-            t.classList.toggle('active', t.dataset[key] === value);
-        });
-    }
+    function $(id) { return document.getElementById(id); }
 
-    function updateToneSummary() {
-        document.getElementById('toneSummaryValue').textContent =
-            (selectedAge === '50' ? '50대+' : selectedAge + '대') + ' ' + (selectedGender === 'male' ? '남성' : '여성');
-    }
-
-    function setRating(n) {
-        selectedRating = n;
-        document.querySelectorAll('.star').forEach(function(s) {
-            s.classList.toggle('on', Number(s.dataset.star) <= n);
-        });
-        document.getElementById('ratingText').textContent = n + '점 · ' + ratingLabels[n];
-        document.getElementById('memoHint').textContent = n <= 3
-            ? '(필수 · 어떤 점이 아쉬웠는지 적어주세요)'
-            : '(선택 · 적은 내용 그대로 리뷰에 반영)';
-    }
-
-    setActive('.platform-tab', 'platform', selectedPlatform);
-    setActive('.tone-tab', 'gender', selectedGender);
-    setActive('.age-tab', 'age', selectedAge);
-    updateToneSummary();
-    document.getElementById('experienceBox').style.display = selectedPlatform === 'coupang' ? 'flex' : 'none';
-
-    document.getElementById('toneSummary').addEventListener('click', function() {
-        var rows = document.getElementById('toneRows');
-        var open = rows.style.display === 'none';
-        rows.style.display = open ? 'block' : 'none';
-        document.getElementById('toneEdit').textContent = open ? '닫기' : '변경';
-    });
-
-    document.querySelectorAll('.star').forEach(function(s) {
-        s.addEventListener('click', function() { setRating(Number(this.dataset.star)); });
-    });
-
-    document.querySelectorAll('.tone-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.tone-tab').forEach(function(t) { t.classList.remove('active'); });
-            this.classList.add('active');
-            selectedGender = this.dataset.gender;
-            savePrefs(); updateToneSummary();
-        });
-    });
-
-    document.querySelectorAll('.age-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.age-tab').forEach(function(t) { t.classList.remove('active'); });
-            this.classList.add('active');
-            selectedAge = this.dataset.age;
-            savePrefs(); updateToneSummary();
-        });
-    });
-
-    document.querySelectorAll('.platform-tab').forEach(function(tab) {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.platform-tab').forEach(function(t) { t.classList.remove('active'); });
-            this.classList.add('active');
-            selectedPlatform = this.dataset.platform;
-            savePrefs();
-            document.getElementById('experienceBox').style.display = selectedPlatform === 'coupang' ? 'flex' : 'none';
-            if (selectedPlatform !== 'coupang') document.getElementById('experienceCheck').checked = false;
-        });
-    });
-
-    document.getElementById('experienceBox').addEventListener('click', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
-        var cb = document.getElementById('experienceCheck');
-        cb.checked = !cb.checked;
-    });
-
-    document.getElementById('uploadArea').addEventListener('click', function() {
-        document.getElementById('imageInput').click();
-    });
-
-    document.getElementById('imageInput').addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var preview = document.getElementById('imagePreview');
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    });
-
-    document.getElementById('generateBtn').addEventListener('click', runGenerate);
-    document.getElementById('regenBtn').addEventListener('click', runGenerate);
-
-    document.getElementById('copyTitleBtn').addEventListener('click', function() {
-        copyText('titleText', this);
-    });
-    document.getElementById('copyContentBtn').addEventListener('click', function() {
-        copyText('contentText', this);
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', function() {
-        document.getElementById('productName').value = '';
-        document.getElementById('userMemo').value = '';
-        document.getElementById('experienceCheck').checked = false;
-        setRating(5);
-        document.getElementById('imageInput').value = '';
-        document.getElementById('imagePreview').style.display = 'none';
-        document.getElementById('imagePreview').src = '';
-        document.getElementById('resultCard').style.display = 'none';
-        document.getElementById('resultContent').style.display = 'none';
-        document.getElementById('errorMsg').style.display = 'none';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    async function runGenerate() {
-        var productName = document.getElementById('productName').value.trim();
-        var isCheoheomdan = document.getElementById('experienceCheck').checked;
-        var imageFile = document.getElementById('imageInput').files[0];
-        var userMemo = document.getElementById('userMemo').value.trim();
-
-        if (!productName) {
-            alert('상품명을 입력해주세요.');
-            return;
+    /* ---------- 서버 연결 (앱스 스크립트 / 그 외) ---------- */
+    function server(fn, arg) {
+        if (window.__testBackend) return window.__testBackend(fn, arg);
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            return new Promise(function(resolve, reject) {
+                var runner = google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(function(err) { reject(new Error(err && err.message ? err.message : '요청에 실패했어요')); });
+                if (arg === undefined) runner[fn](); else runner[fn](arg);
+            });
         }
-        if (selectedRating <= 3 && !userMemo) {
-            alert('별점 3점 이하는 어떤 점이 아쉬웠는지 메모에 적어주세요.');
-            document.getElementById('userMemo').focus();
-            return;
+        if (fn === 'callGemini') {
+            return fetch('/.netlify/functions/gemini', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(arg)
+            }).then(function(r) { return r.text(); });
         }
-
-        var btn = document.getElementById('generateBtn');
-        btn.disabled = true;
-        btn.textContent = '생성중...';
-
-        var resultCard = document.getElementById('resultCard');
-        var loadingMsg = document.getElementById('loadingMsg');
-        var errorMsg = document.getElementById('errorMsg');
-        var resultContent = document.getElementById('resultContent');
-
-        resultCard.style.display = 'block';
-        loadingMsg.style.display = 'block';
-        errorMsg.style.display = 'none';
-        resultContent.style.display = 'none';
-        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        try {
-            var imageBase64 = '';
-            var imageMimeType = '';
-            if (imageFile) {
-                var prepared = await prepareImage(imageFile);
-                imageBase64 = prepared.base64;
-                imageMimeType = prepared.mime;
-            }
-
-            var raw = await callGemini(productName, selectedPlatform, isCheoheomdan, userMemo, selectedGender, selectedAge, selectedRating, imageBase64, imageMimeType);
-
-            var titleMatch = raw.match(/제목:\s*(.+)/);
-            var contentMatch = raw.match(/본문:\s*([\s\S]+)/);
-            var title = titleMatch ? titleMatch[1].trim() : '';
-            var content = contentMatch ? contentMatch[1].trim() : raw.trim();
-
-            document.getElementById('titleText').textContent = title;
-            document.getElementById('contentText').textContent = content;
-
-            var titleInfo = document.getElementById('titleCharInfo');
-            titleInfo.textContent = title.length + '자';
-            titleInfo.className = 'char-info' + (title.length > 30 ? ' warn' : '');
-
-            var contentInfo = document.getElementById('contentCharInfo');
-            contentInfo.textContent = content.length + '자';
-            contentInfo.className = 'char-info' + (content.length < 500 ? ' warn' : '');
-
-            loadingMsg.style.display = 'none';
-            resultContent.style.display = 'block';
-            resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (err) {
-            loadingMsg.style.display = 'none';
-            errorMsg.style.display = 'block';
-            errorMsg.textContent = '오류: ' + (err.message || err);
-        }
-
-        btn.disabled = false;
-        btn.textContent = '리뷰 생성';
+        return Promise.resolve('');
     }
 
-    async function callGemini(productName, platform, isCheoheomdan, userMemo, gender, age, rating, imageBase64, imageMimeType) {
-        var ratingGuide = {
-            5: '별점 5점(아주 만족). 전반적으로 만족스러운 톤. 아쉬운 점은 없거나 사소한 것 하나 정도만.',
-            4: '별점 4점(만족). 대체로 만족하지만 아쉬운 점 한두 가지는 분명하게 언급.',
-            3: '별점 3점(보통). 좋은 점과 아쉬운 점을 비슷한 비중으로 작성. 무조건 추천하지 말고 조건부로만 추천.',
-            2: '별점 2점(불만족). 실망한 톤으로 작성. 아쉬운 점과 단점이 리뷰의 중심이고, 장점은 실제로 있었던 것만 짧게. 추천하지 않는 쪽으로 마무리.',
-            1: '별점 1점(매우 불만족). 크게 실망한 톤으로 작성. 문제점 위주로 쓰고 억지로 장점을 찾아 쓰지 말 것. 비추천으로 마무리.'
-        };
-        var platformMap = { naver: '네이버쇼핑', coupang: '쿠팡', etc: '쇼핑몰' };
-        var platformName = platformMap[platform] || '쇼핑몰';
+    function withTimeout(promise, ms, message) {
+        return new Promise(function(resolve, reject) {
+            var t = setTimeout(function() { reject(new Error(message)); }, ms);
+            promise.then(function(v) { clearTimeout(t); resolve(v); }, function(e) { clearTimeout(t); reject(e); });
+        });
+    }
 
-        var platformStyle = '';
-        if (platform === 'naver') {
-            platformStyle = '네이버쇼핑 리뷰 스타일로 작성해줘. 감성적이고 상세한 후기 느낌, 줄바꿈을 적절히 활용.';
-        } else if (platform === 'coupang') {
-            platformStyle = '쿠팡 리뷰 스타일로 작성해줘. 핵심을 잘 전달하는 간결하고 실용적인 스타일.';
+    /* ---------- 저장 ---------- */
+    var localTimer = null, serverTimer = null;
+    function snapshot(withHistory) {
+        var s = { prefs: state.prefs, draft: state.draft, result: state.result };
+        if (withHistory) s.history = state.history;
+        return JSON.stringify(s);
+    }
+    function save() {
+        clearTimeout(localTimer);
+        localTimer = setTimeout(function() {
+            try { localStorage.setItem(STORE_KEY, snapshot(true)); } catch (e) {}
+        }, 250);
+        clearTimeout(serverTimer);
+        serverTimer = setTimeout(function() {
+            var json = snapshot(false);
+            if (json.length < 8500) server('saveState', json).catch(function() {});
+        }, 2000);
+    }
+    function applySaved(raw) {
+        if (!raw) return false;
+        var s;
+        try { s = JSON.parse(raw); } catch (e) { return false; }
+        if (!s || typeof s !== 'object') return false;
+        var p = s.prefs || {};
+        if (['coupang', 'naver', 'etc'].indexOf(p.platform) >= 0) state.prefs.platform = p.platform;
+        if (['male', 'female'].indexOf(p.gender) >= 0) state.prefs.gender = p.gender;
+        if (['20', '30', '40', '50'].indexOf(p.age) >= 0) state.prefs.age = p.age;
+        if (['short', 'normal', 'long'].indexOf(p.length) >= 0) state.prefs.length = p.length;
+        if (['blue', 'green', 'purple', 'pink', 'mono'].indexOf(p.accent) >= 0) state.prefs.accent = p.accent;
+        state.prefs.cheoheom = !!p.cheoheom;
+        var fresh = Date.now() - KEEP_HOURS * 3600 * 1000;
+        var d = s.draft;
+        if (d && d.at > fresh) {
+            state.draft = { name: String(d.name || ''), memo: String(d.memo || ''), rating: [1, 2, 3, 4, 5].indexOf(d.rating) >= 0 ? d.rating : 5, at: d.at };
+        }
+        var r = s.result;
+        if (r && r.at > fresh && r.body) state.result = r;
+        if (Array.isArray(s.history)) state.history = s.history.filter(function(h) { return h && h.body; }).slice(0, HISTORY_MAX);
+        return true;
+    }
+
+    /* ---------- 화면 반영 ---------- */
+    function setSeg(id, value) {
+        var buttons = $(id).children;
+        for (var i = 0; i < buttons.length; i++) buttons[i].classList.toggle('on', buttons[i].getAttribute('data-v') === value);
+    }
+    function autoGrow(el) {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight + 3) + 'px';
+    }
+    function ageText(age) { return age === '50' ? '50대 이상' : age + '대'; }
+
+    function renderPrefs() {
+        var p = state.prefs;
+        document.documentElement.setAttribute('data-accent', p.accent);
+        setSeg('platformSeg', p.platform);
+        setSeg('genderSeg', p.gender);
+        setSeg('ageSeg', p.age);
+        setSeg('lengthSeg', p.length);
+        setSeg('swatches', p.accent);
+        $('settingsSummary').textContent = (p.age === '50' ? '50대+' : p.age + '대') + ' ' + (p.gender === 'male' ? '남성' : '여성') + ' · ' + LENGTH_LABEL[p.length];
+        var showCheo = p.platform === 'coupang';
+        $('cheoBtn').hidden = !showCheo;
+        $('cheoBtn').classList.toggle('on', showCheo && p.cheoheom);
+        $('cheoCheck').textContent = showCheo && p.cheoheom ? '✓' : '';
+    }
+    function renderRating() {
+        var n = state.draft.rating;
+        var stars = $('stars').children;
+        for (var i = 0; i < stars.length; i++) stars[i].classList.toggle('on', Number(stars[i].getAttribute('data-v')) <= n);
+        $('ratingText').textContent = n + '점 · ' + RATING_LABEL[n];
+        var hint = $('memoHint');
+        if (n <= 3) { hint.textContent = '필수 · 어떤 점이 아쉬웠나요?'; hint.classList.add('need'); }
+        else { hint.textContent = '선택 · 적은 내용이 그대로 반영돼요'; hint.classList.remove('need'); }
+        renderChips();
+    }
+    function chipList() {
+        var n = state.draft.rating;
+        return n >= 4 ? CHIPS.good : (n === 3 ? CHIPS.mid : CHIPS.bad);
+    }
+    function renderChips() {
+        var box = $('memoChips');
+        var memo = $('userMemo').value;
+        box.innerHTML = '';
+        chipList().forEach(function(text) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'chip' + (memo.indexOf(text) >= 0 ? ' on' : '');
+            b.textContent = text;
+            b.addEventListener('click', function() { toggleChip(text); });
+            box.appendChild(b);
+        });
+    }
+    function toggleChip(text) {
+        var el = $('userMemo');
+        var memo = el.value;
+        if (memo.indexOf(text) >= 0) {
+            memo = memo.replace(text, '').replace(/\s*,\s*,\s*/g, ', ').replace(/^\s*,\s*|\s*,\s*$/g, '').trim();
         } else {
-            platformStyle = '플랫폼 이름이나 업체명은 절대 언급하지 말고, 순수하게 제품 자체에 대한 평가만 작성해줘.';
+            memo = memo.trim() ? memo.trim().replace(/[,\s]+$/, '') + ', ' + text : text;
         }
-
-        var cheoheomNote = isCheoheomdan
-            ? '이 리뷰는 쿠팡 체험단으로 상품을 제공받아 작성하는 리뷰야. 너무 과하게 칭찬하지 않고 균형 잡힌 솔직한 후기 느낌으로 작성해줘.'
-            : '';
-
-        var memoSection = userMemo
-            ? '\n작성자 메모 (작성자가 실제로 겪은 사실. 리뷰의 중심 내용으로 삼을 것):\n"' + userMemo + '"\n'
-            : '';
-
-        var memoRules = userMemo
-            ? '- 메모는 실제 경험이므로 메모와 어긋나는 내용은 절대 쓰지 말 것 (예: 메모에 신선하지 않았다고 했으면 신선하다, 싱싱하다 같은 표현 금지)\n'
-            + '- 메모에 불만이나 아쉬운 점이 있으면 사용후기 한 줄로 축소하지 말고 제목, 요약, 사용후기, 총평 전체에 반영할 것\n'
-            + '- 메모에 없는 장점을 과장해서 지어내지 말 것. 메모에 없는 내용은 상품명과 이미지로 알 수 있는 범위에서만 담백하게\n'
-            : '';
-
-        var promptIntro = platform === 'etc'
-            ? '상품에 대한 리뷰를 작성해줘. 주어진 정보를 최대한 활용해서 자연스러운 리뷰를 써줘.\n\n'
-            : platformName + '에 올릴 상품리뷰를 작성해줘. 주어진 정보를 최대한 활용해서 자연스러운 리뷰를 써줘.\n\n';
-        var prompt = promptIntro
-            + '상품명: ' + productName + '\n'
-            + '작성자가 준 별점: ' + rating + '점 (5점 만점)\n'
-            + memoSection + '\n'
-            + '[전체 톤]\n'
-            + '- ' + ratingGuide[rating] + '\n'
-            + '- 제목, 요약, 사용후기, 총평 모두 이 별점과 같은 온도로 쓸 것. 별점보다 좋게 포장하지 말 것\n'
-            + memoRules + '\n'
-            + '[제목 조건]\n'
-            + '- 공백 포함 30자 이내로 작성\n'
-            + '- 제목에 "쿠팡체험단)" 또는 어떤 태그, 접두어도 절대 붙이지 말 것\n'
-            + '- 별점과 실제 사용 느낌이 그대로 드러나는 자연스러운 문장 (별점이 낮으면 아쉬움이나 실망이 제목에서 보이게)\n\n'
-            + '[본문 조건]\n'
-            + '- 500자 이상 작성\n'
-            + '- 첫 줄부터 바로 본문 시작 (인사말, 서론 없이)\n'
-            + '- 반드시 아래 3단락 구성으로 작성:\n'
-            + '  1) 제품특징: 상품의 주요 특징과 스펙 중심\n'
-            + '  2) 사용후기: 실제 써본 느낌. 좋은 점과 아쉬운 점의 비중은 별점에 맞출 것\n'
-            + '  3) 총평: 전반적인 평가와 별점에 맞는 결론 (추천, 조건부 추천, 비추천 중 하나)\n'
-            + '- 이모티콘, 이모지, 특수문자 일절 사용 금지\n'
-            + '- ' + (age + '대 ' + (gender === 'male' ? '남성' : '여성')) + '이 직접 쓴 것처럼 그 나이대와 성별에 맞는 자연스러운 말투와 표현 사용\n'
-            + '- AI 느낌 나지 않게, 진짜 사람이 쓴 것처럼 자연스러운 구어체\n'
-            + '- ' + platformStyle + '\n'
-            + (cheoheomNote ? '- ' + cheoheomNote + '\n' : '')
-            + '\n[출력 형식] 아래 형식을 정확히 따를 것. 다른 설명 없이.\n'
-            + '제목: (제목 내용)\n'
-            + '본문:\n'
-            + '(전체 리뷰를 2문장으로 요약. 별점에 맞는 전반적인 평가 중심)\n\n'
-            + '제품특징\n'
-            + '(제품특징 내용)\n\n'
-            + '사용후기\n'
-            + '(사용후기 내용)\n\n'
-            + '총평\n'
-            + '(총평 내용)';
-
-        var parts = [];
-        if (imageBase64 && imageMimeType) {
-            parts.push({ inline_data: { mime_type: imageMimeType, data: imageBase64 } });
+        el.value = memo;
+        onDraftInput();
+    }
+    function renderDraft() {
+        $('productName').value = state.draft.name;
+        $('userMemo').value = state.draft.memo;
+        $('clearName').hidden = !state.draft.name;
+        autoGrow($('productName'));
+        autoGrow($('userMemo'));
+        renderRating();
+    }
+    function onDraftInput() {
+        state.draft.name = $('productName').value;
+        state.draft.memo = $('userMemo').value;
+        state.draft.at = Date.now();
+        $('clearName').hidden = !state.draft.name;
+        autoGrow($('productName'));
+        autoGrow($('userMemo'));
+        renderChips();
+        save();
+    }
+    function renderPhoto() {
+        var btn = $('photoBtn');
+        btn.innerHTML = '';
+        if (image) {
+            var img = document.createElement('img');
+            img.src = image.preview; img.alt = '';
+            var label = document.createElement('span'); label.textContent = '사진 첨부됨';
+            var x = document.createElement('span'); x.className = 'x'; x.textContent = '×';
+            btn.appendChild(img); btn.appendChild(label); btn.appendChild(x);
+            btn.classList.add('on');
+        } else {
+            var s = document.createElement('span'); s.textContent = '사진 추가';
+            btn.appendChild(s);
+            btn.classList.remove('on');
         }
-        parts.push({ text: prompt });
-
-        var res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: parts }],
-                generationConfig: { temperature: 0.95, maxOutputTokens: 8192 }
-            })
-        });
-
-        var bodyText = await res.text();
-        var data;
-        try {
-            data = JSON.parse(bodyText);
-        } catch (e) {
-            if (res.status === 502 || res.status === 504) throw new Error('응답 시간이 초과됐습니다. 다시 시도해주세요.');
-            if (res.status === 413) throw new Error('사진 용량이 너무 큽니다. 다른 사진으로 시도해주세요.');
-            throw new Error('서버 응답을 읽지 못했습니다 (' + res.status + ')');
-        }
-        if (data.error) throw new Error(data.error.message);
-        var cand = data.candidates && data.candidates[0];
-        var out = cand && cand.content && cand.content.parts
-            ? cand.content.parts.map(function(p) { return p.text || ''; }).join('')
-            : '';
-        if (!out.trim()) throw new Error('리뷰가 생성되지 않았습니다. 다시 시도해주세요.');
-        return out;
+    }
+    function renderCounts() {
+        var t = $('titleText').value.length, b = $('bodyText').value.length;
+        $('titleCount').textContent = t + ' / 30자';
+        $('titleCount').classList.toggle('warn', t > 30);
+        var min = { short: 300, normal: 500, long: 800 }[state.prefs.length] || 0;
+        $('bodyCount').textContent = b + '자' + (b < min ? ' (목표 ' + min + '자)' : '');
+        $('bodyCount').classList.toggle('warn', b < min);
+    }
+    function renderCopyButtons() {
+        $('copyTitleBtn').textContent = copied.title ? '제목 복사됨 ✓' : '제목 복사';
+        $('copyTitleBtn').classList.toggle('done', copied.title);
+        $('copyBodyBtn').textContent = copied.body ? '본문 복사됨 ✓' : '본문 복사';
+        $('copyBodyBtn').classList.toggle('done', copied.body);
+    }
+    function showResultArea(mode, message) {   // mode: 'loading' | 'error' | 'done' | 'none'
+        $('result').hidden = mode === 'none';
+        $('loading').hidden = mode !== 'loading';
+        $('errorBox').hidden = mode !== 'error';
+        $('resultContent').hidden = mode !== 'done';
+        var bar = mode === 'done';
+        $('copyBar').hidden = !bar;
+        $('app').classList.toggle('has-bar', bar);
+        if (mode === 'error') $('errorText').textContent = message;
+    }
+    function renderResult() {
+        if (!state.result) { showResultArea('none'); return; }
+        showResultArea('done');
+        $('titleText').value = state.result.title;
+        $('bodyText').value = state.result.body;
+        autoGrow($('titleText'));
+        autoGrow($('bodyText'));
+        renderCounts();
+        renderCopyButtons();
+    }
+    var toastTimer = null;
+    function toast(message) {
+        var el = $('toast');
+        el.textContent = message;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { el.classList.remove('show'); }, 1800);
+    }
+    function scrollToResult() {
+        try { $('result').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
     }
 
+    /* ---------- 사진 ---------- */
+    function readAsDataURL(file) {
+        return new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
     // 폰 사진은 용량이 커서 긴 변 1280px JPEG로 줄여서 보냄
     function prepareImage(file) {
-        return readFileAsDataURL(file).then(function(dataUrl) {
+        return readAsDataURL(file).then(function(dataUrl) {
             return new Promise(function(resolve) {
-                var original = { base64: dataUrl.split(',')[1], mime: file.type || 'image/jpeg' };
+                var original = { base64: dataUrl.split(',')[1], mime: file.type || 'image/jpeg', preview: dataUrl };
                 var img = new Image();
                 img.onload = function() {
                     try {
@@ -599,7 +608,7 @@
                         ctx.fillRect(0, 0, canvas.width, canvas.height);
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         var out = canvas.toDataURL('image/jpeg', 0.85);
-                        resolve({ base64: out.split(',')[1], mime: 'image/jpeg' });
+                        resolve({ base64: out.split(',')[1], mime: 'image/jpeg', preview: out });
                     } catch (e) { resolve(original); }
                 };
                 img.onerror = function() { resolve(original); };
@@ -608,38 +617,412 @@
         });
     }
 
-    function readFileAsDataURL(file) {
-        return new Promise(function(resolve, reject) {
-            var reader = new FileReader();
-            reader.onload = function(e) { resolve(e.target.result); };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+    /* ---------- 프롬프트 ---------- */
+    function buildPrompt(o) {
+        var platformName = { naver: '네이버쇼핑', coupang: '쿠팡', etc: '쇼핑몰' }[o.platform] || '쇼핑몰';
+        var who = ageText(o.age) + ' ' + (o.gender === 'male' ? '남성' : '여성');
+        var tone = {
+            5: '별점 5점(아주 만족). 전반적으로 만족스러운 톤. 아쉬운 점은 없거나 사소한 것 하나 정도만.',
+            4: '별점 4점(만족). 대체로 만족하지만 아쉬운 점 한두 가지는 분명하게 언급.',
+            3: '별점 3점(보통). 좋은 점과 아쉬운 점을 비슷한 비중으로. 무조건 추천하지 말고 조건부로만 추천.',
+            2: '별점 2점(불만족). 실망한 톤. 아쉬운 점과 단점이 리뷰의 중심이고, 장점은 실제로 있었던 것만 짧게. 추천하지 않는 쪽으로 마무리.',
+            1: '별점 1점(매우 불만족). 크게 실망한 톤. 문제점 위주로 쓰고 억지로 장점을 찾아 쓰지 말 것. 비추천으로 마무리.'
+        }[o.rating];
+
+        var lines = [];
+        lines.push(o.platform === 'etc'
+            ? '상품 리뷰를 작성해줘. 실제로 구매해서 써본 사람이 직접 쓴 것처럼 자연스럽게.'
+            : platformName + '에 올릴 상품 리뷰를 작성해줘. 실제로 구매해서 써본 사람이 직접 쓴 것처럼 자연스럽게.');
+        lines.push('');
+        lines.push('상품명: ' + o.name);
+        lines.push('작성자가 준 별점: ' + o.rating + '점 (5점 만점)');
+        if (o.memo) lines.push('작성자 메모 (작성자가 실제로 겪은 사실. 리뷰의 중심 내용): "' + o.memo + '"');
+        if (o.hasImage) lines.push('첨부한 사진은 실제로 받은 상품 사진이야. 사진에서 확인되는 색상, 구성, 상태만 참고할 것.');
+        lines.push('');
+        lines.push('[전체 톤]');
+        lines.push('- ' + tone);
+        lines.push('- 제목과 본문 전체를 이 별점과 같은 온도로 쓸 것. 별점보다 좋게 포장하지 말 것');
+        if (o.memo) {
+            lines.push('- 메모는 실제 경험이므로 메모와 어긋나는 내용은 절대 쓰지 말 것 (예: 메모에 신선하지 않았다고 했으면 신선하다, 싱싱하다 같은 표현 금지)');
+            lines.push('- 메모에 불만이나 아쉬운 점이 있으면 한 줄로 축소하지 말고 제목과 본문 전체에 반영할 것');
+            lines.push('- 메모에 적힌 내용은 빠짐없이 리뷰에 녹일 것. 단, 메모 문장을 그대로 복사하지 말고 자연스러운 말로 풀어 쓸 것');
+            lines.push('- 메모에 없는 장점을 과장해서 지어내지 말 것');
+        } else {
+            lines.push('- 메모가 없으므로 상품명' + (o.hasImage ? '과 사진' : '') + '에서 알 수 있는 특징 위주로 쓸 것');
+        }
+        lines.push('- 메모에 없는 구체적인 사건이나 경험(며칠 만에 도착, 몇 번 써봄, 가족이나 지인 반응, 이전 제품과 비교, 버렸다 등)은 지어내지 말 것. 길이는 상품의 특징 설명과 느낌 표현으로 채울 것');
+        lines.push('- 식품, 영양제, 화장품이면 먹고 나서 몸이 좋아졌다거나 피부가 좋아졌다는 식의 효능, 효과는 쓰지 말 것 (맛, 향, 크기, 포장, 사용감 위주로)');
+        if (o.cheoheom) lines.push('- 쿠팡 체험단으로 상품을 제공받아 쓰는 리뷰야. 광고처럼 보이지 않게 균형 잡힌 솔직한 후기로 쓸 것');
+        lines.push('');
+        lines.push('[제목]');
+        lines.push('- 공백 포함 30자 이내 (꼭 지킬 것)');
+        lines.push('- "쿠팡체험단)" 같은 태그나 접두어는 붙이지 말 것');
+        lines.push('- 별점과 실제 느낌이 그대로 드러나는 자연스러운 한 문장 (별점이 낮으면 아쉬움이 제목에서 보이게)');
+        lines.push('');
+        lines.push('[본문]');
+        if (o.length === 'short') {
+            lines.push('- 공백 포함 350자 이상 (300자보다 짧으면 안 됨)');
+            lines.push('- 소제목 없이 문단 3개로. 문단마다 3~4문장, 전체 10문장 이상. 문단 사이는 빈 줄 하나');
+            lines.push('- 첫 문장부터 바로 본론 (인사말, 서론 없이)');
+        } else {
+            var n = o.length === 'long'
+                ? { chars: '1000자 이상 (800자보다 짧으면 안 됨)', sum: '3문장', feat: '6~7문장', use: '12~14문장', end: '4~5문장' }
+                : { chars: '650자 이상 (500자보다 짧으면 안 됨)', sum: '2문장', feat: '4~5문장', use: '8~9문장', end: '3~4문장' };
+            lines.push('- 공백 포함 ' + n.chars + '. 아래 문장 수를 꼭 채울 것');
+            lines.push('- 첫 줄부터 바로 본문 시작 (인사말, 서론 없이)');
+            lines.push('- 아래 구성을 그대로 따를 것. 각 부분 사이는 빈 줄 하나');
+            lines.push('  (맨 위) 전체 리뷰를 ' + n.sum + '으로 요약. 별점에 맞는 전반적인 평가');
+            lines.push('  제품특징 ← 이 단어만 한 줄로 쓰고, 다음 줄부터 상품의 주요 특징 ' + n.feat);
+            lines.push('  사용후기 ← 이 단어만 한 줄로 쓰고, 다음 줄부터 실제 써본 느낌 ' + n.use + '. 좋은 점과 아쉬운 점의 비중은 별점에 맞출 것');
+            lines.push('  총평 ← 이 단어만 한 줄로 쓰고, 다음 줄부터 전반적인 평가와 별점에 맞는 결론 ' + n.end + ' (추천, 조건부 추천, 비추천 중 하나)');
+        }
+        lines.push('');
+        lines.push('[말투]');
+        lines.push('- ' + who + '이 직접 쓴 것처럼 그 나이대와 성별에 맞는 자연스러운 구어체');
+        lines.push('- AI가 쓴 티가 나지 않게. 같은 어미 반복, 뻔한 감탄, 광고 문구 같은 과장 표현(최고, 완벽, 대박, 강추, 강력 추천, 적극 추천, 인생템, 가성비 갑 등)은 쓰지 말 것. 느낌표는 전체에서 1개 이하');
+        lines.push('- 이모티콘, 이모지, 특수문자(*, #, ~, ^ 등)는 쓰지 말 것');
+        if (o.platform === 'naver') lines.push('- 네이버쇼핑 리뷰 스타일. 조금 더 감성적이고 상세하게');
+        else if (o.platform === 'coupang') lines.push('- 쿠팡 리뷰 스타일. 핵심을 잘 전달하는 간결하고 실용적인 느낌');
+        else lines.push('- 쇼핑몰 이름이나 업체명은 언급하지 말고 제품 자체에 대한 평가만');
+        lines.push('');
+        lines.push('[출력]');
+        lines.push('- title 에 제목, body 에 본문. 본문의 줄바꿈은 그대로 유지. 다른 설명은 넣지 말 것');
+        return lines.join('\n');
+    }
+
+    function parseReview(text) {
+        var title = '', body = '';
+        try {
+            var obj = JSON.parse(text);
+            title = String(obj.title || '');
+            body = String(obj.body || '');
+        } catch (e) {
+            var t = text.match(/제목:\s*(.+)/);
+            var b = text.match(/본문:\s*([\s\S]+)/);
+            title = t ? t[1] : '';
+            body = b ? b[1] : text;
+        }
+        title = title.replace(/[\r\n]+/g, ' ').replace(/^["'“”\s]+|["'“”\s]+$/g, '').trim();
+        body = body.replace(/\r/g, '').replace(/\\n/g, '\n').replace(/[*#]+/g, '')
+            .replace(/([.!?])(?=[가-힣A-Za-z])/g, '$1 ')            // "없네요.정말" → "없네요. 정말"
+            .replace(/[ \t]+\n/g, '\n');
+        // AI가 줄바꿈을 빼먹고 소제목까지 붙여 쓴 경우만 바로잡기
+        if ((body.match(/\n/g) || []).length < 3) {
+            body = body.replace(/([.!?])\s*(제품특징|사용후기|총평)\s*/g, '$1\n\n$2\n');
+        }
+        body = body.replace(/\n{3,}/g, '\n\n').trim();
+        return { title: title, body: body };
+    }
+
+    function friendlyError(err) {
+        var m = String((err && err.message) || err || '');
+        if (/quota|RESOURCE_EXHAUSTED|429/i.test(m)) return '오늘 사용량이 다 찼어요. 잠시 뒤에 다시 시도해주세요.';
+        if (/overloaded|UNAVAILABLE|503|500/i.test(m)) return 'AI 서버가 잠깐 바빠요. 다시 시도해주세요.';
+        if (/API key|PERMISSION_DENIED|401|403/i.test(m)) return 'API 키에 문제가 있어요. 키를 확인해주세요.';
+        if (/Failed to fetch|NetworkError|network/i.test(m)) return '인터넷 연결을 확인하고 다시 시도해주세요.';
+        return m || '리뷰를 만들지 못했어요. 다시 시도해주세요.';
+    }
+
+    /* ---------- 리뷰 만들기 ---------- */
+    function requestReview(o) {
+        var parts = [];
+        if (image) parts.push({ inline_data: { mime_type: image.mime, data: image.base64 } });
+        parts.push({ text: buildPrompt(o) });
+        var payload = {
+            contents: [{ parts: parts }],
+            generationConfig: {
+                temperature: 0.9,
+                maxOutputTokens: 4096,
+                thinkingConfig: { thinkingBudget: 0 },
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: 'OBJECT',
+                    properties: { title: { type: 'STRING' }, body: { type: 'STRING' } },
+                    required: ['title', 'body']
+                }
+            }
+        };
+        function once() {
+            return withTimeout(server('callGemini', payload), 60000, '시간이 너무 오래 걸려요. 다시 시도해주세요.');
+        }
+        function transient(text) {
+            try {
+                var d = JSON.parse(text);
+                if (!d.error) return false;
+                return /overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|INTERNAL|503|500|429/i.test((d.error.status || '') + ' ' + (d.error.code || '') + ' ' + (d.error.message || ''));
+            } catch (e) { return false; }
+        }
+        return once().then(function(text) {
+            if (!transient(text)) return text;
+            $('waitText').textContent = 'AI가 바빠서 한 번 더 시도하고 있어요…';
+            return new Promise(function(r) { setTimeout(r, 2500); }).then(once);
+        }).then(function(text) {
+            var data;
+            try { data = JSON.parse(text); } catch (e) { throw new Error('서버 응답을 읽지 못했어요. 다시 시도해주세요.'); }
+            if (data.error) throw new Error((data.error.status || '') + ' ' + (data.error.message || '요청에 실패했어요'));
+            var cand = data.candidates && data.candidates[0];
+            var out = cand && cand.content && cand.content.parts
+                ? cand.content.parts.map(function(p) { return p.text || ''; }).join('')
+                : '';
+            if (!out.trim()) throw new Error('리뷰가 만들어지지 않았어요. 다시 시도해주세요.');
+            var review = parseReview(out);
+            if (!review.body) throw new Error('리뷰가 만들어지지 않았어요. 다시 시도해주세요.');
+            return review;
         });
     }
 
-    function copyText(elementId, btn) {
-        var text = document.getElementById(elementId).textContent;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(function() {
-                btn.textContent = '복사완료!';
-                setTimeout(function() {
-                    btn.textContent = elementId === 'titleText' ? '제목 복사' : '본문 복사';
-                }, 2000);
-            });
-        } else {
-            var el = document.getElementById(elementId);
-            var range = document.createRange();
-            range.selectNode(el);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            document.execCommand('copy');
-            window.getSelection().removeAllRanges();
-            btn.textContent = '복사완료!';
-            setTimeout(function() {
-                btn.textContent = elementId === 'titleText' ? '제목 복사' : '본문 복사';
-            }, 2000);
+    function generate() {
+        if (busy) return;
+        var name = $('productName').value.trim();
+        var memo = $('userMemo').value.trim();
+        if (!name) {
+            toast('상품명을 입력해주세요');
+            $('productName').focus();
+            return;
         }
+        if (state.draft.rating <= 3 && !memo) {
+            toast('아쉬웠던 점을 메모에 적어주세요');
+            $('userMemo').focus();
+            return;
+        }
+        busy = true;
+        var btn = $('generateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>쓰는 중…';
+        $('regenBtn').disabled = true;
+        $('waitText').textContent = '리뷰를 쓰고 있어요…';
+        showResultArea('loading');
+        scrollToResult();
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+
+        var p = state.prefs;
+        var o = {
+            name: name, memo: memo, rating: state.draft.rating, platform: p.platform, gender: p.gender, age: p.age,
+            length: p.length, cheoheom: p.platform === 'coupang' && p.cheoheom, hasImage: !!image
+        };
+        requestReview(o).then(function(review) {
+            state.result = { title: review.title, body: review.body, name: name, rating: o.rating, at: Date.now() };
+            state.history.unshift({ title: review.title, body: review.body, name: name, rating: o.rating, at: state.result.at });
+            state.history = state.history.slice(0, HISTORY_MAX);
+            copied = { title: false, body: false };
+            renderResult();
+            scrollToResult();
+            save();
+        }).catch(function(err) {
+            showResultArea('error', friendlyError(err));
+        }).then(function() {
+            busy = false;
+            btn.disabled = false;
+            btn.textContent = '리뷰 만들기';
+            $('regenBtn').disabled = false;
+        });
     }
+
+    function resetAll() {
+        state.draft = { name: '', memo: '', rating: 5, at: Date.now() };
+        state.result = null;
+        image = null;
+        $('imageInput').value = '';
+        copied = { title: false, body: false };
+        renderDraft();
+        renderPhoto();
+        renderResult();
+        save();
+        window.scrollTo(0, 0);
+        $('productName').focus();
+    }
+
+    /* ---------- 복사 ---------- */
+    function copyString(text) {
+        var ok = false;
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+        } catch (e) {}
+        if (ok) return Promise.resolve();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return withTimeout(navigator.clipboard.writeText(text), 1500, 'copy');
+        }
+        return Promise.reject(new Error('copy'));
+    }
+    function doCopy(which) {
+        var text = $(which === 'title' ? 'titleText' : 'bodyText').value;
+        copyString(text).then(function() {
+            copied[which] = true;
+            renderCopyButtons();
+            toast((which === 'title' ? '제목' : '본문') + '을 복사했어요');
+        }, function() {
+            var el = $(which === 'title' ? 'titleText' : 'bodyText');
+            try { el.focus(); el.select(); el.setSelectionRange(0, el.value.length); } catch (e) {}
+            toast('글을 선택해 뒀어요. 길게 눌러 복사해주세요');
+        });
+    }
+
+    /* ---------- 최근 리뷰 ---------- */
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function timeText(at) {
+        var d = new Date(at);
+        return (d.getMonth() + 1) + '.' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function openHistory() {
+        var list = $('historyList');
+        list.innerHTML = '';
+        if (!state.history.length) {
+            var empty = document.createElement('div');
+            empty.className = 'empty';
+            empty.textContent = '아직 만든 리뷰가 없어요';
+            list.appendChild(empty);
+        }
+        state.history.forEach(function(h) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.className = 'hist';
+            var n = document.createElement('div'); n.className = 'n'; n.textContent = h.name || h.title;
+            var m = document.createElement('div'); m.className = 'm';
+            var stars = document.createElement('b'); stars.textContent = '★★★★★'.slice(0, h.rating || 5);
+            m.appendChild(stars);
+            m.appendChild(document.createTextNode('  ' + timeText(h.at) + '  ·  ' + h.title));
+            b.appendChild(n); b.appendChild(m);
+            b.addEventListener('click', function() {
+                state.result = { title: h.title, body: h.body, name: h.name, rating: h.rating, at: Date.now() };
+                copied = { title: false, body: false };
+                closeHistory();
+                renderResult();
+                scrollToResult();
+                save();
+            });
+            list.appendChild(b);
+        });
+        $('backdrop').hidden = false;
+        $('historySheet').hidden = false;
+    }
+    function closeHistory() {
+        $('backdrop').hidden = true;
+        $('historySheet').hidden = true;
+    }
+
+    /* ---------- 이벤트 ---------- */
+    function bindSeg(id, key, after) {
+        $(id).addEventListener('click', function(e) {
+            var b = e.target.closest('button');
+            if (!b) return;
+            state.prefs[key] = b.getAttribute('data-v');
+            renderPrefs();
+            save();
+            if (after) after();
+        });
+    }
+    bindSeg('platformSeg', 'platform');
+    bindSeg('genderSeg', 'gender');
+    bindSeg('ageSeg', 'age');
+    bindSeg('lengthSeg', 'length');
+    bindSeg('swatches', 'accent');
+
+    $('stars').addEventListener('click', function(e) {
+        var b = e.target.closest('button');
+        if (!b) return;
+        state.draft.rating = Number(b.getAttribute('data-v'));
+        state.draft.at = Date.now();
+        renderRating();
+        save();
+    });
+    $('productName').addEventListener('input', onDraftInput);
+    $('productName').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
+    });
+    $('userMemo').addEventListener('input', onDraftInput);
+    $('clearName').addEventListener('click', function() {
+        $('productName').value = '';
+        onDraftInput();
+        $('productName').focus();
+    });
+    $('cheoBtn').addEventListener('click', function() {
+        state.prefs.cheoheom = !state.prefs.cheoheom;
+        renderPrefs();
+        save();
+    });
+    $('photoBtn').addEventListener('click', function() {
+        if (image) {
+            image = null;
+            $('imageInput').value = '';
+            renderPhoto();
+        } else {
+            $('imageInput').click();
+        }
+    });
+    $('imageInput').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        prepareImage(file).then(function(prepared) {
+            image = prepared;
+            renderPhoto();
+        }, function() { toast('사진을 불러오지 못했어요'); });
+    });
+    $('settingsRow').addEventListener('click', function() {
+        var panel = $('settingsPanel');
+        panel.hidden = !panel.hidden;
+        this.classList.toggle('open', !panel.hidden);
+    });
+    $('generateBtn').addEventListener('click', generate);
+    $('regenBtn').addEventListener('click', generate);
+    $('retryBtn').addEventListener('click', generate);
+    $('resetBtn').addEventListener('click', resetAll);
+    $('copyTitleBtn').addEventListener('click', function() { doCopy('title'); });
+    $('copyBodyBtn').addEventListener('click', function() { doCopy('body'); });
+    $('historyBtn').addEventListener('click', openHistory);
+    $('historyClose').addEventListener('click', closeHistory);
+    $('backdrop').addEventListener('click', closeHistory);
+
+    function onResultEdit() {
+        if (!state.result) return;
+        state.result.title = $('titleText').value;
+        state.result.body = $('bodyText').value;
+        if (state.history[0] && state.history[0].at === state.result.at) {
+            state.history[0].title = state.result.title;
+            state.history[0].body = state.result.body;
+        }
+        copied = { title: false, body: false };
+        autoGrow($('titleText'));
+        autoGrow($('bodyText'));
+        renderCounts();
+        renderCopyButtons();
+        save();
+    }
+    $('titleText').addEventListener('input', onResultEdit);
+    $('bodyText').addEventListener('input', onResultEdit);
+    window.addEventListener('resize', function() {
+        ['productName', 'userMemo', 'titleText', 'bodyText'].forEach(function(id) { autoGrow($(id)); });
+    });
+
+    /* ---------- 시작 ---------- */
+    function renderAll() {
+        renderPrefs();
+        renderDraft();
+        renderPhoto();
+        renderResult();
+    }
+    var hadLocal = false;
+    try { hadLocal = applySaved(localStorage.getItem(STORE_KEY)); } catch (e) {}
+    renderAll();
+    $('ver').textContent = 'v' + APP_VERSION;
+
+    // 이 기기에 저장된 설정이 없으면 서버에 저장해 둔 설정을 불러옴 (아이폰은 앱을 닫으면 기기 저장이 지워질 수 있음)
+    if (!hadLocal) {
+        server('getState').then(function(raw) {
+            if (!raw || busy || $('productName').value || $('userMemo').value) return;
+            if (applySaved(raw)) renderAll();
+        }).catch(function() {});
+    }
+
+    window.__app = { state: state, buildPrompt: buildPrompt, parseReview: parseReview, generate: generate, version: APP_VERSION };
+})();
 </script>
 </body>
 </html>

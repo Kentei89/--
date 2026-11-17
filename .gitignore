@@ -3,3 +3,6 @@
 **/.streamlit/secrets.toml
 __pycache__/
 *.pyc
+
+# 앱스 스크립트용 코드(키 포함)
+리뷰앱_앱스스크립트/Code.gs
