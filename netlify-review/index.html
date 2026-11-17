@@ -59,7 +59,8 @@ html[data-accent="mono"]   { --accent: #23272e; --accent-soft: #eceef1; }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+button, textarea, input { touch-action: manipulation; }
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Malgun Gothic', sans-serif;
     background: var(--bg); color: var(--text);
@@ -347,7 +348,7 @@ textarea:focus { border-color: var(--accent); background: var(--field-focus); }
 (function() {
     'use strict';
 
-    var APP_VERSION = '2026.11.18-4';
+    var APP_VERSION = '2026.11.18-5';
     var STORE_KEY = 'reviewApp.v2';
     var KEEP_HOURS = 6;          // 이 시간 안에 다시 열면 쓰던 내용과 결과를 그대로 보여줌
     var HISTORY_MAX = 8;
