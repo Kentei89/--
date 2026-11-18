@@ -348,10 +348,16 @@ textarea:focus { border-color: var(--accent); background: var(--field-focus); }
 (function() {
     'use strict';
 
-    var APP_VERSION = '2026.11.18-5';
+    var APP_VERSION = '2026.11.19-1';
     var STORE_KEY = 'reviewApp.v2';
     var KEEP_HOURS = 6;          // 이 시간 안에 다시 열면 쓰던 내용과 결과를 그대로 보여줌
     var HISTORY_MAX = 8;
+    // 사용할 AI 모델 순서. 앞 모델이 바쁘거나 오류면 다음 모델로 자동 전환 (2026-11-19 테스트: 2.5 Flash 3초, 3.5 Flash-Lite 2.5초)
+    // 3.8 Flash는 이 키로 쓸 수 있지만 테스트 당시 혼잡(503)·응답 지연이 심해서 제외
+    var AI_MODELS = [
+        { name: 'gemini-2.5-flash', thinking: { thinkingBudget: 0 } },
+        { name: 'gemini-3.5-flash-lite', thinking: { thinkingLevel: 'minimal' } }
+    ];
 
     var RATING_LABEL = { 5: '아주 만족', 4: '만족', 3: '보통', 2: '불만족', 1: '매우 불만족' };
     var LENGTH_LABEL = { short: '짧게', normal: '보통 길이', long: '길게' };
@@ -374,14 +380,14 @@ textarea:focus { border-color: var(--accent); background: var(--field-focus); }
     function $(id) { return document.getElementById(id); }
 
     /* ---------- 서버 연결 (앱스 스크립트 / 그 외) ---------- */
-    function server(fn, arg) {
-        if (window.__testBackend) return window.__testBackend(fn, arg);
+    function server(fn, arg, arg2) {
+        if (window.__testBackend) return window.__testBackend(fn, arg, arg2);
         if (typeof google !== 'undefined' && google.script && google.script.run) {
             return new Promise(function(resolve, reject) {
                 var runner = google.script.run
                     .withSuccessHandler(resolve)
                     .withFailureHandler(function(err) { reject(new Error(err && err.message ? err.message : '요청에 실패했어요')); });
-                if (arg === undefined) runner[fn](); else runner[fn](arg);
+                if (arg === undefined) runner[fn](); else if (arg2 === undefined) runner[fn](arg); else runner[fn](arg, arg2);
             });
         }
         if (fn === 'callGemini') {
@@ -744,7 +750,7 @@ textarea:focus { border-color: var(--accent); background: var(--field-focus); }
             }
         };
         function once() {
-            return withTimeout(server('callGemini', payload), 60000, '시간이 너무 오래 걸려요. 다시 시도해주세요.');
+            return withTimeout(server('callGemini', payload, { models: AI_MODELS }), 90000, '시간이 너무 오래 걸려요. 다시 시도해주세요.');
         }
         function transient(text) {
             try {
